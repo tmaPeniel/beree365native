@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import CircularProgress from '@/components/CircularProgress';
 import ReadingPlan from '@/components/ReadingPlan';
@@ -78,6 +77,7 @@ const Dashboard = () => {
           remainingDays={remainingDays}
           readingItems={readingItems}
           onToggleRead={handleToggleRead}
+          verseOfDay={mockVerseOfDay}
         />
         
         <Card className="bg-white border-none shadow-sm">

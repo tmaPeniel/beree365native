@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 
 // Simple mock data for reading plan
 interface ReadingItem {
@@ -8,16 +8,18 @@ interface ReadingItem {
   completed: boolean;
 }
 
+interface VerseOfDay {
+  text: string;
+  reference: string;
+}
+
 interface ReadingPlanProps {
   day: number;
   totalDays: number;
   startDate: Date;
   endDate: Date;
   remainingDays: number;
-  verseOfDay: {
-    text: string;
-    reference: string;
-  };
+  verseOfDay: VerseOfDay;
   readingItems: ReadingItem[];
   onToggleRead: (id: string) => void;
 }
@@ -36,7 +38,7 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({
     <div className="card-reading animate-fade-in">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-xl font-semibold">Aujourd'hui</h2>
-        <span className="text-sm bg-beree-100 text-beree-700 py-1 px-2 rounded-full">
+        <span className="text-sm bg-green-100 text-green-700 py-1 px-2 rounded-full">
           Jour {day}/{totalDays}
         </span>
       </div>
@@ -53,7 +55,7 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({
                   onChange={() => onToggleRead(item.id)}
                   className="peer sr-only"
                 />
-                <div className="h-5 w-5 border-2 border-beree-300 rounded mr-3 flex items-center justify-center transition-colors peer-checked:bg-beree-500 peer-checked:border-beree-500">
+                <div className="h-5 w-5 border-2 border-green-300 rounded mr-3 flex items-center justify-center transition-colors peer-checked:bg-green-500 peer-checked:border-green-500">
                   {item.completed && (
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -78,10 +80,10 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({
         </ul>
       </div>
       
-      <div className="bg-beree-50 rounded-lg p-4 mb-4">
-        <h3 className="font-medium text-beree-700 mb-2 text-sm">Verset du jour</h3>
+      <div className="bg-green-50 rounded-lg p-4 mb-4">
+        <h3 className="font-medium text-green-700 mb-2 text-sm">Verset du jour</h3>
         <p className="text-gray-700 italic mb-2">"{verseOfDay.text}"</p>
-        <p className="text-right text-sm text-beree-600">{verseOfDay.reference}</p>
+        <p className="text-right text-sm text-green-600">{verseOfDay.reference}</p>
       </div>
       
       <div className="text-sm text-gray-500 grid grid-cols-2 gap-2">
