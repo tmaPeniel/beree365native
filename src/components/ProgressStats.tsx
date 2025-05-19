@@ -47,7 +47,7 @@ const ProgressStats: React.FC<ProgressStatsProps> = ({ stats }) => {
               <span className="text-xs text-gray-600">Passages Lus</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-red-500 rounded-full mr-1"></div>
+              <div className="w-3 h-3 bg-gray-500 rounded-full mr-1"></div>
               <span className="text-xs text-gray-600">Restants</span>
             </div>
           </div>
