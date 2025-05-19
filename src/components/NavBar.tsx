@@ -20,7 +20,7 @@ const NavBar = () => {
           className={`nav-item ${location.pathname === '/reading' ? 'nav-item-active' : 'text-gray-500'}`}
         >
           <BookOpen className="h-5 w-5 mb-1" />
-          <span>Lecture</span>
+          <span>Planner 365</span>
         </Link>
         <Link 
           to="/profile" 
