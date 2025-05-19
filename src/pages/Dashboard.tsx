@@ -11,6 +11,7 @@ import {
   getPlanDates,
   ReadingItem
 } from '@/utils/readingPlanUtils';
+import PlanDates from '@/components/ui/PlanDate';
 
 const Dashboard = () => {
   // Get initial data from our utilities
@@ -59,23 +60,27 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold mb-2">Tableau de bord</h1>
-        <p className="text-gray-500">Suivez votre progression quotidienne</p>
+        <h1 className="text-2xl font-bold mb-2">Le Tour de ma Bible en 365 jours</h1>
+        <p className="text-gray-500">SISAP Editions Powered</p>
       </div>
+
+      <VerseOfDay verseOfDay={todayPlan.verseOfDay} />
       
       <div className="p-6 space-y-6">
         <ProgressStats stats={stats} />
-        
-        <ReadingPlan
-          dayNumber={todayPlan.id}
-          readingItems={readingItems}
-          onToggleRead={handleToggleRead}
+
+        <PlanDates
           startDate={startDate}
           endDate={endDate}
           remainingDays={remainingDays}
         />
         
-        <VerseOfDay verseOfDay={todayPlan.verseOfDay} />
+        <ReadingPlan
+          dayNumber={todayPlan.id}
+          readingItems={readingItems}
+          onToggleRead={handleToggleRead}
+        />
+        
       </div>
       
       <NavBar />
