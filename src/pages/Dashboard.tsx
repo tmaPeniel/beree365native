@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import CircularProgress from '@/components/CircularProgress';
 import ReadingPlan from '@/components/ReadingPlan';
 import NavBar from '@/components/NavBar';
+import { Card, CardContent } from "@/components/ui/card";
 
 // Mock data
 const mockReadingItems = [
@@ -17,7 +18,7 @@ const mockVerseOfDay = {
 };
 
 const Dashboard = () => {
-  const [progress, setProgress] = useState(0);
+  const [progress, setProgress] = useState(15); // Starting with 15% total progress as example
   const [readingItems, setReadingItems] = useState(mockReadingItems);
   
   // Calculate dates
@@ -27,7 +28,7 @@ const Dashboard = () => {
   
   // Calculate days
   const totalDays = 365;
-  const currentDay = 1;
+  const currentDay = 55; // Example: day 55 of 365
   const remainingDays = totalDays - currentDay;
   
   const handleToggleRead = (id: string) => {
@@ -39,10 +40,16 @@ const Dashboard = () => {
         return item;
       });
       
-      // Update progress
+      // Calculate daily progress for the items
       const completedCount = newItems.filter(item => item.completed).length;
-      const newProgress = (completedCount / newItems.length) * 100;
-      setProgress(newProgress);
+      const dailyProgress = (completedCount / newItems.length) * 100;
+      
+      // For this example, we'll update total progress slightly when items are completed
+      // In a real app, this would need to calculate based on all chapters in the plan
+      if (dailyProgress === 100 && progress < 100) {
+        // Increment total progress by a small amount when all daily items are completed
+        setProgress(Math.min(progress + (100 / totalDays), 100));
+      }
       
       return newItems;
     });
@@ -55,11 +62,11 @@ const Dashboard = () => {
         <p className="text-gray-500">Suivez votre progression quotidienne</p>
       </div>
       
-      <div className="p-6 flex flex-col items-center">
-        <div className="w-full mb-6 flex justify-center">
+      <div className="p-6 space-y-6">
+        <div className="w-full flex justify-center">
           <CircularProgress 
             progress={progress} 
-            className="text-beree-500"
+            className="text-green-500"
           />
         </div>
         
@@ -69,10 +76,19 @@ const Dashboard = () => {
           startDate={startDate}
           endDate={endDate}
           remainingDays={remainingDays}
-          verseOfDay={mockVerseOfDay}
           readingItems={readingItems}
           onToggleRead={handleToggleRead}
         />
+        
+        <Card className="bg-white border-none shadow-sm">
+          <CardContent className="p-6">
+            <h2 className="text-lg font-semibold mb-3">Verset du jour</h2>
+            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+              <p className="text-gray-700 italic mb-2">{mockVerseOfDay.text}</p>
+              <p className="text-right text-sm text-gray-500">{mockVerseOfDay.reference}</p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
       
       <NavBar />
