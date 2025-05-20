@@ -1,102 +1,60 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import React, { useState, useEffect } from 'react';
 import DayCard from '@/components/DayCard';
 import NavBar from '@/components/NavBar';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useAuth } from '@/hooks/useAuth';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { getUserProgressForDay, getReadingPlanForDay, toggleChapterStatus } from '@/services/readingPlanService';
-import { Check } from 'lucide-react';
+import { getPlanDates } from '@/utils/readingPlanUtils';
 
 const Reading = () => {
   const isMobile = useIsMobile();
-  const { profile, user } = useAuth();
-  const [yearData, setYearData] = useState<any[]>([]);
-  const [selectedDay, setSelectedDay] = useState<null | any>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   
-  // Generate days for the entire year based on user's start date
-  useEffect(() => {
-    const generateYearData = async () => {
-      if (!profile || !user) return;
-      
-      setIsLoading(true);
-      const days = [];
-      const planStartDate = new Date(profile.start_date);
-      const today = new Date();
-      
-      // Generate 365 days starting from plan start date
-      for (let i = 0; i < 365; i++) {
-        const currentDate = new Date(planStartDate);
-        currentDate.setDate(planStartDate.getDate() + i);
-        
-        // Check if this date is today
-        const isToday = currentDate.toDateString() === today.toDateString();
-        
-        // We'll set progress percentage to 0 initially and update it later for days we've fetched
-        days.push({
-          day: i + 1,
-          date: currentDate,
-          completed: currentDate < today, // Mark as completed if date is in the past
-          isToday: isToday,
-          progressPercentage: 0,
-          chapters: [] // We'll populate this when the day is clicked
-        });
-      }
-      
-      setYearData(days);
-      setIsLoading(false);
-    };
-    
-    generateYearData();
-  }, [profile, user]);
+  // Fetch plan start date from utils
+  const { startDate } = getPlanDates();
 
-  const handleDayClick = async (day: any) => {
-    if (!user) return;
+  // Generate days for the entire year starting from plan start date
+  const generateYearData = () => {
+    const days = [];
+    const planStartDate = new Date(startDate);
+    const today = new Date();
     
-    setSelectedDay(day);
+    // Generate 365 days starting from plan start date
+    for (let i = 0; i < 365; i++) {
+      const currentDate = new Date(planStartDate);
+      currentDate.setDate(planStartDate.getDate() + i);
+      
+      // Check if this date is today
+      const isToday = currentDate.toDateString() === today.toDateString();
+      
+      // Calculate a random progress percentage for each day that is in the past
+      const progressPercentage = currentDate < today ? 
+        Math.floor(Math.random() * 100) : 0; // Just for demonstration
+      
+      days.push({
+        day: i + 1,
+        date: currentDate,
+        completed: currentDate < today, // Mark as completed if date is in the past
+        isToday: isToday,
+        progressPercentage: progressPercentage,
+        chapters: [
+          { id: `${i}-1`, chapter: `Genèse ${i+1}`, completed: currentDate < today },
+          { id: `${i}-2`, chapter: `Exode ${i+1}`, completed: currentDate < today },
+          { id: `${i}-3`, chapter: `Lévitique ${i+1}`, completed: currentDate < today },
+        ]
+      });
+    }
     
-    // Fetch chapters for this day
-    const chaptersData = await getReadingPlanForDay(day.day);
-    const progressData = await getUserProgressForDay(user.id, day.day);
-    
-    // Create an array of chapters with completed status
-    const chapters = chaptersData.map(chapter => {
-      const progressItem = progressData.find(p => p.chapter_id === chapter.id);
-      return {
-        id: chapter.id,
-        chapter: chapter.reference,
-        completed: progressItem ? progressItem.status === 'completed' : false
-      };
-    });
-    
-    // Update the selected day with fetched chapters
-    setSelectedDay(prev => ({
-      ...prev,
-      chapters
-    }));
-    
-    setDialogOpen(true);
+    return days;
   };
 
-  const handleToggleChapter = async (chapterId: string, completed: boolean) => {
-    if (!user || !selectedDay) return;
-    
-    // Update in Supabase
-    const result = await toggleChapterStatus(user.id, chapterId, completed ? 'completed' : 'pending');
-    
-    if (result.success) {
-      // Update local state
-      setSelectedDay(prev => ({
-        ...prev,
-        chapters: prev.chapters.map((chapter: any) => 
-          chapter.id === chapterId 
-            ? { ...chapter, completed: !chapter.completed } 
-            : chapter
-        )
-      }));
-    }
+  const [yearData, setYearData] = useState(generateYearData());
+  const [selectedDay, setSelectedDay] = useState<null | any>(null);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  
+  const handleDayClick = (day: any) => {
+    setSelectedDay(day);
+    setDialogOpen(true);
   };
 
   // Group days into rows (approximately 30 days per row)
@@ -121,24 +79,7 @@ const Reading = () => {
     if (todayElement) {
       todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
-  }, [yearData]);
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-50 pb-20">
-        <div className="bg-white p-4 md:p-6 shadow-sm">
-          <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Planner Lecture Bible 365</h1>
-          <p className="text-sm md:text-base text-gray-500">Suivez votre progression sur toute l'année</p>
-        </div>
-        
-        <div className="flex justify-center items-center h-64">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-        </div>
-
-        <NavBar />
-      </div>
-    );
-  }
+  }, []);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -158,6 +99,7 @@ const Reading = () => {
                     date={day.date.toISOString()}
                     completed={day.completed}
                     isToday={day.isToday}
+                    progressPercentage={day.progressPercentage}
                     onClick={() => handleDayClick(day)}
                   />
                 </div>
@@ -180,33 +122,35 @@ const Reading = () => {
           
           <div className="py-4">
             <h3 className="font-medium text-gray-700 mb-4">Chapitres du jour</h3>
-            {selectedDay?.chapters?.length > 0 ? (
-              <ul className="space-y-3">
-                {selectedDay.chapters.map((item: any) => (
-                  <li key={item.id} className="flex items-center">
-                    <button 
-                      className="flex items-center w-full text-left"
-                      onClick={() => handleToggleChapter(item.id, item.completed)}
-                    >
-                      <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center 
-                        ${item.completed 
-                          ? 'bg-green-500 text-white' 
-                          : 'bg-gray-200 text-gray-400 border-2 border-gray-300'
-                        }`}>
-                        {item.completed && <Check className="h-3 w-3" />}
-                      </div>
-                      <span className={`${item.completed ? 'text-gray-400 line-through' : 'text-gray-800'}`}>
-                        {item.chapter}
-                      </span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-center text-gray-500">
-                Aucun chapitre trouvé pour ce jour
-              </p>
-            )}
+            <ul className="space-y-3">
+              {selectedDay?.chapters.map((item: any) => (
+                <li key={item.id} className="flex items-center">
+                  <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center 
+                    ${item.completed 
+                      ? 'bg-green-500 text-white' 
+                      : 'bg-gray-200 text-gray-400'
+                    }`}>
+                    {item.completed && (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        className="h-3 w-3"
+                        viewBox="0 0 20 20"
+                        fill="currentColor"
+                      >
+                        <path
+                          fillRule="evenodd"
+                          d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
+                          clipRule="evenodd"
+                        />
+                      </svg>
+                    )}
+                  </div>
+                  <span className={`${item.completed ? 'text-gray-400' : 'text-gray-800'}`}>
+                    {item.chapter}
+                  </span>
+                </li>
+              ))}
+            </ul>
           </div>
         </DialogContent>
       </Dialog>
