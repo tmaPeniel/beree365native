@@ -1,170 +1,117 @@
 
-import React, { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState, useEffect } from 'react';
 import DayCard from '@/components/DayCard';
 import NavBar from '@/components/NavBar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-// Mock data
-const generateMockMonthData = () => {
-  const days = [];
-  const today = new Date();
-  const month = today.getMonth();
-  const year = today.getFullYear();
-  
-  // Get days in current month
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  
-  for (let i = 1; i <= daysInMonth; i++) {
-    const date = new Date(year, month, i);
-    days.push({
-      day: i,
-      date: date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' }),
-      completed: Math.random() > 0.5, // Randomly mark some as completed
-      chapters: [
-        { id: `${i}-1`, chapter: `Genèse ${i}`, completed: Math.random() > 0.5 },
-        { id: `${i}-2`, chapter: `Exode ${i}`, completed: Math.random() > 0.5 },
-        { id: `${i}-3`, chapter: `Lévitique ${i}`, completed: Math.random() > 0.5 },
-      ]
-    });
-  }
-  
-  return days;
-};
+import { getPlanDates } from '@/utils/readingPlanUtils';
 
 const Reading = () => {
-  const [monthData] = useState(generateMockMonthData());
-  const [selectedDay, setSelectedDay] = useState<null | typeof monthData[0]>(null);
+  // Fetch plan start date from utils
+  const { startDate } = getPlanDates();
+
+  // Generate days for the entire year starting from plan start date
+  const generateYearData = () => {
+    const days = [];
+    const planStartDate = new Date(startDate);
+    const today = new Date();
+    
+    // Generate 365 days starting from plan start date
+    for (let i = 0; i < 365; i++) {
+      const currentDate = new Date(planStartDate);
+      currentDate.setDate(planStartDate.getDate() + i);
+      
+      // Check if this date is today
+      const isToday = currentDate.toDateString() === today.toDateString();
+      
+      days.push({
+        day: i + 1,
+        date: currentDate,
+        completed: currentDate < today, // Mark as completed if date is in the past
+        isToday: isToday,
+        chapters: [
+          { id: `${i}-1`, chapter: `Genèse ${i+1}`, completed: currentDate < today },
+          { id: `${i}-2`, chapter: `Exode ${i+1}`, completed: currentDate < today },
+          { id: `${i}-3`, chapter: `Lévitique ${i+1}`, completed: currentDate < today },
+        ]
+      });
+    }
+    
+    return days;
+  };
+
+  const [yearData, setYearData] = useState(generateYearData());
+  const [selectedDay, setSelectedDay] = useState<null | any>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   
-  const handleDayClick = (day: typeof monthData[0]) => {
+  const handleDayClick = (day: any) => {
     setSelectedDay(day);
     setDialogOpen(true);
   };
+
+  // Group days into months (approximately 30 days per row)
+  const months = [];
+  let currentMonth: any[] = [];
   
-  // Group days by weeks (assuming first day is Monday)
-  const weeks = [];
-  let currentWeek: typeof monthData = [];
-  
-  const firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).getDay();
-  const offset = firstDay === 0 ? 6 : firstDay - 1; // Adjust for Monday as first day
-  
-  // Add empty days for the first week
-  for (let i = 0; i < offset; i++) {
-    currentWeek.push({
-      day: 0,
-      date: '',
-      completed: false,
-      chapters: []
-    });
-  }
-  
-  // Add actual days
-  monthData.forEach((day, index) => {
-    currentWeek.push(day);
+  yearData.forEach((day, index) => {
+    currentMonth.push(day);
     
-    if ((index + offset + 1) % 7 === 0 || index === monthData.length - 1) {
-      weeks.push([...currentWeek]);
-      currentWeek = [];
+    if ((index + 1) % 30 === 0 || index === yearData.length - 1) {
+      months.push([...currentMonth]);
+      currentMonth = [];
     }
   });
   
-  // Pad the last week if needed
-  while (currentWeek.length > 0 && currentWeek.length < 7) {
-    currentWeek.push({
-      day: 0,
-      date: '',
-      completed: false,
-      chapters: []
-    });
-  }
-  
-  if (currentWeek.length === 7) {
-    weeks.push(currentWeek);
-  }
-  
+  // Scroll to today's date when the component mounts
+  useEffect(() => {
+    const todayElement = document.getElementById('today');
+    if (todayElement) {
+      todayElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, []);
+
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-white p-6 shadow-sm">
         <h1 className="text-2xl font-bold mb-2">Planner Lecture Bible 365</h1>
-        <p className="text-gray-500">Suivez votre progression</p>
+        <p className="text-gray-500">Suivez votre progression sur toute l'année</p>
       </div>
       
       <div className="p-6">
-        <Tabs defaultValue="month" className="w-full">
-          <TabsList className="grid grid-cols-2 mb-6">
-            <TabsTrigger value="week">Semaine</TabsTrigger>
-            <TabsTrigger value="month">Mois</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="week" className="animate-fade-in">
-            <div className="grid grid-cols-7 gap-2 mb-2">
-              {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-                <div key={day} className="text-center text-xs font-medium text-gray-500">
-                  {day}
+        <div className="space-y-6">
+          {months.map((month, monthIndex) => (
+            <div key={monthIndex} className="grid grid-cols-7 gap-2 mb-2">
+              {month.map((day, dayIndex) => (
+                <div key={dayIndex} id={day.isToday ? 'today' : undefined}>
+                  <DayCard
+                    day={day.day}
+                    date={day.date.toISOString()}
+                    completed={day.completed}
+                    isToday={day.isToday}
+                    onClick={() => handleDayClick(day)}
+                  />
                 </div>
               ))}
             </div>
-            
-            <div className="grid grid-cols-7 gap-2">
-              {weeks[0]?.map((day, index) => (
-                <div key={index}>
-                  {day.day !== 0 && (
-                    <DayCard
-                      day={day.day}
-                      date={day.date}
-                      completed={day.completed}
-                      onClick={() => handleDayClick(day)}
-                    />
-                  )}
-                </div>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="month" className="animate-fade-in">
-            <div className="grid grid-cols-7 gap-2 mb-2">
-              {['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(day => (
-                <div key={day} className="text-center text-xs font-medium text-gray-500">
-                  {day}
-                </div>
-              ))}
-            </div>
-            
-            {weeks.map((week, weekIndex) => (
-              <div key={weekIndex} className="grid grid-cols-7 gap-2 mb-2">
-                {week.map((day, dayIndex) => (
-                  <div key={dayIndex}>
-                    {day.day !== 0 && (
-                      <DayCard
-                        day={day.day}
-                        date={day.date}
-                        completed={day.completed}
-                        onClick={() => handleDayClick(day)}
-                      />
-                    )}
-                  </div>
-                ))}
-              </div>
-            ))}
-          </TabsContent>
-        </Tabs>
+          ))}
+        </div>
       </div>
       
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Jour {selectedDay?.day} - {selectedDay?.date}</DialogTitle>
+            <DialogTitle>
+              Jour {selectedDay?.day} - {selectedDay?.date ? new Date(selectedDay.date).toLocaleDateString('fr-FR') : ''}
+            </DialogTitle>
           </DialogHeader>
           
           <div className="py-4">
             <h3 className="font-medium text-gray-700 mb-4">Chapitres du jour</h3>
             <ul className="space-y-3">
-              {selectedDay?.chapters.map((item) => (
+              {selectedDay?.chapters.map((item: any) => (
                 <li key={item.id} className="flex items-center">
                   <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center 
                     ${item.completed 
-                      ? 'bg-beree-500 text-white' 
+                      ? 'bg-green-500 text-white' 
                       : 'bg-gray-200 text-gray-400'
                     }`}>
                     {item.completed && (
