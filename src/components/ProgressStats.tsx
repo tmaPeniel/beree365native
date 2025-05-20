@@ -1,16 +1,46 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import CircularProgress from '@/components/CircularProgress';
-import { ReadingPlanStats } from '@/utils/readingPlanUtils';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useAuth } from '@/hooks/useAuth';
+import { getOverallProgress } from '@/services/readingPlanService';
 
-interface ProgressStatsProps {
-  stats: ReadingPlanStats;
-}
-
-const ProgressStats: React.FC<ProgressStatsProps> = ({ stats }) => {
+const ProgressStats = () => {
   const isMobile = useIsMobile();
+  const { user } = useAuth();
+  const [stats, setStats] = useState({
+    totalPassages: 0,
+    passagesRead: 0,
+    passagesRemaining: 0,
+    progressPercentage: 0
+  });
+  const [isLoading, setIsLoading] = useState(true);
+  
+  useEffect(() => {
+    const fetchStats = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      const progress = await getOverallProgress(user.id);
+      setStats(progress);
+      setIsLoading(false);
+    };
+    
+    fetchStats();
+  }, [user]);
+  
+  if (isLoading) {
+    return (
+      <Card className="bg-white border-none shadow-sm">
+        <CardContent className="p-4 md:p-6">
+          <div className="flex justify-center items-center h-48">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
   
   return (
     <Card className="bg-white border-none shadow-sm">

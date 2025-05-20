@@ -1,13 +1,54 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { VerseOfDay as VerseOfDayType } from '@/utils/readingPlanUtils';
+import { getDailyVerse } from '@/services/readingPlanService';
+import { DailyVerse } from "@/types/supabase";
 
 interface VerseOfDayProps {
-  verseOfDay: VerseOfDayType;
+  dayNumber: number;
 }
 
-const VerseOfDay: React.FC<VerseOfDayProps> = ({ verseOfDay }) => {
+const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
+  const [verseOfDay, setVerseOfDay] = useState<DailyVerse | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchVerse = async () => {
+      setIsLoading(true);
+      const verse = await getDailyVerse(dayNumber);
+      setVerseOfDay(verse);
+      setIsLoading(false);
+    };
+    
+    fetchVerse();
+  }, [dayNumber]);
+
+  if (isLoading) {
+    return (
+      <Card className="bg-white border-none shadow-sm">
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold mb-3">Verset du jour</h2>
+          <div className="bg-green-50 p-4 rounded-lg border border-green-100 flex justify-center items-center h-24">
+            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!verseOfDay) {
+    return (
+      <Card className="bg-white border-none shadow-sm">
+        <CardContent className="p-6">
+          <h2 className="text-lg font-semibold mb-3">Verset du jour</h2>
+          <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+            <p className="text-gray-700 italic mb-2">Verset du jour non disponible</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-white border-none shadow-sm">
       <CardContent className="p-6">

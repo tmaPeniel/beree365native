@@ -1,99 +1,136 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Logo from './Logo';
+import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import * as z from 'zod';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
 interface AuthFormProps {
   isLogin: boolean;
   toggleForm: () => void;
-  onSubmit: (data: { email: string; password: string; name?: string }) => void;
+  onSubmit: (data: { email: string; password: string; name?: string; startDate?: Date }) => void;
 }
 
+const loginSchema = z.object({
+  email: z.string().email({ message: "Adresse email invalide" }),
+  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" })
+});
+
+const signupSchema = z.object({
+  name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
+  email: z.string().email({ message: "Adresse email invalide" }),
+  password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
+  startDate: z.date({ required_error: "La date de début est requise" })
+});
+
 const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
+  const schema = isLogin ? loginSchema : signupSchema;
   
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (isLogin) {
-      onSubmit({ email, password });
-    } else {
-      onSubmit({ email, password, name });
-    }
+  const form = useForm<z.infer<typeof schema>>({
+    resolver: zodResolver(schema),
+    defaultValues: {
+      email: "",
+      password: "",
+      ...(isLogin ? {} : { name: "", startDate: new Date() })
+    },
+  });
+
+  const handleSubmit = (values: z.infer<typeof schema>) => {
+    onSubmit(values);
   };
-  
+
   return (
-    <div className="w-full max-w-md mx-auto p-6">
-      <div className="flex justify-center mb-8">
-        <Logo size="medium" />
-      </div>
+    <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-green-500">
+      <CardHeader className="text-center font-bold text-xl md:text-2xl">
+        {isLogin ? "Connexion" : "Inscription"}
+      </CardHeader>
       
-      <h1 className="text-2xl font-bold mb-6 text-center">
-        {isLogin ? 'Connexion' : 'Inscription'}
-      </h1>
-      
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {!isLogin && (
-          <div className="space-y-2">
-            <Label htmlFor="name">Nom</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Votre nom"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required={!isLogin}
-              className="rounded-xl"
+      <CardContent>
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+            {!isLogin && (
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Nom complet</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Nom complet" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            <FormField
+              control={form.control}
+              name="email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Email</FormLabel>
+                  <FormControl>
+                    <Input type="email" placeholder="votre@email.com" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
-          </div>
-        )}
-        
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <Input
-            id="email"
-            type="email"
-            placeholder="votreemail@exemple.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            className="rounded-xl"
-          />
-        </div>
-        
-        <div className="space-y-2">
-          <Label htmlFor="password">Mot de passe</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder="••••••••"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            className="rounded-xl"
-          />
-        </div>
-        
-        <Button type="submit" className="w-full rounded-full bg-beree-500 hover:bg-beree-600 h-12 mt-6">
-          {isLogin ? 'Se connecter' : "S'inscrire"}
-        </Button>
-      </form>
+            
+            <FormField
+              control={form.control}
+              name="password"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Mot de passe</FormLabel>
+                  <FormControl>
+                    <Input type="password" placeholder="••••••••" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            {!isLogin && (
+              <FormField
+                control={form.control}
+                name="startDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Date de début du plan de lecture</FormLabel>
+                    <FormControl>
+                      <Input 
+                        type="date" 
+                        onChange={(e) => field.onChange(new Date(e.target.value))}
+                        value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+            
+            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+              {isLogin ? "Se connecter" : "S'inscrire"}
+            </Button>
+          </form>
+        </Form>
+      </CardContent>
       
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
-          {isLogin ? "Pas encore inscrit ?" : "Déjà inscrit ?"}
-          <button 
-            onClick={toggleForm}
-            className="ml-1 text-beree-500 hover:text-beree-600 font-medium"
-          >
-            {isLogin ? "S'inscrire" : "Se connecter"}
-          </button>
-        </p>
-      </div>
-    </div>
+      <CardFooter className="flex justify-center">
+        <Button variant="link" onClick={toggleForm} className="text-green-600 hover:text-green-700 w-full">
+          {isLogin 
+            ? "Pas encore de compte? S'inscrire" 
+            : "Déjà un compte? Se connecter"}
+        </Button>
+      </CardFooter>
+    </Card>
   );
 };
 

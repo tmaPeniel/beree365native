@@ -1,20 +1,89 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { ReadingItem, VerseOfDay } from '@/utils/readingPlanUtils';
 import { Check } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { getReadingPlanForDay, toggleChapterStatus, getUserProgressForDay } from '@/services/readingPlanService';
+import { ReadingPlanChapter } from '@/types/supabase';
+
+interface ReadingItem {
+  id: string;
+  reference: string;
+  completed: boolean;
+}
 
 interface ReadingPlanProps {
   dayNumber: number;
-  readingItems: ReadingItem[];
-  onToggleRead: (id: string) => void;
+  onToggleRead?: (id: string) => void;
 }
 
-const ReadingPlan: React.FC<ReadingPlanProps> = ({
-  dayNumber,
-  readingItems,
-  onToggleRead
-}) => {
+const ReadingPlan: React.FC<ReadingPlanProps> = ({ dayNumber }) => {
+  const { user } = useAuth();
+  const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!user) return;
+      
+      setIsLoading(true);
+      
+      // Obtenir le plan de lecture pour ce jour
+      const chaptersData = await getReadingPlanForDay(dayNumber);
+      
+      // Obtenir la progression de l'utilisateur
+      const progressData = await getUserProgressForDay(user.id, dayNumber);
+      
+      // Créer les éléments de lecture
+      const items: ReadingItem[] = chaptersData.map(chapter => {
+        const progressItem = progressData.find(p => p.chapter_id === chapter.id);
+        return {
+          id: chapter.id,
+          reference: chapter.reference,
+          completed: progressItem ? progressItem.status === 'completed' : false
+        };
+      });
+      
+      setReadingItems(items);
+      setIsLoading(false);
+    };
+    
+    fetchData();
+  }, [dayNumber, user]);
+
+  const handleToggleRead = async (id: string) => {
+    if (!user) return;
+    
+    // Trouver l'élément dans la liste
+    const item = readingItems.find(item => item.id === id);
+    if (!item) return;
+    
+    // Mettre à jour le statut dans Supabase
+    const result = await toggleChapterStatus(user.id, id, item.completed ? 'completed' : 'pending');
+    
+    if (result.success) {
+      // Mettre à jour l'état local
+      setReadingItems(prev => prev.map(item => {
+        if (item.id === id) {
+          return { ...item, completed: !item.completed };
+        }
+        return item;
+      }));
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <Card className="bg-white border-none shadow-sm">
+        <CardContent className="p-6">
+          <div className="flex justify-center items-center h-48">
+            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="bg-white border-none shadow-sm">
       <CardContent className="p-6">
@@ -27,27 +96,33 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({
         
         <div className="mb-6">
           <h3 className="font-medium text-gray-700 mb-3">Passages du jour</h3>
-          <ul className="space-y-3">
-            {readingItems.map((item) => (
-              <li key={item.id} className="flex items-center">
-                <button
-                  onClick={() => onToggleRead(item.id)}
-                  className={`flex items-center w-full text-left ${
-                    item.completed ? 'text-gray-400' : 'text-gray-800'
-                  }`}
-                >
-                  <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-colors ${
-                    item.completed ? 'bg-green-500' : 'border-2 border-green-300'
-                  }`}>
-                    {item.completed && <Check className="h-3 w-3 text-white" />}
-                  </div>
-                  <span className={item.completed ? 'line-through' : ''}>
-                    {item.reference}
-                  </span>
-                </button>
-              </li>
-            ))}
-          </ul>
+          {readingItems.length > 0 ? (
+            <ul className="space-y-3">
+              {readingItems.map((item) => (
+                <li key={item.id} className="flex items-center">
+                  <button
+                    onClick={() => handleToggleRead(item.id)}
+                    className={`flex items-center w-full text-left ${
+                      item.completed ? 'text-gray-400' : 'text-gray-800'
+                    }`}
+                  >
+                    <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-colors ${
+                      item.completed ? 'bg-green-500' : 'border-2 border-green-300'
+                    }`}>
+                      {item.completed && <Check className="h-3 w-3 text-white" />}
+                    </div>
+                    <span className={item.completed ? 'line-through' : ''}>
+                      {item.reference}
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-center text-gray-500 my-4">
+              Aucun passage trouvé pour ce jour
+            </p>
+          )}
         </div>
       </CardContent>
     </Card>

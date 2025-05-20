@@ -1,5 +1,7 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useAuth } from '@/hooks/useAuth';
+import { getDayProgress } from '@/services/readingPlanService';
 
 interface DayCardProps {
   day: number;
@@ -7,7 +9,6 @@ interface DayCardProps {
   completed: boolean;
   onClick: () => void;
   isToday?: boolean;
-  progressPercentage?: number; // New prop for daily progress
 }
 
 const DayCard: React.FC<DayCardProps> = ({ 
@@ -15,10 +16,22 @@ const DayCard: React.FC<DayCardProps> = ({
   date, 
   completed, 
   onClick, 
-  isToday = false,
-  progressPercentage = 0 
+  isToday = false
 }) => {
+  const { user } = useAuth();
+  const [progressPercentage, setProgressPercentage] = useState(0);
   const formattedDate = new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  
+  useEffect(() => {
+    const fetchProgress = async () => {
+      if (!user) return;
+      
+      const progress = await getDayProgress(user.id, day);
+      setProgressPercentage(progress);
+    };
+    
+    fetchProgress();
+  }, [day, user]);
   
   return (
     <button 
