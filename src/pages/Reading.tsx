@@ -2,13 +2,10 @@
 import React, { useState, useEffect } from 'react';
 import DayCard from '@/components/DayCard';
 import NavBar from '@/components/NavBar';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { getPlanDates } from '@/utils/readingPlanUtils';
 
 const Reading = () => {
-  const isMobile = useIsMobile();
-  
   // Fetch plan start date from utils
   const { startDate } = getPlanDates();
 
@@ -26,16 +23,11 @@ const Reading = () => {
       // Check if this date is today
       const isToday = currentDate.toDateString() === today.toDateString();
       
-      // Calculate a random progress percentage for each day that is in the past
-      const progressPercentage = currentDate < today ? 
-        Math.floor(Math.random() * 100) : 0; // Just for demonstration
-      
       days.push({
         day: i + 1,
         date: currentDate,
         completed: currentDate < today, // Mark as completed if date is in the past
         isToday: isToday,
-        progressPercentage: progressPercentage,
         chapters: [
           { id: `${i}-1`, chapter: `Genèse ${i+1}`, completed: currentDate < today },
           { id: `${i}-2`, chapter: `Exode ${i+1}`, completed: currentDate < today },
@@ -56,19 +48,16 @@ const Reading = () => {
     setDialogOpen(true);
   };
 
-  // Group days into rows (approximately 30 days per row)
-  const rows = [];
-  let currentRow: any[] = [];
-  
-  // Define number of columns based on screen size
-  const columnsPerRow = isMobile ? 5 : 7;
+  // Group days into months (approximately 30 days per row)
+  const months = [];
+  let currentMonth: any[] = [];
   
   yearData.forEach((day, index) => {
-    currentRow.push(day);
+    currentMonth.push(day);
     
-    if ((index + 1) % columnsPerRow === 0 || index === yearData.length - 1) {
-      rows.push([...currentRow]);
-      currentRow = [];
+    if ((index + 1) % 30 === 0 || index === yearData.length - 1) {
+      months.push([...currentMonth]);
+      currentMonth = [];
     }
   });
   
@@ -82,23 +71,22 @@ const Reading = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-white p-4 md:p-6 shadow-sm">
-        <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Planner Lecture Bible 365</h1>
-        <p className="text-sm md:text-base text-gray-500">Suivez votre progression sur toute l'année</p>
+      <div className="bg-white p-6 shadow-sm">
+        <h1 className="text-2xl font-bold mb-2">Planner Lecture Bible 365</h1>
+        <p className="text-gray-500">Suivez votre progression sur toute l'année</p>
       </div>
       
-      <div className="p-4 md:p-6">
-        <div className="space-y-4 md:space-y-6">
-          {rows.map((row, rowIndex) => (
-            <div key={rowIndex} className={`grid grid-cols-${columnsPerRow} gap-2 mb-2`}>
-              {row.map((day, dayIndex) => (
+      <div className="p-6">
+        <div className="space-y-6">
+          {months.map((month, monthIndex) => (
+            <div key={monthIndex} className="grid grid-cols-7 gap-2 mb-2">
+              {month.map((day, dayIndex) => (
                 <div key={dayIndex} id={day.isToday ? 'today' : undefined}>
                   <DayCard
                     day={day.day}
                     date={day.date.toISOString()}
                     completed={day.completed}
                     isToday={day.isToday}
-                    progressPercentage={day.progressPercentage}
                     onClick={() => handleDayClick(day)}
                   />
                 </div>
@@ -114,9 +102,6 @@ const Reading = () => {
             <DialogTitle>
               Jour {selectedDay?.day} - {selectedDay?.date ? new Date(selectedDay.date).toLocaleDateString('fr-FR') : ''}
             </DialogTitle>
-            <DialogDescription>
-              Votre lecture biblique du jour
-            </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">

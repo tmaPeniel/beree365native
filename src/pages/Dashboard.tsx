@@ -4,8 +4,6 @@ import NavBar from '@/components/NavBar';
 import ProgressStats from '@/components/ProgressStats';
 import ReadingPlan from '@/components/ReadingPlan';
 import VerseOfDay from '@/components/VerseOfDay';
-import TodayDisplay from '@/components/TodayDisplay';
-import { useIsMobile } from '@/hooks/use-mobile';
 import { 
   getTodayReadingPlan, 
   getReadingPlanStats, 
@@ -16,8 +14,6 @@ import {
 import PlanDates from '@/components/ui/PlanDate';
 
 const Dashboard = () => {
-  const isMobile = useIsMobile();
-  
   // Get initial data from our utilities
   const todayPlan = getTodayReadingPlan();
   const [readingItems, setReadingItems] = useState<ReadingItem[]>(todayPlan.passages);
@@ -26,7 +22,6 @@ const Dashboard = () => {
   // Get plan dates and remaining days
   const { startDate, endDate } = getPlanDates();
   const remainingDays = calculateRemainingDays();
-  const today = new Date();
   
   const handleToggleRead = (id: string) => {
     setReadingItems(prev => {
@@ -64,32 +59,28 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-white p-4 md:p-6 shadow-sm">
-        <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Le Tour de ma Bible en 365 jours</h1>
-        <p className="text-sm md:text-base text-gray-500">SISAP Editions Powered</p>
+      <div className="bg-white p-6 shadow-sm">
+        <h1 className="text-2xl font-bold mb-2">Le Tour de ma Bible en 365 jours</h1>
+        <p className="text-gray-500">SISAP Editions Powered</p>
       </div>
 
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* New Today Display Component */}
-        <TodayDisplay dayNumber={todayPlan.id} date={today} />
+      <VerseOfDay verseOfDay={todayPlan.verseOfDay} />
       
-        <VerseOfDay verseOfDay={todayPlan.verseOfDay} />
-        
+      <div className="p-6 space-y-6">
         <ProgressStats stats={stats} />
 
-        <div className={`${isMobile ? '' : 'grid grid-cols-2 gap-6'}`}>
-          <PlanDates
-            startDate={startDate}
-            endDate={endDate}
-            remainingDays={remainingDays}
-          />
-          
-          <ReadingPlan
-            dayNumber={todayPlan.id}
-            readingItems={readingItems}
-            onToggleRead={handleToggleRead}
-          />
-        </div>
+        <PlanDates
+          startDate={startDate}
+          endDate={endDate}
+          remainingDays={remainingDays}
+        />
+        
+        <ReadingPlan
+          dayNumber={todayPlan.id}
+          readingItems={readingItems}
+          onToggleRead={handleToggleRead}
+        />
+        
       </div>
       
       <NavBar />
