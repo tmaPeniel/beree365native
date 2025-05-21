@@ -20,7 +20,7 @@ const Login = () => {
     setIsLogin(!isLogin);
   };
   
-  const handleSubmit = async (data: { email: string; password: string }) => {
+  const handleSubmit = async (data: { email: string; password: string; name?: string; startDate?: Date }) => {
     const result = await signIn(data.email, data.password);
     if (result.success) {
       navigate('/dashboard');

@@ -2,7 +2,6 @@
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -15,11 +14,13 @@ interface AuthFormProps {
   onSubmit: (data: { email: string; password: string; name?: string; startDate?: Date }) => void;
 }
 
+// Login schema requires only email and password
 const loginSchema = z.object({
   email: z.string().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" })
 });
 
+// Signup schema requires email, password, name and startDate
 const signupSchema = z.object({
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
   email: z.string().email({ message: "Adresse email invalide" }),
@@ -27,21 +28,40 @@ const signupSchema = z.object({
   startDate: z.date({ required_error: "La date de début est requise" })
 });
 
+// Define types based on the schemas
+type LoginFormValues = z.infer<typeof loginSchema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
+
 const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) => {
-  const schema = isLogin ? loginSchema : signupSchema;
-  
-  const form = useForm<z.infer<typeof schema>>({
-    resolver: zodResolver(schema),
+  // Use the appropriate schema and default values based on isLogin
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
     defaultValues: {
       email: "",
-      password: "",
-      ...(isLogin ? {} : { name: "", startDate: new Date() })
+      password: ""
     },
   });
 
-  const handleSubmit = (values: z.infer<typeof schema>) => {
+  const signupForm = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      name: "",
+      startDate: new Date()
+    },
+  });
+
+  const handleLoginSubmit = (values: LoginFormValues) => {
     onSubmit(values);
   };
+
+  const handleSignupSubmit = (values: SignupFormValues) => {
+    onSubmit(values);
+  };
+
+  // Select the active form based on the mode
+  const activeForm = isLogin ? loginForm : signupForm;
 
   return (
     <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-green-500">
@@ -50,11 +70,47 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
       </CardHeader>
       
       <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
-            {!isLogin && (
+        {isLogin ? (
+          <Form {...loginForm}>
+            <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-4">
               <FormField
-                control={form.control}
+                control={loginForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="votre@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={loginForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mot de passe</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+                Se connecter
+              </Button>
+            </form>
+          </Form>
+        ) : (
+          <Form {...signupForm}>
+            <form onSubmit={signupForm.handleSubmit(handleSignupSubmit)} className="space-y-4">
+              <FormField
+                control={signupForm.control}
                 name="name"
                 render={({ field }) => (
                   <FormItem>
@@ -66,39 +122,37 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
                   </FormItem>
                 )}
               />
-            )}
-            
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="votre@email.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="password"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Mot de passe</FormLabel>
-                  <FormControl>
-                    <Input type="password" placeholder="••••••••" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            {!isLogin && (
+              
               <FormField
-                control={form.control}
+                control={signupForm.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="votre@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={signupForm.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mot de passe</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={signupForm.control}
                 name="startDate"
                 render={({ field }) => (
                   <FormItem>
@@ -106,7 +160,10 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
                     <FormControl>
                       <Input 
                         type="date" 
-                        onChange={(e) => field.onChange(new Date(e.target.value))}
+                        onChange={(e) => {
+                          const date = e.target.value ? new Date(e.target.value) : new Date();
+                          field.onChange(date);
+                        }}
                         value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
                       />
                     </FormControl>
@@ -114,13 +171,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
                   </FormItem>
                 )}
               />
-            )}
-            
-            <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-              {isLogin ? "Se connecter" : "S'inscrire"}
-            </Button>
-          </form>
-        </Form>
+              
+              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+                S'inscrire
+              </Button>
+            </form>
+          </Form>
+        )}
       </CardContent>
       
       <CardFooter className="flex justify-center">

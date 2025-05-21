@@ -50,7 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(session.user);
         const userProfile = await getUserProfile(session.user.id);
         setProfile(userProfile);
-      } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      } else if (event === 'SIGNED_OUT') {
         setUser(null);
         setProfile(null);
         navigate('/login');
