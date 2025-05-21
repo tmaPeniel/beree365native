@@ -6,7 +6,11 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getCurrentUser, getUserProfile, refreshUserProfile } from '@/services/authService';
+import { 
+  getCurrentUser, 
+  refreshUserProfile, 
+  cleanupAuthState 
+} from '@/services/auth';
 import { Profile } from '@/types/supabase';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -28,22 +32,6 @@ const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   refreshProfile: async () => {}
 });
-
-// Fonction utilitaire pour nettoyer l'état d'authentification dans localStorage
-const cleanupAuthState = () => {
-  // Supprimer tous les jetons d'authentification Supabase
-  Object.keys(localStorage).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      localStorage.removeItem(key);
-    }
-  });
-  // Faire de même pour sessionStorage si utilisé
-  Object.keys(sessionStorage || {}).forEach((key) => {
-    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
-      sessionStorage.removeItem(key);
-    }
-  });
-};
 
 /**
  * Fournisseur du contexte d'authentification
