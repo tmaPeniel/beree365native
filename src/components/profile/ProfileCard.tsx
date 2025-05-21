@@ -8,10 +8,14 @@ import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { updateUserProfile } from '@/services/authService';
 
+interface ProfileCardProps {
+  onEdit?: () => void;
+}
+
 /**
  * Carte de profil avec fonctionnalité d'édition
  */
-const ProfileCard = () => {
+const ProfileCard = ({ onEdit }: ProfileCardProps) => {
   const { user, profile, refreshProfile } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name || '');
@@ -22,6 +26,7 @@ const ProfileCard = () => {
    */
   const handleEditProfile = () => {
     setIsEditing(true);
+    if (onEdit) onEdit();
   };
   
   /**
@@ -57,6 +62,21 @@ const ProfileCard = () => {
     setStartDate(profile?.start_date || '');
     setIsEditing(false);
   };
+
+  // Exposer la fonction handleEditProfile via la référence
+  React.useEffect(() => {
+    // Rendre la fonction accessible globalement (pour la démonstration)
+    if (typeof window !== 'undefined') {
+      (window as any).__editProfileFunction = handleEditProfile;
+    }
+    
+    return () => {
+      // Nettoyer lors du démontage
+      if (typeof window !== 'undefined') {
+        delete (window as any).__editProfileFunction;
+      }
+    };
+  }, []);
 
   return (
     <Card>

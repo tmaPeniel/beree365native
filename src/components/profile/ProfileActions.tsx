@@ -28,12 +28,22 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
     }
   };
 
+  const handleEditProfile = () => {
+    // Utiliser la fonction exposée au niveau global (solution temporaire)
+    if (typeof window !== 'undefined' && (window as any).__editProfileFunction) {
+      (window as any).__editProfileFunction();
+    } else {
+      // Fallback sur la prop passée par le parent
+      onEditProfile();
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Button 
         variant="outline" 
         className="w-full h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50"
-        onClick={onEditProfile}
+        onClick={handleEditProfile}
       >
         Modifier le profil
       </Button>

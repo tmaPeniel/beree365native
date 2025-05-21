@@ -41,10 +41,10 @@ const Profile = () => {
         
         {/* Boutons d'action */}
         <ProfileActions onEditProfile={() => {
-          // Trouver l'élément bouton de modification du profil et le déclencher
-          const editButton = document.querySelector('button.border-green-500');
-          if (editButton instanceof HTMLButtonElement) {
-            editButton.click();
+          // Fonction appelée depuis ProfileActions
+          // La logique d'édition est maintenant gérée directement via la fonction globale
+          if (typeof window === 'undefined' || !(window as any).__editProfileFunction) {
+            console.log("La fonction d'édition de profil n'est pas disponible");
           }
         }} />
       </div>
