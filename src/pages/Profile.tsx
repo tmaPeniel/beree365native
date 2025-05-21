@@ -23,14 +23,15 @@ import { useQuery } from '@tanstack/react-query';
  */
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile, isLoading } = useAuth();
+  const { user, profile, refreshProfile, isLoading, progressUpdateCounter } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [startDate, setStartDate] = useState(profile?.start_date || '');
   
   // Récupérer les statistiques de l'utilisateur
+  // Ajouter progressUpdateCounter à la queryKey pour déclencher la mise à jour automatique
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['userStats', user?.id],
+    queryKey: ['userStats', user?.id, progressUpdateCounter],
     queryFn: () => user ? getOverallProgress(user.id) : null,
     enabled: !!user
   });
