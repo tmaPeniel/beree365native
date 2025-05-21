@@ -1,8 +1,11 @@
 
+/**
+ * Page de plan de lecture
+ * Affiche l'ensemble du plan de lecture avec les jours et leur état
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import NavBar from '@/components/NavBar';
 import DayCard from '@/components/DayCard';
@@ -10,7 +13,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
 
-// Helper function to calculate days passed since the start date
+/**
+ * Calcule le nombre de jours écoulés depuis la date de début
+ * @param {string} startDateStr Date de début au format chaîne
+ * @returns {number} Nombre de jours écoulés
+ */
 const calculateDaysSinceStart = (startDateStr: string) => {
   const startDate = new Date(startDateStr);
   const today = new Date();
@@ -19,14 +26,24 @@ const calculateDaysSinceStart = (startDateStr: string) => {
   return diffDays;
 };
 
-// Helper function to format date
+/**
+ * Formate la date en ajoutant un offset de jours à la date de début
+ * @param {string} startDateStr Date de début au format chaîne
+ * @param {number} dayOffset Nombre de jours à ajouter
+ * @returns {string} Date formatée en français
+ */
 const formatDate = (startDateStr: string, dayOffset: number) => {
   const startDate = new Date(startDateStr);
   startDate.setDate(startDate.getDate() + dayOffset);
   return formatDateToFrench(startDate);
 };
 
-// Helper to check if a date is today
+/**
+ * Vérifie si une date correspond à aujourd'hui
+ * @param {string} startDateStr Date de début au format chaîne
+ * @param {number} dayOffset Nombre de jours à ajouter
+ * @returns {boolean} Vrai si la date correspond à aujourd'hui
+ */
 const isToday = (startDateStr: string, dayOffset: number) => {
   const startDate = new Date(startDateStr);
   startDate.setDate(startDate.getDate() + dayOffset);
@@ -37,20 +54,24 @@ const isToday = (startDateStr: string, dayOffset: number) => {
          startDate.getFullYear() === today.getFullYear();
 };
 
+/**
+ * Page de plan de lecture
+ */
 const Reading = () => {
-  const { profile, isLoading } = useAuth();
+  const { profile, isLoading: authLoading } = useAuth();
   const [days, setDays] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
   const navigate = useNavigate();
   
+  // Récupérer les données du plan de lecture
   useEffect(() => {
-    if (!isLoading && profile) {
+    if (!authLoading && profile) {
       const fetchReadingPlan = async () => {
         setLoading(true);
         
         try {
-          // Fetch reading plan chapters
+          // Récupérer les chapitres du plan de lecture
           const { data: chaptersData, error: chaptersError } = await supabase
             .from('reading_plan_chapters')
             .select('*')
@@ -58,7 +79,7 @@ const Reading = () => {
             
           if (chaptersError) throw chaptersError;
           
-          // Fetch user progress
+          // Récupérer la progression de l'utilisateur
           const { data: progressData, error: progressError } = await supabase
             .from('user_progress')
             .select('*')
@@ -66,27 +87,31 @@ const Reading = () => {
             
           if (progressError) throw progressError;
           
-          // Process the data
+          // Traiter les données
+          const uniqueDays = Array.from(new Set(chaptersData.map((chapter: any) => chapter.day_number)));
           const processedDays: any[] = [];
           
-          for (const chapter of chaptersData) {
-            const dayProgress = progressData.filter(
-              (p: any) => p.chapter_id === chapter.id
-            );
+          for (const dayNum of uniqueDays) {
+            // Filtrer les chapitres pour ce jour
+            const dayChapters = chaptersData.filter((chapter: any) => chapter.day_number === dayNum);
             
-            const completed = dayProgress.length > 0 && 
-                             dayProgress[0].status === 'completed';
+            // Vérifier si tous les chapitres du jour sont complétés
+            const dayChapterIds = dayChapters.map((chapter: any) => chapter.id);
+            const completedChapters = progressData.filter(
+              (p: any) => dayChapterIds.includes(p.chapter_id) && p.status === 'completed'
+            );
+            const isDayCompleted = completedChapters.length === dayChapterIds.length && dayChapterIds.length > 0;
             
             processedDays.push({
-              day: chapter.day_number,
-              reference: chapter.reference,
-              description: chapter.description,
-              completed,
-              date: formatDate(profile.start_date, chapter.day_number - 1),
-              isToday: isToday(profile.start_date, chapter.day_number - 1)
+              day: dayNum,
+              completed: isDayCompleted,
+              date: formatDate(profile.start_date, dayNum - 1),
+              isToday: isToday(profile.start_date, dayNum - 1)
             });
           }
           
+          // Trier par numéro de jour croissant
+          processedDays.sort((a, b) => a.day - b.day);
           setDays(processedDays);
         } catch (error: any) {
           toast({
@@ -101,22 +126,34 @@ const Reading = () => {
       
       fetchReadingPlan();
     }
-  }, [profile, isLoading, toast]);
+  }, [profile, authLoading, toast]);
   
+  /**
+   * Gère le clic sur une carte de jour
+   * @param {Object} day Données du jour
+   */
   const handleDayClick = (day: any) => {
     navigate(`/reading/${day.day}`);
   };
   
-  if (isLoading || loading) {
-    return <div>Chargement...</div>;
+  // Afficher un indicateur de chargement
+  if (authLoading || loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
   }
   
   return (
     <div className="min-h-screen bg-gray-50">
-      <NavBar />
+      <div className="bg-white p-6 shadow-sm mb-6">
+        <h1 className="text-2xl font-bold">Plan de lecture</h1>
+        <p className="text-gray-500">Suivez votre progression au fil des jours</p>
+      </div>
+      
       <div className="container mx-auto p-4">
-        <h1 className="text-2xl font-bold mb-6">Plan de lecture</h1>
-        
+        {/* Affichage des cartes de jours */}
         <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {days.map((day) => (
             <DayCard
@@ -130,6 +167,9 @@ const Reading = () => {
           ))}
         </div>
       </div>
+      
+      {/* Barre de navigation */}
+      <NavBar />
     </div>
   );
 };

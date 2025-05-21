@@ -1,4 +1,9 @@
 
+/**
+ * Formulaire d'authentification
+ * Gère à la fois la connexion et l'inscription des utilisateurs
+ */
+
 import React from 'react';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,19 +13,20 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 
+// Types pour les propriétés du composant
 interface AuthFormProps {
   isLogin: boolean;
   toggleForm: () => void;
   onSubmit: (data: { email: string; password: string; name?: string; startDate?: Date }) => void;
 }
 
-// Login schema requires only email and password
+// Schéma pour le formulaire de connexion
 const loginSchema = z.object({
   email: z.string().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" })
 });
 
-// Signup schema requires email, password, name and startDate
+// Schéma pour le formulaire d'inscription
 const signupSchema = z.object({
   email: z.string().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
@@ -28,44 +34,167 @@ const signupSchema = z.object({
   startDate: z.date({ required_error: "La date de début est requise" })
 });
 
-// Define types based on the schemas
+// Types basés sur les schémas
 type LoginFormValues = z.infer<typeof loginSchema>;
 type SignupFormValues = z.infer<typeof signupSchema>;
 
+/**
+ * Composant de formulaire d'authentification
+ */
 const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) => {
-  // Use the appropriate schema and default values based on isLogin
-  const loginForm = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: "",
-      password: ""
-    },
-  });
-
-  const signupForm = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
-    defaultValues: {
-      email: "",
-      password: "",
-      name: "",
-      startDate: new Date()
-    },
-  });
-
-  const handleLoginSubmit = (values: LoginFormValues) => {
-    onSubmit({
-      email: values.email,
-      password: values.password
+  /**
+   * Formulaire pour la connexion
+   */
+  const LoginForm = () => {
+    const form = useForm<LoginFormValues>({
+      resolver: zodResolver(loginSchema),
+      defaultValues: {
+        email: "",
+        password: ""
+      },
     });
+    
+    const handleSubmit = (values: LoginFormValues) => {
+      onSubmit({
+        email: values.email,
+        password: values.password
+      });
+    };
+    
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="votre@email.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mot de passe</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="••••••••" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+            Se connecter
+          </Button>
+        </form>
+      </Form>
+    );
   };
-
-  const handleSignupSubmit = (values: SignupFormValues) => {
-    onSubmit({
-      email: values.email,
-      password: values.password,
-      name: values.name,
-      startDate: values.startDate
+  
+  /**
+   * Formulaire pour l'inscription
+   */
+  const SignupForm = () => {
+    const form = useForm<SignupFormValues>({
+      resolver: zodResolver(signupSchema),
+      defaultValues: {
+        email: "",
+        password: "",
+        name: "",
+        startDate: new Date()
+      },
     });
+    
+    const handleSubmit = (values: SignupFormValues) => {
+      onSubmit({
+        email: values.email,
+        password: values.password,
+        name: values.name,
+        startDate: values.startDate
+      });
+    };
+    
+    return (
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="name"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Nom complet</FormLabel>
+                <FormControl>
+                  <Input placeholder="Nom complet" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="email"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Email</FormLabel>
+                <FormControl>
+                  <Input type="email" placeholder="votre@email.com" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="password"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Mot de passe</FormLabel>
+                <FormControl>
+                  <Input type="password" placeholder="••••••••" {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="startDate"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Date de début du plan de lecture</FormLabel>
+                <FormControl>
+                  <Input 
+                    type="date" 
+                    onChange={(e) => {
+                      const date = e.target.value ? new Date(e.target.value) : new Date();
+                      field.onChange(date);
+                    }}
+                    value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+            S'inscrire
+          </Button>
+        </form>
+      </Form>
+    );
   };
 
   return (
@@ -75,114 +204,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
       </CardHeader>
       
       <CardContent>
-        {isLogin ? (
-          <Form {...loginForm}>
-            <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)} className="space-y-4">
-              <FormField
-                control={loginForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="votre@email.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={loginForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mot de passe</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                Se connecter
-              </Button>
-            </form>
-          </Form>
-        ) : (
-          <Form {...signupForm}>
-            <form onSubmit={signupForm.handleSubmit(handleSignupSubmit)} className="space-y-4">
-              <FormField
-                control={signupForm.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Nom complet</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Nom complet" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={signupForm.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input type="email" placeholder="votre@email.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={signupForm.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Mot de passe</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={signupForm.control}
-                name="startDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Date de début du plan de lecture</FormLabel>
-                    <FormControl>
-                      <Input 
-                        type="date" 
-                        onChange={(e) => {
-                          const date = e.target.value ? new Date(e.target.value) : new Date();
-                          field.onChange(date);
-                        }}
-                        value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                S'inscrire
-              </Button>
-            </form>
-          </Form>
-        )}
+        {isLogin ? <LoginForm /> : <SignupForm />}
       </CardContent>
       
       <CardFooter className="flex justify-center">

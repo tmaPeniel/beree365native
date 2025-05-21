@@ -1,4 +1,9 @@
 
+/**
+ * Utilitaires pour le plan de lecture
+ * Ces fonctions aident à gérer les données du plan de lecture et les calculs associés
+ */
+
 import readingPlanData from '../data/readingPlan.json';
 
 export interface ReadingItem {
@@ -26,16 +31,24 @@ export interface ReadingPlanStats {
   progressPercentage: number;
 }
 
+/**
+ * Récupère le plan de lecture du jour
+ * @returns {ReadingDay} Les données du plan de lecture pour le jour actuel
+ */
 export const getTodayReadingPlan = (): ReadingDay => {
-  // In a real app, you would determine which day it is in the plan
-  // For demo purposes, return the first day
+  // Dans une application réelle, vous détermineriez quel jour il est dans le plan
+  // Pour la démonstration, renvoie le premier jour
   return readingPlanData.days[0];
 };
 
+/**
+ * Calcule les statistiques globales du plan de lecture
+ * @returns {ReadingPlanStats} Les statistiques du plan de lecture
+ */
 export const getReadingPlanStats = (): ReadingPlanStats => {
   const totalPassages = readingPlanData.totalPassages;
   
-  // Count completed passages across all days
+  // Compte les passages terminés dans tous les jours
   let passagesRead = 0;
   readingPlanData.days.forEach(day => {
     day.passages.forEach(passage => {
@@ -54,19 +67,31 @@ export const getReadingPlanStats = (): ReadingPlanStats => {
   };
 };
 
+/**
+ * Calcule le nombre de jours restants dans le plan de lecture
+ * @returns {number} Le nombre de jours restants
+ */
 export const calculateRemainingDays = (): number => {
-  // In a real app, this would calculate based on the current date and end date
-  // For demo, return a fixed value
+  // Dans une application réelle, cela serait calculé en fonction de la date actuelle et de la date de fin
+  // Pour la démonstration, renvoie une valeur fixe
   return 310;
 };
 
+/**
+ * Récupère les dates de début et de fin du plan de lecture
+ * @returns {{startDate: Date, endDate: Date}} Les dates de début et de fin du plan
+ */
 export const getPlanDates = (): { startDate: Date; endDate: Date } => {
   const startDate = new Date("2025-01-01");
   const endDate = new Date("2025-12-31");
   return { startDate, endDate };
 };
 
-// Adding the missing formatDateToFrench function
+/**
+ * Formate une date au format français (ex: 1 janvier 2025)
+ * @param {Date} date La date à formater
+ * @returns {string} La date formatée en français
+ */
 export const formatDateToFrench = (date: Date): string => {
   const options: Intl.DateTimeFormatOptions = { 
     day: 'numeric', 

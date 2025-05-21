@@ -1,4 +1,10 @@
 
+/**
+ * Types pour les données de Supabase
+ * Ces types représentent les structures de données utilisées dans l'application
+ */
+
+// Type pour le profil utilisateur
 export type Profile = {
   id: string;
   full_name: string | null;
@@ -6,6 +12,7 @@ export type Profile = {
   created_at: string;
 };
 
+// Type pour les chapitres du plan de lecture
 export type ReadingPlanChapter = {
   id: string;
   day_number: number;
@@ -13,8 +20,10 @@ export type ReadingPlanChapter = {
   description: string | null;
 };
 
+// Type pour le statut d'un chapitre
 export type ChapterStatus = 'pending' | 'completed';
 
+// Type pour la progression de l'utilisateur
 export type UserProgress = {
   id: string;
   user_id: string;
@@ -23,6 +32,7 @@ export type UserProgress = {
   completed_at: string | null;
 };
 
+// Type pour le verset du jour
 export type DailyVerse = {
   id: string;
   day_number: number;

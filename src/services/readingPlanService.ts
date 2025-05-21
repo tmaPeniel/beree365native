@@ -1,7 +1,17 @@
 
+/**
+ * Service du plan de lecture
+ * Gère toutes les interactions avec les données du plan de lecture dans Supabase
+ */
+
 import { supabase } from "@/integrations/supabase/client";
 import { ReadingPlanChapter, UserProgress, DailyVerse } from "@/types/supabase";
 
+/**
+ * Récupère les chapitres du plan de lecture pour un jour donné
+ * @param {number} dayNumber Numéro du jour
+ * @returns {Promise<ReadingPlanChapter[]>}
+ */
 export const getReadingPlanForDay = async (dayNumber: number) => {
   try {
     const { data, error } = await supabase
@@ -18,6 +28,12 @@ export const getReadingPlanForDay = async (dayNumber: number) => {
   }
 };
 
+/**
+ * Récupère la progression de l'utilisateur pour un jour donné
+ * @param {string} userId ID de l'utilisateur
+ * @param {number} dayNumber Numéro du jour
+ * @returns {Promise<Array<UserProgress & {reading_plan_chapters: ReadingPlanChapter}>>}
+ */
 export const getUserProgressForDay = async (userId: string, dayNumber: number) => {
   try {
     const { data: chapters } = await supabase
@@ -43,28 +59,63 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
   }
 };
 
+/**
+ * Change le statut d'un chapitre entre 'pending' et 'completed'
+ * @param {string} userId ID de l'utilisateur
+ * @param {string} chapterId ID du chapitre
+ * @param {ChapterStatus} currentStatus Statut actuel
+ * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+ */
 export const toggleChapterStatus = async (userId: string, chapterId: string, currentStatus: 'pending' | 'completed') => {
   const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
   const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
   
   try {
-    const { data, error } = await supabase
+    // Vérifie si l'entrée existe déjà
+    const { data: existingEntries } = await supabase
       .from('user_progress')
-      .update({ 
-        status: newStatus,
-        completed_at: completedAt
-      })
+      .select('*')
       .eq('user_id', userId)
       .eq('chapter_id', chapterId);
-    
-    if (error) throw error;
-    return { success: true, data };
+      
+    if (existingEntries && existingEntries.length > 0) {
+      // Mettre à jour l'entrée existante
+      const { data, error } = await supabase
+        .from('user_progress')
+        .update({ 
+          status: newStatus,
+          completed_at: completedAt
+        })
+        .eq('user_id', userId)
+        .eq('chapter_id', chapterId);
+      
+      if (error) throw error;
+      return { success: true, data };
+    } else {
+      // Créer une nouvelle entrée
+      const { data, error } = await supabase
+        .from('user_progress')
+        .insert([{ 
+          user_id: userId,
+          chapter_id: chapterId,
+          status: newStatus,
+          completed_at: completedAt
+        }]);
+      
+      if (error) throw error;
+      return { success: true, data };
+    }
   } catch (error: any) {
     console.error("Erreur lors de la mise à jour du statut:", error);
     return { success: false, error: error.message };
   }
 };
 
+/**
+ * Récupère le verset du jour pour un jour donné
+ * @param {number} dayNumber Numéro du jour
+ * @returns {Promise<DailyVerse|null>}
+ */
 export const getDailyVerse = async (dayNumber: number) => {
   try {
     const { data, error } = await supabase
@@ -93,6 +144,12 @@ export const getDailyVerse = async (dayNumber: number) => {
   }
 };
 
+/**
+ * Calcule le pourcentage de progression pour un jour donné
+ * @param {string} userId ID de l'utilisateur
+ * @param {number} dayNumber Numéro du jour
+ * @returns {Promise<number>} Pourcentage de progression
+ */
 export const getDayProgress = async (userId: string, dayNumber: number) => {
   try {
     // Récupérer tous les chapitres pour ce jour
@@ -128,6 +185,11 @@ export const getDayProgress = async (userId: string, dayNumber: number) => {
   }
 };
 
+/**
+ * Calcule la progression globale du plan de lecture
+ * @param {string} userId ID de l'utilisateur
+ * @returns {Promise<{totalPassages: number, passagesRead: number, passagesRemaining: number, progressPercentage: number}>}
+ */
 export const getOverallProgress = async (userId: string) => {
   try {
     // Récupérer le nombre total de chapitres
@@ -163,6 +225,11 @@ export const getOverallProgress = async (userId: string) => {
   }
 };
 
+/**
+ * Calcule le numéro de jour actuel en fonction de la date de début
+ * @param {Date} startDate Date de début du plan
+ * @returns {number} Numéro du jour (1-365)
+ */
 export const calculateDayNumber = (startDate: Date) => {
   const today = new Date();
   const start = new Date(startDate);
@@ -175,5 +242,5 @@ export const calculateDayNumber = (startDate: Date) => {
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
   // Le jour 1 commence le jour de la date de début
-  return diffDays + 1;
+  return Math.max(1, diffDays + 1);
 };

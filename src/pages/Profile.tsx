@@ -1,4 +1,9 @@
 
+/**
+ * Page de profil utilisateur
+ * Permet à l'utilisateur de voir et modifier ses informations personnelles
+ */
+
 import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,53 +18,86 @@ import { signOut, updateUserProfile } from '@/services/authService';
 import { getOverallProgress } from '@/services/readingPlanService';
 import { useQuery } from '@tanstack/react-query';
 
+/**
+ * Page de profil utilisateur
+ */
 const Profile = () => {
   const navigate = useNavigate();
-  const { user, profile, refreshProfile } = useAuth();
+  const { user, profile, refreshProfile, isLoading } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [startDate, setStartDate] = useState(profile?.start_date || '');
   
-  // Fetch user stats
-  const { data: stats, isLoading } = useQuery({
+  // Récupérer les statistiques de l'utilisateur
+  const { data: stats, isLoading: statsLoading } = useQuery({
     queryKey: ['userStats', user?.id],
     queryFn: () => user ? getOverallProgress(user.id) : null,
     enabled: !!user
   });
   
+  /**
+   * Gère la déconnexion de l'utilisateur
+   */
   const handleLogout = async () => {
-    const result = await signOut();
-    if (result.success) {
-      toast.success("Vous êtes déconnecté");
-      navigate('/');
+    try {
+      const result = await signOut();
+      if (result.success) {
+        toast.success("Vous êtes déconnecté");
+        navigate('/');
+      }
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
     }
   };
   
+  /**
+   * Active le mode édition du profil
+   */
   const handleEditProfile = () => {
     setIsEditing(true);
   };
   
+  /**
+   * Enregistre les modifications du profil
+   */
   const handleSaveProfile = async () => {
     if (!user) return;
     
-    const updates = {
-      full_name: fullName,
-      start_date: startDate
-    };
-    
-    const result = await updateUserProfile(user.id, updates);
-    
-    if (result.success) {
-      setIsEditing(false);
-      refreshProfile();
+    try {
+      const updates = {
+        full_name: fullName,
+        start_date: startDate
+      };
+      
+      const result = await updateUserProfile(user.id, updates);
+      
+      if (result.success) {
+        setIsEditing(false);
+        await refreshProfile();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la mise à jour du profil:", error);
+      toast.error("Erreur lors de la mise à jour du profil");
     }
   };
   
+  /**
+   * Annule l'édition du profil
+   */
   const handleCancelEdit = () => {
     setFullName(profile?.full_name || '');
     setStartDate(profile?.start_date || '');
     setIsEditing(false);
   };
+  
+  // Afficher un indicateur de chargement
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
@@ -69,6 +107,7 @@ const Profile = () => {
       </div>
       
       <div className="p-6 space-y-6">
+        {/* Carte de profil */}
         <Card>
           <CardContent className="p-6">
             {isEditing ? (
@@ -113,10 +152,11 @@ const Profile = () => {
           </CardContent>
         </Card>
         
+        {/* Carte de statistiques */}
         <Card>
           <CardContent className="p-6">
             <h2 className="text-xl font-semibold mb-4">Statistiques de lecture</h2>
-            {isLoading ? (
+            {statsLoading ? (
               <div className="flex justify-center items-center h-24">
                 <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
               </div>
@@ -139,6 +179,7 @@ const Profile = () => {
           </CardContent>
         </Card>
         
+        {/* Boutons d'action */}
         <div className="space-y-4">
           <Button 
             variant="outline" 
@@ -161,6 +202,7 @@ const Profile = () => {
         </div>
       </div>
       
+      {/* Barre de navigation */}
       <NavBar />
     </div>
   );

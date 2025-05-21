@@ -74,25 +74,25 @@ export type Database = {
       }
       user_progress: {
         Row: {
-          chapter_id: string
+          chapter_id: string | null
           completed_at: string | null
           id: string
           status: Database["public"]["Enums"]["chapter_status"] | null
-          user_id: string
+          user_id: string | null
         }
         Insert: {
-          chapter_id: string
+          chapter_id?: string | null
           completed_at?: string | null
           id?: string
           status?: Database["public"]["Enums"]["chapter_status"] | null
-          user_id: string
+          user_id?: string | null
         }
         Update: {
-          chapter_id?: string
+          chapter_id?: string | null
           completed_at?: string | null
           id?: string
           status?: Database["public"]["Enums"]["chapter_status"] | null
-          user_id?: string
+          user_id?: string | null
         }
         Relationships: [
           {
