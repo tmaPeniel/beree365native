@@ -78,8 +78,11 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({ dayNumber }) => {
     const item = readingItems.find(item => item.id === id);
     if (!item) return;
     
+    // Définir le nouveau statut
+    const newStatus = item.completed ? 'pending' : 'completed';
+    
     // Mettre à jour le statut dans Supabase
-    const result = await toggleChapterStatus(user.id, id, !item.completed ? 'completed' : 'pending');
+    const result = await toggleChapterStatus(user.id, id, newStatus);
     
     if (result.success) {
       // Mettre à jour l'état local

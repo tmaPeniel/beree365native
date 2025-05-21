@@ -5,10 +5,10 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useToast } from "@/hooks/use-toast";
 import NavBar from '@/components/NavBar';
 import DayCard from '@/components/DayCard';
+import DayReadingDialog from '@/components/DayReadingDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
@@ -62,7 +62,8 @@ const Reading = () => {
   const [days, setDays] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const [selectedDay, setSelectedDay] = useState<{day: number, date: string} | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
   // Récupérer les données du plan de lecture
   useEffect(() => {
@@ -133,7 +134,13 @@ const Reading = () => {
    * @param {Object} day Données du jour
    */
   const handleDayClick = (day: any) => {
-    navigate(`/reading/${day.day}`);
+    setSelectedDay({ day: day.day, date: day.date });
+    setIsDialogOpen(true);
+  };
+  
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setSelectedDay(null);
   };
   
   // Afficher un indicateur de chargement
@@ -167,6 +174,16 @@ const Reading = () => {
           ))}
         </div>
       </div>
+      
+      {/* Dialog pour afficher les passages du jour sélectionné */}
+      {selectedDay && (
+        <DayReadingDialog 
+          day={selectedDay.day} 
+          date={selectedDay.date}
+          isOpen={isDialogOpen}
+          onClose={handleCloseDialog}
+        />
+      )}
       
       {/* Barre de navigation */}
       <NavBar />
