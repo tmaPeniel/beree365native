@@ -5,6 +5,7 @@ import CircularProgress from '@/components/CircularProgress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { getOverallProgress } from '@/services/readingPlanService';
+import { toast } from 'sonner';
 
 const ProgressStats = () => {
   const isMobile = useIsMobile();
@@ -22,9 +23,15 @@ const ProgressStats = () => {
       if (!user) return;
       
       setIsLoading(true);
-      const progress = await getOverallProgress(user.id);
-      setStats(progress);
-      setIsLoading(false);
+      try {
+        const progress = await getOverallProgress(user.id);
+        setStats(progress);
+      } catch (error) {
+        console.error("Erreur lors du chargement des statistiques:", error);
+        toast.error("Impossible de charger les statistiques");
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     fetchStats();

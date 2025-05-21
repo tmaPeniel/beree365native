@@ -18,7 +18,7 @@ const DayCard: React.FC<DayCardProps> = ({
   onClick, 
   isToday = false
 }) => {
-  const { user } = useAuth();
+  const { user, progressUpdateCounter } = useAuth();
   const [progressPercentage, setProgressPercentage] = useState(0);
   const formattedDate = new Date(date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   
@@ -31,7 +31,7 @@ const DayCard: React.FC<DayCardProps> = ({
     };
     
     fetchProgress();
-  }, [day, user]);
+  }, [day, user, progressUpdateCounter]);
   
   return (
     <button 

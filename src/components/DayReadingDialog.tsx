@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useAuth } from '@/hooks/useAuth';
 import { getReadingPlanForDay, getUserProgressForDay, toggleChapterStatus } from '@/services/readingPlanService';
 import { Check } from 'lucide-react';
+import { toast } from 'sonner';
 
 interface ReadingItem {
   id: string;
@@ -50,6 +51,7 @@ const DayReadingDialog: React.FC<DayReadingDialogProps> = ({ day, date, isOpen, 
         setReadingItems(items);
       } catch (error) {
         console.error("Erreur lors du chargement du plan de lecture:", error);
+        toast.error("Impossible de charger le plan de lecture");
       } finally {
         setIsLoading(false);
       }
@@ -71,20 +73,28 @@ const DayReadingDialog: React.FC<DayReadingDialogProps> = ({ day, date, isOpen, 
     // Définir le nouveau statut
     const newStatus = item.completed ? 'pending' : 'completed';
     
-    // Mettre à jour le statut dans Supabase
-    const result = await toggleChapterStatus(user.id, id, newStatus);
-    
-    if (result.success) {
-      // Mettre à jour l'état local
-      setReadingItems(prev => prev.map(item => {
-        if (item.id === id) {
-          return { ...item, completed: !item.completed };
-        }
-        return item;
-      }));
+    try {
+      // Mettre à jour le statut dans Supabase
+      const result = await toggleChapterStatus(user.id, id, newStatus);
       
-      // Signaler la mise à jour aux autres composants
-      triggerProgressUpdate();
+      if (result.success) {
+        // Mettre à jour l'état local
+        setReadingItems(prev => prev.map(item => {
+          if (item.id === id) {
+            return { ...item, completed: !item.completed };
+          }
+          return item;
+        }));
+        
+        // Signaler la mise à jour aux autres composants
+        triggerProgressUpdate();
+        toast.success(item.completed ? "Lecture marquée comme non lue" : "Lecture marquée comme lue");
+      } else {
+        toast.error("Échec de la mise à jour du statut");
+      }
+    } catch (error) {
+      console.error("Erreur lors de la modification du statut:", error);
+      toast.error("Une erreur est survenue");
     }
   };
 

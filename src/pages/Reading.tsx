@@ -12,6 +12,7 @@ import DayReadingDialog from '@/components/DayReadingDialog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
+import { toast } from 'sonner';
 
 /**
  * Calcule le nombre de jours écoulés depuis la date de début
@@ -58,10 +59,10 @@ const isToday = (startDateStr: string, dayOffset: number) => {
  * Page de plan de lecture
  */
 const Reading = () => {
-  const { profile, isLoading: authLoading } = useAuth();
+  const { profile, isLoading: authLoading, progressUpdateCounter } = useAuth();
   const [days, setDays] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { toast: useToastHook } = useToast();
   const [selectedDay, setSelectedDay] = useState<{day: number, date: string} | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   
@@ -115,11 +116,12 @@ const Reading = () => {
           processedDays.sort((a, b) => a.day - b.day);
           setDays(processedDays);
         } catch (error: any) {
-          toast({
+          useToastHook({
             title: "Erreur",
             description: `Impossible de charger le plan de lecture: ${error.message}`,
             variant: "destructive"
           });
+          toast.error(`Impossible de charger le plan de lecture: ${error.message}`);
         } finally {
           setLoading(false);
         }
@@ -127,7 +129,7 @@ const Reading = () => {
       
       fetchReadingPlan();
     }
-  }, [profile, authLoading, toast]);
+  }, [profile, authLoading, useToastHook, progressUpdateCounter]);
   
   /**
    * Gère le clic sur une carte de jour

@@ -131,6 +131,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   /**
    * Déclenche une mise à jour de la progression de lecture
+   * Cette fonction est appelée après chaque modification du statut d'un chapitre
    */
   const triggerProgressUpdate = () => {
     setProgressUpdateCounter(prev => prev + 1);
