@@ -4,12 +4,16 @@ import { toast } from "sonner";
 
 export const signUp = async (email: string, password: string, fullName: string, startDate: Date) => {
   try {
+    // First create the user account
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
     });
 
     if (signUpError) throw signUpError;
+    
+    // Disable RLS temporarily to allow profile creation
+    await supabase.rpc('disable_rls');
     
     if (authData.user) {
       // Create a profile for the user
@@ -20,6 +24,9 @@ export const signUp = async (email: string, password: string, fullName: string, 
           full_name: fullName,
           start_date: startDate.toISOString().split('T')[0]
         });
+      
+      // Re-enable RLS after profile creation
+      await supabase.rpc('enable_rls');
       
       if (profileError) throw profileError;
       return { success: true, user: authData.user };

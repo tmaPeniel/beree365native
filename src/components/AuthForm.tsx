@@ -22,9 +22,9 @@ const loginSchema = z.object({
 
 // Signup schema requires email, password, name and startDate
 const signupSchema = z.object({
-  name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
   email: z.string().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
+  name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
   startDate: z.date({ required_error: "La date de début est requise" })
 });
 
@@ -53,15 +53,20 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
   });
 
   const handleLoginSubmit = (values: LoginFormValues) => {
-    onSubmit(values);
+    onSubmit({
+      email: values.email,
+      password: values.password
+    });
   };
 
   const handleSignupSubmit = (values: SignupFormValues) => {
-    onSubmit(values);
+    onSubmit({
+      email: values.email,
+      password: values.password,
+      name: values.name,
+      startDate: values.startDate
+    });
   };
-
-  // Select the active form based on the mode
-  const activeForm = isLogin ? loginForm : signupForm;
 
   return (
     <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-green-500">
