@@ -51,25 +51,64 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   // Effet pour initialiser l'authentification
   useEffect(() => {
     console.log("Initialisation de l'authentification");
+    
+    // Configurer l'écouteur d'événements d'authentification (avant tout!)
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      console.log("Événement d'authentification:", event, session ? "Session valide" : "Pas de session");
+      
+      if (event === 'SIGNED_IN' && session?.user) {
+        console.log("Utilisateur connecté:", session.user.id);
+        setUser(session.user);
+        
+        // Utiliser setTimeout pour éviter les problèmes potentiels de blocage
+        setTimeout(async () => {
+          try {
+            console.log("Récupération du profil après connexion...");
+            const userProfile = await refreshUserProfile(session.user.id);
+            console.log("Profil récupéré après connexion:", userProfile);
+            setProfile(userProfile);
+          } catch (error) {
+            console.error("Erreur lors de la récupération du profil après connexion:", error);
+            toast.error("Erreur lors du chargement de votre profil");
+          }
+        }, 0);
+      } else if (event === 'SIGNED_OUT') {
+        console.log("Utilisateur déconnecté");
+        // Nettoyer l'état d'authentification
+        cleanupAuthState();
+        setUser(null);
+        setProfile(null);
+        navigate('/login');
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log("Token d'authentification rafraîchi");
+      }
+    });
+
+    // Récupérer la session initiale
     const initAuth = async () => {
       setIsLoading(true);
       
       try {
-        // Récupérer l'utilisateur actuel
-        const currentUser = await getCurrentUser();
-        console.log("Utilisateur actuel:", currentUser);
-        setUser(currentUser);
+        console.log("Vérification de la session initiale...");
+        const { data: { session } } = await supabase.auth.getSession();
+        console.log("Session initiale:", session ? "Valide" : "Pas de session");
         
-        if (currentUser) {
+        if (session?.user) {
+          console.log("Utilisateur dans session:", session.user.id);
+          setUser(session.user);
+          
           try {
-            // Utiliser la nouvelle fonction robuste pour récupérer ou créer le profil
-            const userProfile = await refreshUserProfile(currentUser.id);
-            console.log("Profil récupéré:", userProfile);
+            console.log("Récupération du profil initial...");
+            // Utiliser la fonction de rafraîchissement du profil
+            const userProfile = await refreshUserProfile(session.user.id);
+            console.log("Profil initial récupéré:", userProfile);
             setProfile(userProfile);
           } catch (error) {
-            console.error("Erreur lors de la récupération/création du profil:", error);
+            console.error("Erreur lors de la récupération initiale du profil:", error);
+            toast.error("Erreur lors du chargement de votre profil");
           }
         } else {
+          console.log("Aucun utilisateur dans la session initiale");
           setProfile(null);
         }
       } catch (error) {
@@ -80,36 +119,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
     };
 
-    // Configurer l'écouteur d'événements d'authentification
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      console.log("Événement d'authentification:", event);
-      
-      if (event === 'SIGNED_IN' && session?.user) {
-        setUser(session.user);
-        
-        // Utiliser setTimeout pour éviter les problèmes potentiels de blocage
-        setTimeout(async () => {
-          try {
-            const userProfile = await refreshUserProfile(session.user.id);
-            setProfile(userProfile);
-          } catch (error) {
-            console.error("Erreur lors de la récupération du profil après connexion:", error);
-          }
-        }, 0);
-      } else if (event === 'SIGNED_OUT') {
-        // Nettoyer l'état d'authentification
-        cleanupAuthState();
-        setUser(null);
-        setProfile(null);
-        navigate('/login');
-      }
-    });
-
     // Initialiser l'authentification
     initAuth();
 
     // Nettoyage lors du démontage
     return () => {
+      console.log("Démontage du provider d'authentification");
       authListener.subscription.unsubscribe();
     };
   }, [navigate]);
@@ -118,14 +133,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Rafraîchit les données du profil utilisateur
    */
   const refreshProfile = async () => {
-    if (user) {
-      try {
-        const userProfile = await refreshUserProfile(user.id);
-        setProfile(userProfile);
-      } catch (error) {
-        console.error("Erreur lors du rafraîchissement du profil:", error);
-        toast.error("Impossible de rafraîchir votre profil");
-      }
+    if (!user) {
+      console.error("refreshProfile: Aucun utilisateur connecté");
+      return;
+    }
+    
+    try {
+      console.log("Rafraîchissement du profil pour", user.id);
+      const userProfile = await refreshUserProfile(user.id);
+      console.log("Profil rafraîchi:", userProfile);
+      setProfile(userProfile);
+    } catch (error) {
+      console.error("Erreur lors du rafraîchissement du profil:", error);
+      toast.error("Impossible de rafraîchir votre profil");
     }
   };
 
@@ -134,21 +154,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
    * Cette fonction est appelée après chaque modification du statut d'un chapitre
    */
   const triggerProgressUpdate = () => {
+    console.log("Déclenchement d'une mise à jour de progression");
     setProgressUpdateCounter(prev => prev + 1);
   };
 
+  const contextValue = {
+    user,
+    profile,
+    isLoading,
+    isAuthenticated: !!user,
+    refreshProfile,
+    triggerProgressUpdate,
+    progressUpdateCounter
+  };
+
   return (
-    <AuthContext.Provider
-      value={{
-        user,
-        profile,
-        isLoading,
-        isAuthenticated: !!user,
-        refreshProfile,
-        triggerProgressUpdate,
-        progressUpdateCounter
-      }}
-    >
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   );

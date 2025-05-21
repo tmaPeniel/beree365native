@@ -6,6 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { ReadingPlanChapter, UserProgress, DailyVerse } from "@/types/supabase";
+import { toast } from "sonner";
 
 /**
  * Récupère les chapitres du plan de lecture pour un jour donné
@@ -14,16 +15,22 @@ import { ReadingPlanChapter, UserProgress, DailyVerse } from "@/types/supabase";
  */
 export const getReadingPlanForDay = async (dayNumber: number) => {
   try {
+    console.log(`Fetching reading plan for day ${dayNumber}...`);
     const { data, error } = await supabase
       .from('reading_plan_chapters')
       .select('*')
       .eq('day_number', dayNumber)
       .order('reference');
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Error fetching reading plan for day ${dayNumber}:`, error);
+      throw error;
+    }
+    
+    console.log(`Successfully fetched ${data?.length || 0} chapters for day ${dayNumber}`);
     return data as ReadingPlanChapter[];
   } catch (error) {
-    console.error(`Erreur lors de la récupération du plan pour le jour ${dayNumber}:`, error);
+    console.error(`Error fetching reading plan for day ${dayNumber}:`, error);
     return [];
   }
 };
@@ -36,14 +43,25 @@ export const getReadingPlanForDay = async (dayNumber: number) => {
  */
 export const getUserProgressForDay = async (userId: string, dayNumber: number) => {
   try {
+    if (!userId) {
+      console.error("getUserProgressForDay: No user ID provided");
+      return [];
+    }
+    
+    console.log(`Fetching user progress for user ${userId} and day ${dayNumber}...`);
+    
     const { data: chapters } = await supabase
       .from('reading_plan_chapters')
       .select('id')
       .eq('day_number', dayNumber);
     
-    if (!chapters || chapters.length === 0) return [];
+    if (!chapters || chapters.length === 0) {
+      console.log(`No chapters found for day ${dayNumber}`);
+      return [];
+    }
     
     const chapterIds = chapters.map(chapter => chapter.id);
+    console.log(`Found ${chapterIds.length} chapter IDs for day ${dayNumber}`);
     
     const { data, error } = await supabase
       .from('user_progress')
@@ -51,10 +69,15 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
       .eq('user_id', userId)
       .in('chapter_id', chapterIds);
     
-    if (error) throw error;
+    if (error) {
+      console.error(`Error fetching user progress for day ${dayNumber}:`, error);
+      throw error;
+    }
+    
+    console.log(`Successfully fetched ${data?.length || 0} progress entries for user ${userId} and day ${dayNumber}`);
     return data as (UserProgress & { reading_plan_chapters: ReadingPlanChapter })[];
   } catch (error) {
-    console.error(`Erreur lors de la récupération de la progression pour le jour ${dayNumber}:`, error);
+    console.error(`Error fetching user progress for day ${dayNumber}:`, error);
     return [];
   }
 };
@@ -67,18 +90,40 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
  * @returns {Promise<{success: boolean, data?: any, error?: string}>}
  */
 export const toggleChapterStatus = async (userId: string, chapterId: string, currentStatus: 'pending' | 'completed') => {
+  console.log(`Toggling chapter status - User: ${userId}, Chapter: ${chapterId}, Current status: ${currentStatus}`);
+  
+  // Vérifier l'authentification
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    console.error("toggleChapterStatus: User not authenticated");
+    toast.error("Vous devez être connecté pour modifier le statut de lecture");
+    return { success: false, error: "User not authenticated" };
+  }
+  
   const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
   const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
   
   try {
-    // Vérifie si l'entrée existe déjà
-    const { data: existingEntries } = await supabase
+    // Vérifier que l'entrée existe
+    console.log(`Checking if entry exists for user ${userId} and chapter ${chapterId}...`);
+    const { data: existingEntries, error: checkError } = await supabase
       .from('user_progress')
       .select('*')
       .eq('user_id', userId)
       .eq('chapter_id', chapterId);
       
+    if (checkError) {
+      console.error("Error checking existing entries:", checkError);
+      toast.error("Erreur lors de la vérification de votre progression");
+      return { success: false, error: checkError.message };
+    }
+    
+    console.log(`Found ${existingEntries?.length || 0} existing entries`);
+    
+    let result;
+    
     if (existingEntries && existingEntries.length > 0) {
+      console.log(`Updating existing entry to status: ${newStatus}`);
       // Mettre à jour l'entrée existante
       const { data, error } = await supabase
         .from('user_progress')
@@ -87,11 +132,19 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
           completed_at: completedAt
         })
         .eq('user_id', userId)
-        .eq('chapter_id', chapterId);
+        .eq('chapter_id', chapterId)
+        .select();
       
-      if (error) throw error;
-      return { success: true, data };
+      if (error) {
+        console.error("Error updating status:", error);
+        toast.error(`Erreur lors de la mise à jour: ${error.message}`);
+        throw error;
+      }
+      
+      console.log("Update successful:", data);
+      result = { success: true, data };
     } else {
+      console.log(`Creating new entry with status: ${newStatus}`);
       // Créer une nouvelle entrée
       const { data, error } = await supabase
         .from('user_progress')
@@ -100,13 +153,29 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
           chapter_id: chapterId,
           status: newStatus,
           completed_at: completedAt
-        }]);
+        }])
+        .select();
       
-      if (error) throw error;
-      return { success: true, data };
+      if (error) {
+        console.error("Error creating new entry:", error);
+        toast.error(`Erreur lors de la création: ${error.message}`);
+        throw error;
+      }
+      
+      console.log("Insert successful:", data);
+      result = { success: true, data };
     }
+    
+    // Notifier l'utilisateur
+    toast.success(newStatus === 'completed' ? 
+      "Passage marqué comme lu" : 
+      "Passage marqué comme non lu"
+    );
+    
+    return result;
   } catch (error: any) {
-    console.error("Erreur lors de la mise à jour du statut:", error);
+    console.error("Error toggling chapter status:", error);
+    toast.error(`Une erreur est survenue: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
