@@ -1,3 +1,4 @@
+
 /**
  * Service d'authentification
  * Gère toutes les interactions avec l'authentification Supabase
@@ -52,8 +53,8 @@ export const signUp = async (email: string, password: string, fullName: string, 
         console.log("Profil non trouvé, tentative de création manuelle");
         
         try {
-          // Désactiver temporairement RLS via la fonction SQL
-          await supabase.rpc('disable_rls');
+          // Utiliser une assertion de type pour éviter l'erreur TypeScript
+          await (supabase.rpc as any)('disable_rls');
           
           // Créer le profil manuellement
           const { error: profileError } = await supabase
@@ -64,8 +65,8 @@ export const signUp = async (email: string, password: string, fullName: string, 
               start_date: startDate.toISOString().split('T')[0]
             }]);
           
-          // Réactiver RLS
-          await supabase.rpc('enable_rls');
+          // Utiliser une assertion de type pour éviter l'erreur TypeScript
+          await (supabase.rpc as any)('enable_rls');
           
           if (profileError) {
             console.error("Erreur lors de la création manuelle du profil:", profileError);
@@ -123,7 +124,8 @@ export const signIn = async (email: string, password: string) => {
         console.log("Profil non trouvé lors de la connexion, création d'un profil par défaut");
         
         try {
-          await supabase.rpc('disable_rls');
+          // Utiliser une assertion de type pour éviter l'erreur TypeScript
+          await (supabase.rpc as any)('disable_rls');
           
           await supabase
             .from('profiles')
@@ -133,7 +135,8 @@ export const signIn = async (email: string, password: string) => {
               start_date: new Date().toISOString().split('T')[0]
             }]);
             
-          await supabase.rpc('enable_rls');
+          // Utiliser une assertion de type pour éviter l'erreur TypeScript
+          await (supabase.rpc as any)('enable_rls');
         } catch (error) {
           console.error("Erreur lors de la création du profil pendant la connexion:", error);
         }
@@ -244,7 +247,8 @@ export const refreshUserProfile = async (userId: string) => {
       console.log("Profil non trouvé, tentative de création");
       
       try {
-        await supabase.rpc('disable_rls');
+        // Utiliser une assertion de type pour éviter l'erreur TypeScript
+        await (supabase.rpc as any)('disable_rls');
         
         const { data: newProfile, error: insertError } = await supabase
           .from('profiles')
@@ -256,7 +260,8 @@ export const refreshUserProfile = async (userId: string) => {
           .select()
           .single();
           
-        await supabase.rpc('enable_rls');
+        // Utiliser une assertion de type pour éviter l'erreur TypeScript
+        await (supabase.rpc as any)('enable_rls');
         
         if (insertError) {
           console.error("Erreur lors de la création du profil:", insertError);
