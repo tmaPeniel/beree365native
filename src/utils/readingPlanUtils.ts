@@ -65,3 +65,13 @@ export const getPlanDates = (): { startDate: Date; endDate: Date } => {
   const endDate = new Date("2025-12-31");
   return { startDate, endDate };
 };
+
+// Adding the missing formatDateToFrench function
+export const formatDateToFrench = (date: Date): string => {
+  const options: Intl.DateTimeFormatOptions = { 
+    day: 'numeric', 
+    month: 'long',
+    year: 'numeric'
+  };
+  return date.toLocaleDateString('fr-FR', options);
+};

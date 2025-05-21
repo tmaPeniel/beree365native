@@ -12,27 +12,28 @@ export const signUp = async (email: string, password: string, fullName: string, 
 
     if (signUpError) throw signUpError;
     
-    // Disable RLS temporarily to allow profile creation
-    await supabase.rpc('disable_rls');
-    
-    if (authData.user) {
-      // Create a profile for the user
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          full_name: fullName,
-          start_date: startDate.toISOString().split('T')[0]
-        });
+    try {
+      // Disable RLS temporarily to allow profile creation
+      await supabase.rpc('disable_rls');
       
-      // Re-enable RLS after profile creation
+      if (authData.user) {
+        // Create a profile for the user
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: authData.user.id,
+            full_name: fullName,
+            start_date: startDate.toISOString().split('T')[0]
+          });
+        
+        if (profileError) throw profileError;
+      }
+    } finally {
+      // Re-enable RLS after profile creation (ensure this runs even if there's an error)
       await supabase.rpc('enable_rls');
-      
-      if (profileError) throw profileError;
-      return { success: true, user: authData.user };
     }
     
-    return { success: false, error: "Inscription réussie, mais l'utilisateur n'a pas été créé" };
+    return { success: true, user: authData.user };
   } catch (error: any) {
     toast.error(`Erreur d'inscription: ${error.message}`);
     return { success: false, error: error.message };
