@@ -58,7 +58,7 @@ const Dashboard = () => {
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Affichage du jour actuel */}
-        <TodayDisplay dayNumber={dayNumber} date={today} />
+        <TodayDisplay dayNumber={dayNumber} date={today} userName={profile.full_name} />
       
         {/* Verset du jour */}
         <VerseOfDay dayNumber={dayNumber} />
