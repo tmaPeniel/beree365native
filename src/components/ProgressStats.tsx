@@ -8,7 +8,7 @@ import { getOverallProgress } from '@/services/readingPlanService';
 
 const ProgressStats = () => {
   const isMobile = useIsMobile();
-  const { user } = useAuth();
+  const { user, progressUpdateCounter } = useAuth();
   const [stats, setStats] = useState({
     totalPassages: 0,
     passagesRead: 0,
@@ -28,7 +28,7 @@ const ProgressStats = () => {
     };
     
     fetchStats();
-  }, [user]);
+  }, [user, progressUpdateCounter]); // Ajout de progressUpdateCounter comme dépendance
   
   if (isLoading) {
     return (

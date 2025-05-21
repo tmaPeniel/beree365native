@@ -22,6 +22,8 @@ type AuthContextType = {
   isLoading: boolean;         // Indique si nous sommes en train de charger les données
   isAuthenticated: boolean;   // Indique si l'utilisateur est authentifié
   refreshProfile: () => Promise<void>; // Fonction pour rafraîchir le profil
+  triggerProgressUpdate: () => void;   // Fonction pour signaler une mise à jour de progression
+  progressUpdateCounter: number;      // Compteur pour déclencher les mises à jour
 };
 
 // Créer le contexte avec des valeurs par défaut
@@ -30,7 +32,9 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   isLoading: true,
   isAuthenticated: false,
-  refreshProfile: async () => {}
+  refreshProfile: async () => {},
+  triggerProgressUpdate: () => {},
+  progressUpdateCounter: 0
 });
 
 /**
@@ -41,6 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<any | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [progressUpdateCounter, setProgressUpdateCounter] = useState<number>(0);
   const navigate = useNavigate();
 
   // Effet pour initialiser l'authentification
@@ -124,6 +129,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  /**
+   * Déclenche une mise à jour de la progression de lecture
+   */
+  const triggerProgressUpdate = () => {
+    setProgressUpdateCounter(prev => prev + 1);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -131,7 +143,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         profile,
         isLoading,
         isAuthenticated: !!user,
-        refreshProfile
+        refreshProfile,
+        triggerProgressUpdate,
+        progressUpdateCounter
       }}
     >
       {children}

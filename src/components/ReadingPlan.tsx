@@ -28,7 +28,7 @@ interface ReadingPlanProps {
  * Composant du plan de lecture quotidien
  */
 const ReadingPlan: React.FC<ReadingPlanProps> = ({ dayNumber }) => {
-  const { user } = useAuth();
+  const { user, triggerProgressUpdate } = useAuth();
   const [readingItems, setReadingItems] = useState<ReadingItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -79,7 +79,7 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({ dayNumber }) => {
     if (!item) return;
     
     // Mettre à jour le statut dans Supabase
-    const result = await toggleChapterStatus(user.id, id, item.completed ? 'completed' : 'pending');
+    const result = await toggleChapterStatus(user.id, id, !item.completed ? 'completed' : 'pending');
     
     if (result.success) {
       // Mettre à jour l'état local
@@ -89,6 +89,9 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({ dayNumber }) => {
         }
         return item;
       }));
+      
+      // Signaler la mise à jour aux autres composants
+      triggerProgressUpdate();
     }
   };
 
