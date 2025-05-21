@@ -10,6 +10,7 @@ import { useAuth } from '@/hooks/useAuth';
 import ProfileCard from '@/components/profile/ProfileCard';
 import StatsCard from '@/components/profile/StatsCard';
 import ProfileActions from '@/components/profile/ProfileActions';
+import ProfileHeader from '@/components/profile/ProfileHeader';
 
 /**
  * Page de profil utilisateur
@@ -28,10 +29,8 @@ const Profile = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-white p-6 shadow-sm">
-        <h1 className="text-2xl font-bold mb-2">Profil</h1>
-        <p className="text-gray-500">Gérez vos informations personnelles</p>
-      </div>
+      {/* En-tête de la page */}
+      <ProfileHeader />
       
       <div className="p-6 space-y-6">
         {/* Carte de profil */}
@@ -42,9 +41,9 @@ const Profile = () => {
         
         {/* Boutons d'action */}
         <ProfileActions onEditProfile={() => {
-          // Trouver l'instance du composant ProfileCard et appeler sa méthode handleEditProfile
+          // Trouver l'élément bouton de modification du profil et le déclencher
           const editButton = document.querySelector('button.border-green-500');
-          if (editButton) {
+          if (editButton instanceof HTMLButtonElement) {
             editButton.click();
           }
         }} />
