@@ -6,7 +6,7 @@
 
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getCurrentUser, getUserProfile } from '@/services/authService';
+import { getCurrentUser, getUserProfile, refreshUserProfile } from '@/services/authService';
 import { Profile } from '@/types/supabase';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -29,6 +29,22 @@ const AuthContext = createContext<AuthContextType>({
   refreshProfile: async () => {}
 });
 
+// Fonction utilitaire pour nettoyer l'état d'authentification dans localStorage
+const cleanupAuthState = () => {
+  // Supprimer tous les jetons d'authentification Supabase
+  Object.keys(localStorage).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      localStorage.removeItem(key);
+    }
+  });
+  // Faire de même pour sessionStorage si utilisé
+  Object.keys(sessionStorage || {}).forEach((key) => {
+    if (key.startsWith('supabase.auth.') || key.includes('sb-')) {
+      sessionStorage.removeItem(key);
+    }
+  });
+};
+
 /**
  * Fournisseur du contexte d'authentification
  * @param {ReactNode} children Composants enfants
@@ -41,18 +57,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   // Effet pour initialiser l'authentification
   useEffect(() => {
+    console.log("Initialisation de l'authentification");
     const initAuth = async () => {
       setIsLoading(true);
       
       try {
         // Récupérer l'utilisateur actuel
         const currentUser = await getCurrentUser();
+        console.log("Utilisateur actuel:", currentUser);
         setUser(currentUser);
         
         if (currentUser) {
-          // Récupérer le profil de l'utilisateur
-          const userProfile = await getUserProfile(currentUser.id);
-          setProfile(userProfile);
+          try {
+            // Utiliser la nouvelle fonction robuste pour récupérer ou créer le profil
+            const userProfile = await refreshUserProfile(currentUser.id);
+            console.log("Profil récupéré:", userProfile);
+            setProfile(userProfile);
+          } catch (error) {
+            console.error("Erreur lors de la récupération/création du profil:", error);
+          }
         } else {
           setProfile(null);
         }
@@ -74,13 +97,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         // Utiliser setTimeout pour éviter les problèmes potentiels de blocage
         setTimeout(async () => {
           try {
-            const userProfile = await getUserProfile(session.user.id);
+            const userProfile = await refreshUserProfile(session.user.id);
             setProfile(userProfile);
           } catch (error) {
-            console.error("Erreur lors de la récupération du profil:", error);
+            console.error("Erreur lors de la récupération du profil après connexion:", error);
           }
         }, 0);
       } else if (event === 'SIGNED_OUT') {
+        // Nettoyer l'état d'authentification
+        cleanupAuthState();
         setUser(null);
         setProfile(null);
         navigate('/login');
@@ -102,7 +127,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const refreshProfile = async () => {
     if (user) {
       try {
-        const userProfile = await getUserProfile(user.id);
+        const userProfile = await refreshUserProfile(user.id);
         setProfile(userProfile);
       } catch (error) {
         console.error("Erreur lors du rafraîchissement du profil:", error);
