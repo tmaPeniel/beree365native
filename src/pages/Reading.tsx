@@ -1,4 +1,3 @@
-
 /**
  * Page de plan de lecture
  * Affiche l'ensemble du plan de lecture avec les jours et leur état
@@ -48,62 +47,63 @@ const formatDate = (startDateStr: string, dayOffset: number) => {
 const isToday = (startDateStr: string, dayOffset: number) => {
   const startDate = new Date(startDateStr);
   startDate.setDate(startDate.getDate() + dayOffset);
-  
   const today = new Date();
-  return startDate.getDate() === today.getDate() && 
-         startDate.getMonth() === today.getMonth() && 
-         startDate.getFullYear() === today.getFullYear();
+  return startDate.getDate() === today.getDate() && startDate.getMonth() === today.getMonth() && startDate.getFullYear() === today.getFullYear();
 };
 
 /**
  * Page de plan de lecture
  */
 const Reading = () => {
-  const { profile, isLoading: authLoading, progressUpdateCounter } = useAuth();
+  const {
+    profile,
+    isLoading: authLoading,
+    progressUpdateCounter
+  } = useAuth();
   const [days, setDays] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast: useToastHook } = useToast();
-  const [selectedDay, setSelectedDay] = useState<{day: number, date: string} | null>(null);
+  const {
+    toast: useToastHook
+  } = useToast();
+  const [selectedDay, setSelectedDay] = useState<{
+    day: number;
+    date: string;
+  } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  
+
   // Récupérer les données du plan de lecture
   useEffect(() => {
     if (!authLoading && profile) {
       const fetchReadingPlan = async () => {
         setLoading(true);
-        
         try {
           // Récupérer les chapitres du plan de lecture
-          const { data: chaptersData, error: chaptersError } = await supabase
-            .from('reading_plan_chapters')
-            .select('*')
-            .order('day_number', { ascending: true });
-            
+          const {
+            data: chaptersData,
+            error: chaptersError
+          } = await supabase.from('reading_plan_chapters').select('*').order('day_number', {
+            ascending: true
+          });
           if (chaptersError) throw chaptersError;
-          
+
           // Récupérer la progression de l'utilisateur
-          const { data: progressData, error: progressError } = await supabase
-            .from('user_progress')
-            .select('*')
-            .eq('user_id', profile.id);
-            
+          const {
+            data: progressData,
+            error: progressError
+          } = await supabase.from('user_progress').select('*').eq('user_id', profile.id);
           if (progressError) throw progressError;
-          
+
           // Traiter les données
           const uniqueDays = Array.from(new Set(chaptersData.map((chapter: any) => chapter.day_number)));
           const processedDays: any[] = [];
-          
           for (const dayNum of uniqueDays) {
             // Filtrer les chapitres pour ce jour
             const dayChapters = chaptersData.filter((chapter: any) => chapter.day_number === dayNum);
-            
+
             // Vérifier si tous les chapitres du jour sont complétés
             const dayChapterIds = dayChapters.map((chapter: any) => chapter.id);
-            const completedChapters = progressData.filter(
-              (p: any) => dayChapterIds.includes(p.chapter_id) && p.status === 'completed'
-            );
+            const completedChapters = progressData.filter((p: any) => dayChapterIds.includes(p.chapter_id) && p.status === 'completed');
             const isDayCompleted = completedChapters.length === dayChapterIds.length && dayChapterIds.length > 0;
-            
             processedDays.push({
               day: dayNum,
               completed: isDayCompleted,
@@ -111,7 +111,7 @@ const Reading = () => {
               isToday: isToday(profile.start_date, dayNum - 1)
             });
           }
-          
+
           // Trier par numéro de jour croissant
           processedDays.sort((a, b) => a.day - b.day);
           setDays(processedDays);
@@ -126,36 +126,33 @@ const Reading = () => {
           setLoading(false);
         }
       };
-      
       fetchReadingPlan();
     }
   }, [profile, authLoading, useToastHook, progressUpdateCounter]);
-  
+
   /**
    * Gère le clic sur une carte de jour
    * @param {Object} day Données du jour
    */
   const handleDayClick = (day: any) => {
-    setSelectedDay({ day: day.day, date: day.date });
+    setSelectedDay({
+      day: day.day,
+      date: day.date
+    });
     setIsDialogOpen(true);
   };
-  
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setSelectedDay(null);
   };
-  
+
   // Afficher un indicateur de chargement
   if (authLoading || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    return <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
-      </div>
-    );
+      </div>;
   }
-  
-  return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+  return <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
         <p className="text-gray-500">Suivez votre progression au fil des jours</p>
@@ -163,42 +160,19 @@ const Reading = () => {
       
       <div className="container mx-auto px-4 pb-16">
         {/* En-tête sur mobile */}
-        <div className="md:hidden mb-4 p-4 border rounded-xl bg-white shadow-sm">
-          <h2 className="text-center font-semibold">
-            Plan de lecture<br />
-            Suivez...
-          </h2>
-        </div>
+        
         
         {/* Affichage des cartes de jours - nouveau layout pour mobile */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-          {days.map((day) => (
-            <DayCard
-              key={day.day}
-              day={day.day}
-              date={day.date}
-              completed={day.completed}
-              isToday={day.isToday}
-              onClick={() => handleDayClick(day)}
-            />
-          ))}
+          {days.map(day => <DayCard key={day.day} day={day.day} date={day.date} completed={day.completed} isToday={day.isToday} onClick={() => handleDayClick(day)} />)}
         </div>
       </div>
       
       {/* Dialog pour afficher les passages du jour sélectionné */}
-      {selectedDay && (
-        <DayReadingDialog 
-          day={selectedDay.day} 
-          date={selectedDay.date}
-          isOpen={isDialogOpen}
-          onClose={handleCloseDialog}
-        />
-      )}
+      {selectedDay && <DayReadingDialog day={selectedDay.day} date={selectedDay.date} isOpen={isDialogOpen} onClose={handleCloseDialog} />}
       
       {/* Barre de navigation */}
       <NavBar />
-    </div>
-  );
+    </div>;
 };
-
 export default Reading;
