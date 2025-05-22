@@ -36,12 +36,12 @@ const DayCard: React.FC<DayCardProps> = ({
   return (
     <button 
       onClick={onClick}
-      className={`w-full aspect-square rounded-lg flex flex-col items-center justify-center p-2 transition-all relative
+      className={`w-full aspect-square rounded-xl flex flex-col items-center justify-center p-2 transition-all relative
         ${isToday 
-          ? 'bg-green-600 text-white shadow-lg border-2 border-green-700' 
+          ? 'bg-green-600 text-white shadow-md border-2 border-green-700' 
           : completed 
-            ? 'bg-green-400 text-white shadow-md hover:bg-green-600' 
-            : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+            ? 'bg-green-400 text-white shadow-sm hover:bg-green-600' 
+            : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100'
         }`}
     >
       <span className="text-sm font-semibold">Jour {day}</span>

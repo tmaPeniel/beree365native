@@ -155,15 +155,23 @@ const Reading = () => {
   }
   
   return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="bg-white p-6 shadow-sm mb-6">
-        <h1 className="text-2xl font-bold">Plan de lecture</h1>
+    <div className="min-h-screen bg-gray-50 pb-20">
+      <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+        <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
         <p className="text-gray-500">Suivez votre progression au fil des jours</p>
       </div>
       
-      <div className="container mx-auto p-4">
-        {/* Affichage des cartes de jours */}
-        <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+      <div className="container mx-auto px-4 pb-16">
+        {/* En-tête sur mobile */}
+        <div className="md:hidden mb-4 p-4 border rounded-xl bg-white shadow-sm">
+          <h2 className="text-center font-semibold">
+            Plan de lecture<br />
+            Suivez...
+          </h2>
+        </div>
+        
+        {/* Affichage des cartes de jours - nouveau layout pour mobile */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
           {days.map((day) => (
             <DayCard
               key={day.day}
