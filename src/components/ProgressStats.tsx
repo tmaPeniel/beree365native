@@ -35,7 +35,7 @@ const ProgressStats = () => {
     };
     
     fetchStats();
-  }, [user, progressUpdateCounter]); // Ajout de progressUpdateCounter comme dépendance
+  }, [user, progressUpdateCounter]);
   
   if (isLoading) {
     return (
@@ -56,28 +56,32 @@ const ProgressStats = () => {
           PROGRESSION GLOBALE
         </h2>
         
-        <div className="w-full flex justify-center">
-          <CircularProgress 
-            progress={stats.progressPercentage} 
-            size={isMobile ? 140 : 160}
-            className="text-green-500"
-          />
-        </div>
-        
-        <div className="mt-4 md:mt-6 space-y-2 md:space-y-3">
-          <div className="grid grid-cols-2 items-center bg-purple-50 p-2 md:p-3 rounded-md">
-            <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages à lire</span>
-            <span className="text-right font-bold text-sm md:text-base">{stats.totalPassages}</span>
+        <div className="flex flex-col md:flex-row items-center gap-4">
+          {/* Partie gauche - Statistiques textuelles */}
+          <div className="w-full md:w-3/5 space-y-2 md:space-y-3">
+            <div className="grid grid-cols-2 items-center bg-purple-50 p-2 md:p-3 rounded-md">
+              <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages à lire</span>
+              <span className="text-right font-bold text-sm md:text-base">{stats.totalPassages}</span>
+            </div>
+            
+            <div className="grid grid-cols-2 items-center bg-orange-100 p-2 md:p-3 rounded-md">
+              <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages lus</span>
+              <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
+            </div>
+            
+            <div className="grid grid-cols-2 items-center bg-gray-100 p-2 md:p-3 rounded-md border-r-2 border-green-600">
+              <span className="text-sm md:text-base text-gray-700 font-medium">Total Passages restants</span>
+              <span className="text-right font-bold text-sm md:text-base">{stats.passagesRemaining}</span>
+            </div>
           </div>
           
-          <div className="grid grid-cols-2 items-center bg-orange-100 p-2 md:p-3 rounded-md">
-            <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages lus</span>
-            <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
-          </div>
-          
-          <div className="grid grid-cols-2 items-center bg-gray-100 p-2 md:p-3 rounded-md border-r-2 border-green-600">
-            <span className="text-sm md:text-base text-gray-700 font-medium">Total Passages restants</span>
-            <span className="text-right font-bold text-sm md:text-base">{stats.passagesRemaining}</span>
+          {/* Partie droite - Cercle de progression */}
+          <div className="w-full md:w-2/5 flex justify-center">
+            <CircularProgress 
+              progress={stats.progressPercentage} 
+              size={isMobile ? 120 : 140}
+              className="text-green-500"
+            />
           </div>
         </div>
 
