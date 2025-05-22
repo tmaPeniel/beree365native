@@ -41,7 +41,7 @@ const Dashboard = () => {
   endDate.setDate(startDate.getDate() + 364); // 365 jours au total, donc +364
   
   // Afficher un indicateur de chargement
-  if (isLoading) {
+  if (isLoading || !profile) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -58,7 +58,11 @@ const Dashboard = () => {
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Affichage du jour actuel */}
-        <TodayDisplay dayNumber={dayNumber} date={today} userName={profile.full_name} />
+        <TodayDisplay 
+          dayNumber={dayNumber} 
+          date={today} 
+          userName={profile?.full_name || 'Utilisateur'} 
+        />
       
         {/* Verset du jour */}
         <VerseOfDay dayNumber={dayNumber} />
