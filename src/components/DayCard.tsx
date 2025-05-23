@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { getDayProgress } from '@/services/readingPlanService';
+import { getDayProgress } from '@/services/readingPlan';
 
 interface DayCardProps {
   day: number;

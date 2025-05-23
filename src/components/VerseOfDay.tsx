@@ -1,7 +1,6 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { getDailyVerse } from '@/services/readingPlanService';
+import { getDailyVerse } from '@/services/readingPlan';
 import { DailyVerse } from "@/types/supabase";
 
 interface VerseOfDayProps {
