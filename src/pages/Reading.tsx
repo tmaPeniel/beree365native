@@ -1,3 +1,4 @@
+
 /**
  * Page de plan de lecture
  * Affiche l'ensemble du plan de lecture avec les jours et leur état
@@ -70,6 +71,25 @@ const Reading = () => {
     date: string;
   } | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [currentDayNumber, setCurrentDayNumber] = useState(1);
+
+  // Calcul du jour courant basé sur la date de début
+  useEffect(() => {
+    if (profile?.start_date) {
+      const startDate = new Date(profile.start_date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const diffTime = today.getTime() - startDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      
+      // Le jour 1 commence le jour de la date de début
+      const calculatedDay = Math.max(1, diffDays + 1);
+      console.log(`Reading page: Current day number is ${calculatedDay} from start date ${profile.start_date}`);
+      setCurrentDayNumber(calculatedDay);
+    }
+  }, [profile]);
 
   // Récupérer les données du plan de lecture
   useEffect(() => {
@@ -135,12 +155,14 @@ const Reading = () => {
    * @param {Object} day Données du jour
    */
   const handleDayClick = (day: any) => {
+    console.log(`Selected day ${day.day}, date: ${day.date}`);
     setSelectedDay({
       day: day.day,
       date: day.date
     });
     setIsDialogOpen(true);
   };
+  
   const handleCloseDialog = () => {
     setIsDialogOpen(false);
     setSelectedDay(null);
@@ -152,6 +174,7 @@ const Reading = () => {
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
       </div>;
   }
+  
   return <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
@@ -159,8 +182,10 @@ const Reading = () => {
       </div>
       
       <div className="container mx-auto px-4 pb-16">
-        {/* En-tête sur mobile */}
-        
+        {/* Affichage du jour actuel sur mobile */}
+        <div className="md:hidden mb-4 p-4 bg-green-50 rounded-lg border border-green-100">
+          <p className="font-medium">Aujourd'hui: Jour {currentDayNumber}</p>
+        </div>
         
         {/* Affichage des cartes de jours - nouveau layout pour mobile */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
@@ -175,4 +200,5 @@ const Reading = () => {
       <NavBar />
     </div>;
 };
+
 export default Reading;
