@@ -2,7 +2,7 @@
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { useAuth } from '@/hooks/useAuth';
-import { getOverallProgress } from '@/services/readingPlanService';
+import { getOverallProgress } from '@/services/readingPlan';
 import { useQuery } from '@tanstack/react-query';
 
 /**

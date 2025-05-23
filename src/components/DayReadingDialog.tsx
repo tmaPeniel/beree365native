@@ -1,8 +1,7 @@
-
 import React, { useEffect, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useAuth } from '@/hooks/useAuth';
-import { getReadingPlanForDay, getUserProgressForDay, toggleChapterStatus } from '@/services/readingPlanService';
+import { getReadingPlanForDay, getUserProgressForDay, toggleChapterStatus } from '@/services/readingPlan';
 import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
