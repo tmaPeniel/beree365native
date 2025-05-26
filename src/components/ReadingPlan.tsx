@@ -1,4 +1,3 @@
-
 /**
  * Composant pour afficher le plan de lecture quotidien
  * Affiche les passages à lire pour un jour spécifique
@@ -8,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { getReadingPlanForDay, toggleChapterStatus, getUserProgressForDay } from '@/services/readingPlanService';
+import { getReadingPlanForDay, toggleChapterStatus, getUserProgressForDay } from '@/services/readingPlan';
 import { toast } from 'sonner';
 
 // Type pour les éléments de lecture

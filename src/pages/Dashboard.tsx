@@ -1,4 +1,3 @@
-
 /**
  * Page de tableau de bord
  * Affiche un aperçu du plan de lecture et des statistiques
@@ -12,7 +11,7 @@ import VerseOfDay from '@/components/VerseOfDay';
 import TodayDisplay from '@/components/TodayDisplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { calculateDayNumber } from '@/services/readingPlanService';
+import { calculateDayNumber } from '@/services/readingPlan';
 import PlanDates from '@/components/ui/PlanDate';
 
 /**
@@ -30,6 +29,7 @@ const Dashboard = () => {
     if (profile?.start_date) {
       const startDate = new Date(profile.start_date);
       const calculatedDay = calculateDayNumber(startDate);
+      console.log(`Dashboard: Calculated day number is ${calculatedDay} from start date ${profile.start_date}`);
       setDayNumber(calculatedDay);
       setRemainingDays(365 - (calculatedDay - 1));
     }

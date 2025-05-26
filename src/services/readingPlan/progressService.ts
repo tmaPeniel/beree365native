@@ -1,39 +1,11 @@
 
 /**
- * Service du plan de lecture
- * Gère toutes les interactions avec les données du plan de lecture dans Supabase
+ * Service gérant la progression de l'utilisateur
  */
 
 import { supabase } from "@/integrations/supabase/client";
-import { ReadingPlanChapter, UserProgress, DailyVerse } from "@/types/supabase";
+import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { toast } from "sonner";
-
-/**
- * Récupère les chapitres du plan de lecture pour un jour donné
- * @param {number} dayNumber Numéro du jour
- * @returns {Promise<ReadingPlanChapter[]>}
- */
-export const getReadingPlanForDay = async (dayNumber: number) => {
-  try {
-    console.log(`Fetching reading plan for day ${dayNumber}...`);
-    const { data, error } = await supabase
-      .from('reading_plan_chapters')
-      .select('*')
-      .eq('day_number', dayNumber)
-      .order('reference');
-    
-    if (error) {
-      console.error(`Error fetching reading plan for day ${dayNumber}:`, error);
-      throw error;
-    }
-    
-    console.log(`Successfully fetched ${data?.length || 0} chapters for day ${dayNumber}`);
-    return data as ReadingPlanChapter[];
-  } catch (error) {
-    console.error(`Error fetching reading plan for day ${dayNumber}:`, error);
-    return [];
-  }
-};
 
 /**
  * Récupère la progression de l'utilisateur pour un jour donné
@@ -181,39 +153,6 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
 };
 
 /**
- * Récupère le verset du jour pour un jour donné
- * @param {number} dayNumber Numéro du jour
- * @returns {Promise<DailyVerse|null>}
- */
-export const getDailyVerse = async (dayNumber: number) => {
-  try {
-    const { data, error } = await supabase
-      .from('daily_verses')
-      .select('*')
-      .eq('day_number', dayNumber)
-      .single();
-    
-    if (error) {
-      // Si le verset n'existe pas, retournons un verset par défaut
-      if (error.code === 'PGRST116') {
-        return {
-          id: 'default',
-          day_number: dayNumber,
-          reference: 'Psaumes 119:105',
-          text: 'Ta parole est une lampe à mes pieds, et une lumière sur mon sentier.'
-        } as DailyVerse;
-      }
-      throw error;
-    }
-    
-    return data as DailyVerse;
-  } catch (error) {
-    console.error(`Erreur lors de la récupération du verset du jour ${dayNumber}:`, error);
-    return null;
-  }
-};
-
-/**
  * Calcule le pourcentage de progression pour un jour donné
  * @param {string} userId ID de l'utilisateur
  * @param {number} dayNumber Numéro du jour
@@ -292,24 +231,4 @@ export const getOverallProgress = async (userId: string) => {
       progressPercentage: 0
     };
   }
-};
-
-/**
- * Calcule le numéro de jour actuel en fonction de la date de début
- * @param {Date} startDate Date de début du plan
- * @returns {number} Numéro du jour (1-365)
- */
-export const calculateDayNumber = (startDate: Date) => {
-  const today = new Date();
-  const start = new Date(startDate);
-  
-  // Réinitialiser les heures pour ne considérer que les jours
-  today.setHours(0, 0, 0, 0);
-  start.setHours(0, 0, 0, 0);
-  
-  const diffTime = today.getTime() - start.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  
-  // Le jour 1 commence le jour de la date de début
-  return Math.max(1, diffDays + 1);
 };

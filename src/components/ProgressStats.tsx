@@ -1,10 +1,9 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import CircularProgress from '@/components/CircularProgress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { getOverallProgress } from '@/services/readingPlanService';
+import { getOverallProgress } from '@/services/readingPlan';
 import { toast } from 'sonner';
 
 const ProgressStats = () => {
