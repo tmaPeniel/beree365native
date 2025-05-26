@@ -1,12 +1,22 @@
-# Welcome to your Lovable project
+# Bienvenue sur le projet Bérée365
 
-## Project info
+## Voir le projet
 
-**URL**: https://lovable.dev/projects/f27fcb77-1f7c-4b7c-8610-d0860593b05d
+**URL**: https://beree-365-tracker.lovable.app/
 
-## How can I edit this code?
+## Notre Stack
 
-There are several ways of editing your application.
+This project is built with:
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+
+## Comment éditer le code ?
+
+Vous pouvez le faire de plusieurs façons.
 
 **Use Lovable**
 
@@ -50,24 +60,3 @@ npm run dev
 - Click on "New codespace" to launch a new Codespace environment.
 - Edit files directly within the Codespace and commit and push your changes once you're done.
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/f27fcb77-1f7c-4b7c-8610-d0860593b05d) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
