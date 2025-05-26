@@ -1,3 +1,4 @@
+
 /**
  * Service d'authentification de base
  * Fournit les fonctions fondamentales d'authentification
@@ -46,35 +47,23 @@ export const signUp = async (email: string, password: string, fullName: string, 
         console.error("Erreur lors de la vérification du profil:", profileCheckError);
       }
       
-      // Si le profil n'existe pas encore (cas où le trigger n'aurait pas fonctionné),
-      // essayer de le créer manuellement
+      // Si le profil n'existe pas encore, le créer manuellement
       if (!profileData) {
         console.log("Profil non trouvé, tentative de création manuelle");
         
-        try {
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('disable_rls');
-          
-          // Créer le profil manuellement
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: authData.user.id,
-              full_name: fullName,
-              start_date: startDate.toISOString().split('T')[0]
-            }]);
-          
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('enable_rls');
-          
-          if (profileError) {
-            console.error("Erreur lors de la création manuelle du profil:", profileError);
-            toast.error("Votre compte a été créé mais votre profil n'a pas pu être initialisé");
-          } else {
-            console.log("Profil créé manuellement avec succès");
-          }
-        } catch (error) {
-          console.error("Erreur lors de la gestion RLS:", error);
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            full_name: fullName,
+            start_date: startDate.toISOString().split('T')[0]
+          }]);
+        
+        if (profileError) {
+          console.error("Erreur lors de la création manuelle du profil:", profileError);
+          toast.error("Votre compte a été créé mais votre profil n'a pas pu être initialisé");
+        } else {
+          console.log("Profil créé manuellement avec succès");
         }
       } else {
         console.log("Profil existant trouvé:", profileData.id);
@@ -122,23 +111,13 @@ export const signIn = async (email: string, password: string) => {
       if (!profileData) {
         console.log("Profil non trouvé lors de la connexion, création d'un profil par défaut");
         
-        try {
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('disable_rls');
-          
-          await supabase
-            .from('profiles')
-            .insert([{
-              id: data.user.id,
-              full_name: 'Utilisateur',
-              start_date: new Date().toISOString().split('T')[0]
-            }]);
-            
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('enable_rls');
-        } catch (error) {
-          console.error("Erreur lors de la création du profil pendant la connexion:", error);
-        }
+        await supabase
+          .from('profiles')
+          .insert([{
+            id: data.user.id,
+            full_name: 'Utilisateur',
+            start_date: new Date().toISOString().split('T')[0]
+          }]);
       }
     }
     
