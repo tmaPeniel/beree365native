@@ -1,4 +1,3 @@
-
 /**
  * Service d'authentification de base
  * Fournit les fonctions fondamentales d'authentification
@@ -161,6 +160,48 @@ export const signOut = async () => {
     return { success: true };
   } catch (error: any) {
     toast.error(`Erreur de déconnexion: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Envoie un email de réinitialisation de mot de passe
+ * @param {string} email Email de l'utilisateur
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const resetPassword = async (email: string) => {
+  try {
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) throw error;
+    
+    toast.success("Un email de réinitialisation a été envoyé à votre adresse");
+    return { success: true };
+  } catch (error: any) {
+    toast.error(`Erreur lors de l'envoi de l'email: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Met à jour le mot de passe de l'utilisateur
+ * @param {string} newPassword Nouveau mot de passe
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const updatePassword = async (newPassword: string) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) throw error;
+    
+    toast.success("Votre mot de passe a été mis à jour avec succès");
+    return { success: true };
+  } catch (error: any) {
+    toast.error(`Erreur lors de la mise à jour du mot de passe: ${error.message}`);
     return { success: false, error: error.message };
   }
 };

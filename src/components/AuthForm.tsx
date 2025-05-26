@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -91,6 +92,14 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
               </FormItem>
             )}
           />
+          
+          <div className="text-right">
+            <Link to="/forgot-password">
+              <Button variant="link" className="text-sm text-green-600 hover:text-green-700 p-0 h-auto">
+                Mot de passe oublié ?
+              </Button>
+            </Link>
+          </div>
           
           <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
             Se connecter
