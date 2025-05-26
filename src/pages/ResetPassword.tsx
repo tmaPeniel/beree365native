@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -33,6 +33,7 @@ type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
  */
 const ResetPassword = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
 
@@ -44,24 +45,72 @@ const ResetPassword = () => {
     },
   });
 
-  // Vérifier si l'utilisateur a un token de réinitialisation valide
+  // Vérifier et traiter les tokens de réinitialisation
   useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
+    const handlePasswordReset = async () => {
+      console.log("Vérification des paramètres URL...");
       
-      if (session?.user) {
-        setIsValidToken(true);
+      // Récupérer les tokens depuis l'URL
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const type = searchParams.get('type');
+      
+      console.log("Paramètres URL:", { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+      
+      // Vérifier si c'est bien un lien de réinitialisation de mot de passe
+      if (type === 'recovery' && accessToken && refreshToken) {
+        try {
+          console.log("Tentative de définition de la session avec les tokens...");
+          
+          // Définir la session avec les tokens reçus
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error("Erreur lors de la définition de la session:", error);
+            throw error;
+          }
+          
+          if (data.session && data.user) {
+            console.log("Session définie avec succès pour l'utilisateur:", data.user.id);
+            setIsValidToken(true);
+            toast.success("Lien de réinitialisation valide. Vous pouvez maintenant définir votre nouveau mot de passe.");
+          } else {
+            console.error("Session ou utilisateur manquant après setSession");
+            throw new Error("Session invalide");
+          }
+        } catch (error: any) {
+          console.error("Erreur lors du traitement du token:", error);
+          setIsValidToken(false);
+          toast.error("Lien de réinitialisation invalide ou expiré");
+          setTimeout(() => {
+            navigate('/forgot-password');
+          }, 3000);
+        }
       } else {
-        setIsValidToken(false);
-        toast.error("Lien de réinitialisation invalide ou expiré");
-        setTimeout(() => {
-          navigate('/forgot-password');
-        }, 3000);
+        console.log("Paramètres manquants ou type incorrect:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
+        
+        // Vérifier s'il y a une session existante
+        const { data: { session } } = await supabase.auth.getSession();
+        
+        if (session?.user) {
+          console.log("Session existante trouvée");
+          setIsValidToken(true);
+        } else {
+          console.log("Aucune session valide trouvée");
+          setIsValidToken(false);
+          toast.error("Lien de réinitialisation invalide ou expiré");
+          setTimeout(() => {
+            navigate('/forgot-password');
+          }, 3000);
+        }
       }
     };
 
-    checkSession();
-  }, [navigate]);
+    handlePasswordReset();
+  }, [navigate, searchParams]);
 
   /**
    * Gère la soumission du formulaire
@@ -70,6 +119,7 @@ const ResetPassword = () => {
     setIsLoading(true);
     
     try {
+      console.log("Tentative de mise à jour du mot de passe...");
       const result = await updatePassword(values.password);
       if (result.success) {
         toast.success("Mot de passe mis à jour avec succès !");
@@ -77,6 +127,7 @@ const ResetPassword = () => {
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour du mot de passe:", error);
+      toast.error("Erreur lors de la mise à jour du mot de passe");
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +137,10 @@ const ResetPassword = () => {
   if (isValidToken === null) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Vérification du lien de réinitialisation...</p>
+        </div>
       </div>
     );
   }

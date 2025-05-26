@@ -171,15 +171,22 @@ export const signOut = async () => {
  */
 export const resetPassword = async (email: string) => {
   try {
+    console.log("Envoi de l'email de réinitialisation pour:", email);
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/reset-password`,
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error("Erreur Supabase lors de l'envoi de l'email:", error);
+      throw error;
+    }
     
+    console.log("Email de réinitialisation envoyé avec succès");
     toast.success("Un email de réinitialisation a été envoyé à votre adresse");
     return { success: true };
   } catch (error: any) {
+    console.error("Erreur lors de l'envoi de l'email:", error);
     toast.error(`Erreur lors de l'envoi de l'email: ${error.message}`);
     return { success: false, error: error.message };
   }
