@@ -47,35 +47,23 @@ export const signUp = async (email: string, password: string, fullName: string, 
         console.error("Erreur lors de la vérification du profil:", profileCheckError);
       }
       
-      // Si le profil n'existe pas encore (cas où le trigger n'aurait pas fonctionné),
-      // essayer de le créer manuellement
+      // Si le profil n'existe pas encore, le créer manuellement
       if (!profileData) {
         console.log("Profil non trouvé, tentative de création manuelle");
         
-        try {
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('disable_rls');
-          
-          // Créer le profil manuellement
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert([{
-              id: authData.user.id,
-              full_name: fullName,
-              start_date: startDate.toISOString().split('T')[0]
-            }]);
-          
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('enable_rls');
-          
-          if (profileError) {
-            console.error("Erreur lors de la création manuelle du profil:", profileError);
-            toast.error("Votre compte a été créé mais votre profil n'a pas pu être initialisé");
-          } else {
-            console.log("Profil créé manuellement avec succès");
-          }
-        } catch (error) {
-          console.error("Erreur lors de la gestion RLS:", error);
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            full_name: fullName,
+            start_date: startDate.toISOString().split('T')[0]
+          }]);
+        
+        if (profileError) {
+          console.error("Erreur lors de la création manuelle du profil:", profileError);
+          toast.error("Votre compte a été créé mais votre profil n'a pas pu être initialisé");
+        } else {
+          console.log("Profil créé manuellement avec succès");
         }
       } else {
         console.log("Profil existant trouvé:", profileData.id);
@@ -123,23 +111,13 @@ export const signIn = async (email: string, password: string) => {
       if (!profileData) {
         console.log("Profil non trouvé lors de la connexion, création d'un profil par défaut");
         
-        try {
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('disable_rls');
-          
-          await supabase
-            .from('profiles')
-            .insert([{
-              id: data.user.id,
-              full_name: 'Utilisateur',
-              start_date: new Date().toISOString().split('T')[0]
-            }]);
-            
-          // Utiliser une assertion de type pour éviter l'erreur TypeScript
-          await (supabase.rpc as any)('enable_rls');
-        } catch (error) {
-          console.error("Erreur lors de la création du profil pendant la connexion:", error);
-        }
+        await supabase
+          .from('profiles')
+          .insert([{
+            id: data.user.id,
+            full_name: 'Utilisateur',
+            start_date: new Date().toISOString().split('T')[0]
+          }]);
       }
     }
     
@@ -161,6 +139,55 @@ export const signOut = async () => {
     return { success: true };
   } catch (error: any) {
     toast.error(`Erreur de déconnexion: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Envoie un email de réinitialisation de mot de passe
+ * @param {string} email Email de l'utilisateur
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const resetPassword = async (email: string) => {
+  try {
+    console.log("Envoi de l'email de réinitialisation pour:", email);
+    
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+
+    if (error) {
+      console.error("Erreur Supabase lors de l'envoi de l'email:", error);
+      throw error;
+    }
+    
+    console.log("Email de réinitialisation envoyé avec succès");
+    toast.success("Un email de réinitialisation a été envoyé à votre adresse");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Erreur lors de l'envoi de l'email:", error);
+    toast.error(`Erreur lors de l'envoi de l'email: ${error.message}`);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Met à jour le mot de passe de l'utilisateur
+ * @param {string} newPassword Nouveau mot de passe
+ * @returns {Promise<{success: boolean, error?: string}>}
+ */
+export const updatePassword = async (newPassword: string) => {
+  try {
+    const { error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) throw error;
+    
+    toast.success("Votre mot de passe a été mis à jour avec succès");
+    return { success: true };
+  } catch (error: any) {
+    toast.error(`Erreur lors de la mise à jour du mot de passe: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
