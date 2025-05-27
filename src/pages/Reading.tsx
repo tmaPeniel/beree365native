@@ -56,48 +56,81 @@ const Reading = React.memo(() => {
     return Math.max(1, diffDays + 1);
   }, [profile?.start_date]);
 
-  // Requête optimisée pour les données du plan de lecture
-  const { data: days = [], isLoading: daysLoading, error } = useQuery({
-    queryKey: ['reading-plan-days', profile?.id, progressUpdateCounter],
+  // Requête ultra-optimisée qui récupère TOUT en une seule fois
+  const { data: optimizedData = null, isLoading: dataLoading, error } = useQuery({
+    queryKey: ['reading-plan-full-data', profile?.id, progressUpdateCounter],
     queryFn: async () => {
-      if (!profile) return [];
+      if (!profile) return null;
       
-      // Récupérer les chapitres du plan de lecture
-      const { data: chaptersData, error: chaptersError } = await supabase
+      console.log('Fetching all reading plan data in single optimized query...');
+      
+      // Récupérer tous les chapitres avec leur progression en une seule requête
+      const { data: chaptersWithProgress, error: chaptersError } = await supabase
         .from('reading_plan_chapters')
-        .select('id, day_number, reference')
+        .select(`
+          id, 
+          day_number, 
+          reference,
+          user_progress!left(
+            id,
+            status,
+            completed_at,
+            user_id
+          )
+        `)
+        .eq('user_progress.user_id', profile.id)
         .order('day_number', { ascending: true });
       
       if (chaptersError) throw chaptersError;
 
-      // Récupérer la progression de l'utilisateur
-      const { data: progressData, error: progressError } = await supabase
-        .from('user_progress')
-        .select('chapter_id, status')
-        .eq('user_id', profile.id);
-      
-      if (progressError) throw progressError;
+      console.log(`Fetched ${chaptersWithProgress?.length || 0} chapters with progress in single query`);
 
-      // Traitement optimisé des données
-      const uniqueDays = Array.from(new Set(chaptersData.map(chapter => chapter.day_number)));
+      // Grouper les données par jour
+      const dayGroups = new Map();
       
-      return uniqueDays.map(dayNum => {
-        const dayChapters = chaptersData.filter(chapter => chapter.day_number === dayNum);
-        const dayChapterIds = dayChapters.map(chapter => chapter.id);
-        const completedChapters = progressData.filter(
-          p => dayChapterIds.includes(p.chapter_id) && p.status === 'completed'
-        );
+      chaptersWithProgress?.forEach(chapter => {
+        const dayNum = chapter.day_number;
+        if (!dayGroups.has(dayNum)) {
+          dayGroups.set(dayNum, {
+            day: dayNum,
+            chapters: [],
+            date: formatDate(profile.start_date, dayNum - 1),
+            isToday: isToday(profile.start_date, dayNum - 1)
+          });
+        }
+        
+        const dayData = dayGroups.get(dayNum);
+        dayData.chapters.push({
+          id: chapter.id,
+          reference: chapter.reference,
+          completed: chapter.user_progress && chapter.user_progress.length > 0 
+            ? chapter.user_progress[0].status === 'completed' 
+            : false,
+          progressId: chapter.user_progress && chapter.user_progress.length > 0 
+            ? chapter.user_progress[0].id 
+            : null
+        });
+      });
+
+      // Calculer la progression pour chaque jour
+      const daysWithProgress = Array.from(dayGroups.values()).map(day => {
+        const completedChapters = day.chapters.filter(chapter => chapter.completed);
+        const progressPercentage = day.chapters.length > 0 
+          ? Math.round((completedChapters.length / day.chapters.length) * 100) 
+          : 0;
         
         return {
-          day: dayNum,
-          completed: completedChapters.length === dayChapterIds.length && dayChapterIds.length > 0,
-          date: formatDate(profile.start_date, dayNum - 1),
-          isToday: isToday(profile.start_date, dayNum - 1)
+          ...day,
+          progressPercentage,
+          completed: progressPercentage === 100
         };
-      }).sort((a, b) => a.day - b.day);
+      });
+
+      console.log(`Processed ${daysWithProgress.length} days with progress calculations`);
+      return daysWithProgress;
     },
     enabled: !!profile && !authLoading,
-    staleTime: 2 * 60 * 1000,
+    staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   // Gestion des erreurs avec useEffect
@@ -113,7 +146,7 @@ const Reading = React.memo(() => {
   }, [error, useToastHook]);
 
   // Loading state
-  if (authLoading || daysLoading) {
+  if (authLoading || dataLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -134,14 +167,16 @@ const Reading = React.memo(() => {
           <p className="font-medium">Aujourd'hui: Jour {currentDayNumber}</p>
         </div>
         
-        {/* Grille des cartes étendues */}
+        {/* Grille des cartes étendues optimisées */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {days.map(day => (
+          {optimizedData?.map(dayData => (
             <ExpandedDayCard 
-              key={day.day} 
-              day={day.day} 
-              date={day.date}
-              isToday={day.isToday} 
+              key={dayData.day} 
+              day={dayData.day} 
+              date={dayData.date}
+              isToday={dayData.isToday}
+              chapters={dayData.chapters}
+              progressPercentage={dayData.progressPercentage}
             />
           ))}
         </div>

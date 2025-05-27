@@ -1,24 +1,34 @@
 
 import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { getReadingPlanForDay, getDayProgress } from '@/services/readingPlan';
-import { getCachedUserProgressForDay, optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
+import { useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+
+interface Chapter {
+  id: string;
+  reference: string;
+  completed: boolean;
+  progressId?: string | null;
+}
 
 interface ExpandedDayCardProps {
   day: number;
   date: string;
   isToday?: boolean;
+  chapters: Chapter[];
+  progressPercentage: number;
 }
 
 const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({ 
   day, 
   date, 
-  isToday = false
+  isToday = false,
+  chapters,
+  progressPercentage
 }) => {
-  const { user, progressUpdateCounter } = useOptimizedAuth();
+  const { user } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
   
@@ -29,47 +39,9 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       month: 'short' 
     }), [date]
   );
-  
-  // Requête pour les chapitres du jour
-  const { data: chaptersData = [] } = useQuery({
-    queryKey: ['reading-plan-chapters', day],
-    queryFn: () => getReadingPlanForDay(day),
-    staleTime: 10 * 60 * 1000,
-    enabled: !!day
-  });
 
-  // Requête pour la progression utilisateur
-  const { data: progressData = [] } = useQuery({
-    queryKey: ['user-progress', user?.id, day],
-    queryFn: () => user ? getCachedUserProgressForDay(user.id, day) : [],
-    staleTime: 2 * 60 * 1000,
-    enabled: !!user && !!day
-  });
-
-  // Requête pour le pourcentage de progression
-  const { data: progressPercentage = 0 } = useQuery({
-    queryKey: ['day-progress', user?.id, day, progressUpdateCounter],
-    queryFn: () => user ? getDayProgress(user.id, day) : 0,
-    enabled: !!user,
-    staleTime: 60 * 1000
-  });
-
-  // Mémoriser les éléments de lecture
-  const readingItems = useMemo(() => {
-    if (!chaptersData.length) return [];
-    
-    return chaptersData.map(chapter => {
-      const progressItem = progressData.find(p => p.chapter_id === chapter.id);
-      return {
-        id: chapter.id,
-        reference: chapter.reference,
-        completed: progressItem ? progressItem.status === 'completed' : false
-      };
-    });
-  }, [chaptersData, progressData]);
-
-  // Handler pour toggle le statut d'un passage
-  const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
+  // Handler optimisé pour toggle le statut d'un passage
+  const handleToggleRead = useCallback(async (event: React.MouseEvent, chapterId: string) => {
     event.preventDefault();
     event.stopPropagation();
     
@@ -78,58 +50,64 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       return;
     }
     
-    const item = readingItems.find(item => item.id === id);
-    if (!item) return;
+    const chapter = chapters.find(ch => ch.id === chapterId);
+    if (!chapter) return;
     
     try {
-      setProcessingIds(prev => [...prev, id]);
+      setProcessingIds(prev => [...prev, chapterId]);
       
       const result = await optimizedToggleChapterStatus(
         user.id, 
-        id, 
-        item.completed ? 'completed' : 'pending',
+        chapterId, 
+        chapter.completed ? 'completed' : 'pending',
         day
       );
       
       if (result.success) {
-        // Mise à jour optimiste du cache
-        queryClient.setQueryData(['user-progress', user.id, day], (oldData: any[]) => {
+        // Mise à jour optimiste du cache global
+        queryClient.setQueryData(['reading-plan-full-data', user.id], (oldData: any) => {
           if (!oldData) return oldData;
           
-          const existingIndex = oldData.findIndex(item => item.chapter_id === id);
-          const newStatus = item.completed ? 'pending' : 'completed';
-          
-          if (existingIndex >= 0) {
-            const updatedData = [...oldData];
-            updatedData[existingIndex] = {
-              ...updatedData[existingIndex],
-              status: newStatus,
-              completed_at: newStatus === 'completed' ? new Date().toISOString() : null
+          return oldData.map((dayData: any) => {
+            if (dayData.day !== day) return dayData;
+            
+            const updatedChapters = dayData.chapters.map((ch: Chapter) => {
+              if (ch.id === chapterId) {
+                return {
+                  ...ch,
+                  completed: !ch.completed
+                };
+              }
+              return ch;
+            });
+            
+            // Recalculer la progression pour ce jour
+            const completedCount = updatedChapters.filter((ch: Chapter) => ch.completed).length;
+            const newProgressPercentage = updatedChapters.length > 0 
+              ? Math.round((completedCount / updatedChapters.length) * 100) 
+              : 0;
+            
+            return {
+              ...dayData,
+              chapters: updatedChapters,
+              progressPercentage: newProgressPercentage,
+              completed: newProgressPercentage === 100
             };
-            return updatedData;
-          } else {
-            return [...oldData, {
-              id: `temp-${id}`,
-              user_id: user.id,
-              chapter_id: id,
-              status: newStatus,
-              completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
-              reading_plan_chapters: chaptersData.find(c => c.id === id)
-            }];
-          }
+          });
         });
       }
     } catch (error) {
-      console.error(`Error toggling read status for chapter ${id}:`, error);
+      console.error(`Error toggling read status for chapter ${chapterId}:`, error);
       toast.error("Une erreur est survenue lors de la mise à jour");
       
+      // En cas d'erreur, invalider le cache global
       queryClient.invalidateQueries({ 
-        queryKey: ['user-progress', user.id, day] 
+        queryKey: ['reading-plan-full-data', user.id] 
       });
     } finally {
-      setProcessingIds(prev => prev.filter(itemId => itemId !== id));
+      setProcessingIds(prev => prev.filter(itemId => itemId !== chapterId));
     }
-  }, [user, readingItems, day, queryClient, chaptersData]);
+  }, [user, chapters, day, queryClient]);
 
   // Classes CSS mémorisées
   const cardClasses = useMemo(() => 
@@ -164,30 +142,30 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       
       {/* Liste des passages */}
       <div className="space-y-2">
-        {readingItems.length > 0 ? (
-          readingItems.map((item) => (
-            <div key={item.id} className="flex items-center space-x-2">
+        {chapters.length > 0 ? (
+          chapters.map((chapter) => (
+            <div key={chapter.id} className="flex items-center space-x-2">
               <button
                 type="button"
-                onClick={(event) => handleToggleRead(event, item.id)}
-                disabled={processingIds.includes(item.id)}
+                onClick={(event) => handleToggleRead(event, chapter.id)}
+                disabled={processingIds.includes(chapter.id)}
                 className={`flex-shrink-0 h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
-                  item.completed 
+                  chapter.completed 
                     ? 'bg-green-500 border-green-500' 
                     : 'border-green-300 hover:border-green-400'
-                } ${processingIds.includes(item.id) ? 'opacity-70' : ''}`}
+                } ${processingIds.includes(chapter.id) ? 'opacity-70' : ''}`}
               >
-                {processingIds.includes(item.id) ? (
+                {processingIds.includes(chapter.id) ? (
                   <Loader2 className="h-2.5 w-2.5 text-white animate-spin" />
                 ) : (
-                  item.completed && <Check className="h-2.5 w-2.5 text-white" />
+                  chapter.completed && <Check className="h-2.5 w-2.5 text-white" />
                 )}
               </button>
               
               <span className={`text-sm ${
-                item.completed ? 'line-through text-gray-400' : 'text-gray-700'
+                chapter.completed ? 'line-through text-gray-400' : 'text-gray-700'
               }`}>
-                {item.reference}
+                {chapter.reference}
               </span>
             </div>
           ))

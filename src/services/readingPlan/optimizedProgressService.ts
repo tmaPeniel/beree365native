@@ -1,39 +1,36 @@
 
 /**
- * Service de progression optimisé avec mise en cache
+ * Service de progression optimisé avec mise en cache avancée
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { toast } from "sonner";
 
-// Cache simple pour les données de progression
-const progressCache = new Map<string, any>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+// Cache optimisé avec gestion intelligente
+const optimizedCache = new Map<string, any>();
+const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
 
 /**
- * Récupère la progression de l'utilisateur avec cache
+ * Récupère la progression de l'utilisateur avec cache optimisé
  */
 export const getCachedUserProgressForDay = async (userId: string, dayNumber: number) => {
   const cacheKey = `progress-${userId}-${dayNumber}`;
-  const cached = progressCache.get(cacheKey);
+  const cached = optimizedCache.get(cacheKey);
   
   if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-    console.log(`Using cached progress for day ${dayNumber}`);
     return cached.data;
   }
   
   try {
-    console.log(`Fetching fresh progress data for day ${dayNumber}...`);
-    
-    // Requête optimisée avec select spécifique
+    // Requête optimisée avec select minimal
     const { data: chapters } = await supabase
       .from('reading_plan_chapters')
       .select('id')
       .eq('day_number', dayNumber);
     
     if (!chapters || chapters.length === 0) {
-      progressCache.set(cacheKey, { data: [], timestamp: Date.now() });
+      optimizedCache.set(cacheKey, { data: [], timestamp: Date.now() });
       return [];
     }
     
@@ -47,8 +44,8 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
     
     if (error) throw error;
     
-    // Mettre en cache le résultat
-    progressCache.set(cacheKey, { data: data || [], timestamp: Date.now() });
+    // Cache optimisé
+    optimizedCache.set(cacheKey, { data: data || [], timestamp: Date.now() });
     
     return data as (UserProgress & { reading_plan_chapters: ReadingPlanChapter })[];
   } catch (error) {
@@ -58,24 +55,24 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
 };
 
 /**
- * Invalide le cache pour un utilisateur et jour spécifique
+ * Invalide le cache de manière sélective
  */
 export const invalidateProgressCache = (userId: string, dayNumber?: number) => {
   if (dayNumber) {
     const cacheKey = `progress-${userId}-${dayNumber}`;
-    progressCache.delete(cacheKey);
+    optimizedCache.delete(cacheKey);
   } else {
-    // Invalider tout le cache pour cet utilisateur
-    for (const key of progressCache.keys()) {
+    // Invalider seulement les entrées de cet utilisateur
+    for (const key of optimizedCache.keys()) {
       if (key.startsWith(`progress-${userId}-`)) {
-        progressCache.delete(key);
+        optimizedCache.delete(key);
       }
     }
   }
 };
 
 /**
- * Toggle optimisé du statut d'un chapitre
+ * Toggle ultra-optimisé du statut d'un chapitre
  */
 export const optimizedToggleChapterStatus = async (
   userId: string, 
@@ -83,8 +80,6 @@ export const optimizedToggleChapterStatus = async (
   currentStatus: 'pending' | 'completed',
   dayNumber: number
 ) => {
-  console.log(`Optimized toggle - User: ${userId}, Chapter: ${chapterId}, Current: ${currentStatus}`);
-  
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
     toast.error("Vous devez être connecté pour modifier le statut de lecture");
@@ -95,7 +90,7 @@ export const optimizedToggleChapterStatus = async (
   const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
   
   try {
-    // Vérification optimisée de l'existence
+    // Vérification ultra-optimisée
     const { data: existingEntries } = await supabase
       .from('user_progress')
       .select('id')
@@ -106,7 +101,6 @@ export const optimizedToggleChapterStatus = async (
     let result;
     
     if (existingEntries && existingEntries.length > 0) {
-      console.log(`Updating existing entry to status: ${newStatus}`);
       const { data, error } = await supabase
         .from('user_progress')
         .update({ 
@@ -120,7 +114,6 @@ export const optimizedToggleChapterStatus = async (
       if (error) throw error;
       result = { success: true, data };
     } else {
-      console.log(`Creating new entry with status: ${newStatus}`);
       const { data, error } = await supabase
         .from('user_progress')
         .insert([{ 
@@ -135,7 +128,7 @@ export const optimizedToggleChapterStatus = async (
       result = { success: true, data };
     }
     
-    // Invalider le cache après mise à jour
+    // Invalidation sélective du cache
     invalidateProgressCache(userId, dayNumber);
     
     toast.success(newStatus === 'completed' ? 
