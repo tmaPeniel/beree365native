@@ -1,7 +1,7 @@
 
 import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
+import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedCacheService';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,7 +40,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     }), [date]
   );
 
-  // Handler optimisé pour toggle le statut d'un passage
+  // Handler ultra-optimisé pour toggle le statut d'un passage
   const handleToggleRead = useCallback(async (event: React.MouseEvent, chapterId: string) => {
     event.preventDefault();
     event.stopPropagation();
@@ -64,8 +64,8 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       );
       
       if (result.success) {
-        // Mise à jour optimiste du cache global
-        queryClient.setQueryData(['reading-plan-full-data', user.id], (oldData: any) => {
+        // Mise à jour optimiste ultra-ciblée du cache global
+        queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
           if (!oldData) return oldData;
           
           return oldData.map((dayData: any) => {
@@ -100,9 +100,9 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       console.error(`Error toggling read status for chapter ${chapterId}:`, error);
       toast.error("Une erreur est survenue lors de la mise à jour");
       
-      // En cas d'erreur, invalider le cache global
+      // En cas d'erreur, invalider seulement le cache global
       queryClient.invalidateQueries({ 
-        queryKey: ['reading-plan-full-data', user.id] 
+        queryKey: ['optimized-reading-plan-data', user.id] 
       });
     } finally {
       setProcessingIds(prev => prev.filter(itemId => itemId !== chapterId));

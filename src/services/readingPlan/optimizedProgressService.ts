@@ -1,36 +1,37 @@
 
 /**
- * Service de progression optimisé avec mise en cache avancée
+ * Service de progression optimisé utilisant le nouveau cache global
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { toast } from "sonner";
+import { invalidateUserCacheSelective, optimizedToggleChapterStatus as newOptimizedToggle } from "./optimizedCacheService";
 
-// Cache optimisé avec gestion intelligente
-const optimizedCache = new Map<string, any>();
-const CACHE_DURATION = 3 * 60 * 1000; // 3 minutes
+// Cache léger pour compatibilité avec l'ancien code
+const lightCache = new Map<string, any>();
+const LIGHT_CACHE_DURATION = 2 * 60 * 1000; // 2 minutes
 
 /**
- * Récupère la progression de l'utilisateur avec cache optimisé
+ * Récupère la progression de l'utilisateur avec cache léger
  */
 export const getCachedUserProgressForDay = async (userId: string, dayNumber: number) => {
-  const cacheKey = `progress-${userId}-${dayNumber}`;
-  const cached = optimizedCache.get(cacheKey);
+  const cacheKey = `light-progress-${userId}-${dayNumber}`;
+  const cached = lightCache.get(cacheKey);
   
-  if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
+  if (cached && Date.now() - cached.timestamp < LIGHT_CACHE_DURATION) {
     return cached.data;
   }
   
   try {
-    // Requête optimisée avec select minimal
+    // Requête optimisée simplifiée
     const { data: chapters } = await supabase
       .from('reading_plan_chapters')
       .select('id')
       .eq('day_number', dayNumber);
     
     if (!chapters || chapters.length === 0) {
-      optimizedCache.set(cacheKey, { data: [], timestamp: Date.now() });
+      lightCache.set(cacheKey, { data: [], timestamp: Date.now() });
       return [];
     }
     
@@ -44,8 +45,8 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
     
     if (error) throw error;
     
-    // Cache optimisé
-    optimizedCache.set(cacheKey, { data: data || [], timestamp: Date.now() });
+    // Cache léger
+    lightCache.set(cacheKey, { data: data || [], timestamp: Date.now() });
     
     return data as (UserProgress & { reading_plan_chapters: ReadingPlanChapter })[];
   } catch (error) {
@@ -55,91 +56,26 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
 };
 
 /**
- * Invalide le cache de manière sélective
+ * Invalide le cache léger
  */
 export const invalidateProgressCache = (userId: string, dayNumber?: number) => {
   if (dayNumber) {
-    const cacheKey = `progress-${userId}-${dayNumber}`;
-    optimizedCache.delete(cacheKey);
+    const cacheKey = `light-progress-${userId}-${dayNumber}`;
+    lightCache.delete(cacheKey);
   } else {
     // Invalider seulement les entrées de cet utilisateur
-    for (const key of optimizedCache.keys()) {
-      if (key.startsWith(`progress-${userId}-`)) {
-        optimizedCache.delete(key);
+    for (const key of lightCache.keys()) {
+      if (key.startsWith(`light-progress-${userId}-`)) {
+        lightCache.delete(key);
       }
     }
   }
+  
+  // Aussi invalider le cache global
+  invalidateUserCacheSelective(userId);
 };
 
 /**
- * Toggle ultra-optimisé du statut d'un chapitre
+ * Toggle optimisé utilisant le nouveau service
  */
-export const optimizedToggleChapterStatus = async (
-  userId: string, 
-  chapterId: string, 
-  currentStatus: 'pending' | 'completed',
-  dayNumber: number
-) => {
-  const { data: sessionData } = await supabase.auth.getSession();
-  if (!sessionData.session) {
-    toast.error("Vous devez être connecté pour modifier le statut de lecture");
-    return { success: false, error: "User not authenticated" };
-  }
-  
-  const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
-  const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
-  
-  try {
-    // Vérification ultra-optimisée
-    const { data: existingEntries } = await supabase
-      .from('user_progress')
-      .select('id')
-      .eq('user_id', userId)
-      .eq('chapter_id', chapterId)
-      .limit(1);
-    
-    let result;
-    
-    if (existingEntries && existingEntries.length > 0) {
-      const { data, error } = await supabase
-        .from('user_progress')
-        .update({ 
-          status: newStatus,
-          completed_at: completedAt
-        })
-        .eq('user_id', userId)
-        .eq('chapter_id', chapterId)
-        .select('id, status, completed_at');
-      
-      if (error) throw error;
-      result = { success: true, data };
-    } else {
-      const { data, error } = await supabase
-        .from('user_progress')
-        .insert([{ 
-          user_id: userId,
-          chapter_id: chapterId,
-          status: newStatus,
-          completed_at: completedAt
-        }])
-        .select('id, status, completed_at');
-      
-      if (error) throw error;
-      result = { success: true, data };
-    }
-    
-    // Invalidation sélective du cache
-    invalidateProgressCache(userId, dayNumber);
-    
-    toast.success(newStatus === 'completed' ? 
-      "Passage marqué comme lu" : 
-      "Passage marqué comme non lu"
-    );
-    
-    return result;
-  } catch (error: any) {
-    console.error("Error toggling chapter status:", error);
-    toast.error(`Une erreur est survenue: ${error.message}`);
-    return { success: false, error: error.message };
-  }
-};
+export const optimizedToggleChapterStatus = newOptimizedToggle;

@@ -1,6 +1,6 @@
 
 /**
- * Version optimisée du composant ReadingPlan
+ * Version ultra-optimisée du composant ReadingPlan
  */
 
 import React, { useCallback, useMemo, useState } from 'react';
@@ -23,30 +23,32 @@ interface OptimizedReadingPlanProps {
 }
 
 /**
- * Composant ReadingPlan optimisé avec React Query et mémorisation
+ * Composant ReadingPlan ultra-optimisé
  */
 const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber }) => {
   const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
-  // Requête optimisée pour les chapitres du jour
+  // Requête optimisée pour les chapitres du jour avec cache plus long
   const { data: chaptersData = [] } = useQuery({
     queryKey: ['reading-plan-chapters', dayNumber],
     queryFn: () => getReadingPlanForDay(dayNumber),
-    staleTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes - cache plus long
+    gcTime: 60 * 60 * 1000, // 1 heure
     enabled: !!dayNumber
   });
 
-  // Requête optimisée pour la progression utilisateur
+  // Requête optimisée pour la progression utilisateur avec cache intelligent
   const { data: progressData = [], isLoading } = useQuery({
-    queryKey: ['user-progress', user?.id, dayNumber],
+    queryKey: ['user-progress-optimized', user?.id, dayNumber],
     queryFn: () => user ? getCachedUserProgressForDay(user.id, dayNumber) : [],
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 15 * 60 * 1000, // 15 minutes
     enabled: !!user && !!dayNumber
   });
 
-  // Mémoriser les éléments de lecture pour éviter les recalculs
+  // Mémoriser les éléments de lecture avec optimisation
   const readingItems = useMemo(() => {
     if (!chaptersData.length) return [];
     
@@ -60,9 +62,8 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     });
   }, [chaptersData, progressData]);
 
-  // Handler optimisé avec useCallback
+  // Handler ultra-optimisé avec cache intelligent
   const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
-    // Empêcher la propagation et le comportement par défaut
     event.preventDefault();
     event.stopPropagation();
     
@@ -85,15 +86,14 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
       );
       
       if (result.success) {
-        // Mise à jour optimiste du cache au lieu d'invalidation agressive
-        queryClient.setQueryData(['user-progress', user.id, dayNumber], (oldData: any[]) => {
+        // Mise à jour optimiste ultra-ciblée
+        queryClient.setQueryData(['user-progress-optimized', user.id, dayNumber], (oldData: any[]) => {
           if (!oldData) return oldData;
           
           const existingIndex = oldData.findIndex(item => item.chapter_id === id);
           const newStatus = item.completed ? 'pending' : 'completed';
           
           if (existingIndex >= 0) {
-            // Mettre à jour l'entrée existante
             const updatedData = [...oldData];
             updatedData[existingIndex] = {
               ...updatedData[existingIndex],
@@ -102,7 +102,6 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
             };
             return updatedData;
           } else {
-            // Ajouter une nouvelle entrée
             return [...oldData, {
               id: `temp-${id}`,
               user_id: user.id,
@@ -114,6 +113,11 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
           }
         });
         
+        // Aussi invalider le cache global si présent
+        queryClient.invalidateQueries({ 
+          queryKey: ['optimized-reading-plan-data', user.id] 
+        });
+        
         triggerProgressUpdate();
       }
     } catch (error) {
@@ -122,14 +126,14 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
       
       // En cas d'erreur, invalider pour récupérer l'état correct
       queryClient.invalidateQueries({ 
-        queryKey: ['user-progress', user.id, dayNumber] 
+        queryKey: ['user-progress-optimized', user.id, dayNumber] 
       });
     } finally {
       setProcessingIds(prev => prev.filter(itemId => itemId !== id));
     }
   }, [user, readingItems, dayNumber, queryClient, triggerProgressUpdate, chaptersData]);
 
-  // Composant de ligne mémorisé pour éviter les re-rendus
+  // Composant de ligne ultra-optimisé
   const ReadingItemRow = React.memo<{
     item: ReadingItem;
     isProcessing: boolean;
@@ -140,12 +144,12 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
         type="button"
         onClick={onToggle}
         disabled={isProcessing}
-        className={`flex items-center w-full text-left ${
+        className={`flex items-center w-full text-left transition-all ${
           item.completed ? 'text-gray-400' : 'text-gray-800'
-        } ${isProcessing ? 'opacity-70' : ''}`}
+        } ${isProcessing ? 'opacity-70' : 'hover:bg-gray-50 rounded p-1'}`}
       >
         <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-colors ${
-          item.completed ? 'bg-green-500' : 'border-2 border-green-300'
+          item.completed ? 'bg-green-500' : 'border-2 border-green-300 hover:border-green-400'
         }`}>
           {isProcessing ? (
             <Loader2 className="h-3 w-3 text-white animate-spin" />
@@ -164,8 +168,8 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     return (
       <Card className="bg-white border-none shadow-sm">
         <CardContent className="p-6">
-          <div className="flex justify-center items-center h-48">
-            <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
+          <div className="flex justify-center items-center h-32">
+            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
           </div>
         </CardContent>
       </Card>
@@ -185,7 +189,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
         <div className="mb-6">
           <h3 className="font-medium text-gray-700 mb-3">Passages du jour</h3>
           {readingItems.length > 0 ? (
-            <ul className="space-y-3">
+            <ul className="space-y-2">
               {readingItems.map((item) => (
                 <ReadingItemRow
                   key={item.id}

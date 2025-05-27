@@ -1,21 +1,21 @@
 
 /**
- * Service de cache optimisé pour le plan de lecture
- * Gère un cache global avec invalidation sélective
+ * Service de cache ultra-optimisé pour le plan de lecture
+ * Une seule requête pour tout charger, cache global intelligent
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-// Cache global optimisé
-interface CacheEntry {
+// Cache global ultra-optimisé
+interface GlobalCacheEntry {
   data: any;
   timestamp: number;
   userId: string;
 }
 
-const globalCache = new Map<string, CacheEntry>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+const globalCache = new Map<string, GlobalCacheEntry>();
+const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes - cache plus long
 
 /**
  * Génère une clé de cache
@@ -29,26 +29,26 @@ const getCacheKey = (userId: string, type: string, identifier?: string | number)
 /**
  * Vérifie si une entrée de cache est valide
  */
-const isCacheValid = (entry: CacheEntry) => {
+const isCacheValid = (entry: GlobalCacheEntry) => {
   return Date.now() - entry.timestamp < CACHE_DURATION;
 };
 
 /**
- * Récupère toutes les données du plan de lecture en une seule requête optimisée
+ * Récupère toutes les données du plan de lecture en UNE SEULE requête ultra-optimisée
  */
 export const getOptimizedReadingPlanData = async (userId: string, startDate: string) => {
-  const cacheKey = getCacheKey(userId, 'full-reading-plan');
+  const cacheKey = getCacheKey(userId, 'ultra-optimized-reading-plan');
   const cached = globalCache.get(cacheKey);
   
   if (cached && isCacheValid(cached)) {
-    console.log('Using cached full reading plan data');
+    console.log('📦 Using cached ultra-optimized reading plan data');
     return cached.data;
   }
   
   try {
-    console.log('Fetching optimized reading plan data...');
+    console.log('🔥 Executing SINGLE ultra-optimized query for all reading plan data...');
     
-    // Une seule requête pour récupérer tout
+    // UNE SEULE requête pour récupérer TOUT avec jointure optimisée
     const { data: chaptersWithProgress, error } = await supabase
       .from('reading_plan_chapters')
       .select(`
@@ -67,38 +67,41 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
     
     if (error) throw error;
 
-    // Traitement optimisé des données
-    const processedData = processChaptersData(chaptersWithProgress || [], startDate);
+    console.log(`✅ Single query returned ${chaptersWithProgress?.length || 0} chapters with progress`);
+
+    // Traitement ultra-optimisé des données
+    const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate);
     
-    // Mise en cache
+    // Mise en cache globale
     globalCache.set(cacheKey, {
       data: processedData,
       timestamp: Date.now(),
       userId
     });
     
-    console.log(`Cached ${processedData.length} days of reading plan data`);
+    console.log(`💾 Cached ${processedData.length} days of ultra-optimized reading plan data`);
     return processedData;
   } catch (error) {
-    console.error('Error fetching optimized reading plan data:', error);
+    console.error('❌ Error fetching ultra-optimized reading plan data:', error);
     throw error;
   }
 };
 
 /**
- * Traite les données des chapitres pour les organiser par jour
+ * Traite les données des chapitres de manière ultra-optimisée
  */
-const processChaptersData = (chapters: any[], startDate: string) => {
+const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
   const dayGroups = new Map();
   
+  // Traitement en une seule passe
   chapters.forEach(chapter => {
     const dayNum = chapter.day_number;
     if (!dayGroups.has(dayNum)) {
       dayGroups.set(dayNum, {
         day: dayNum,
         chapters: [],
-        date: formatDate(startDate, dayNum - 1),
-        isToday: isToday(startDate, dayNum - 1)
+        date: formatDateOptimized(startDate, dayNum - 1),
+        isToday: isTodayOptimized(startDate, dayNum - 1)
       });
     }
     
@@ -115,7 +118,7 @@ const processChaptersData = (chapters: any[], startDate: string) => {
     });
   });
 
-  // Calculer la progression pour chaque jour
+  // Calculer la progression en une seule passe
   return Array.from(dayGroups.values()).map(day => {
     const completedChapters = day.chapters.filter(chapter => chapter.completed);
     const progressPercentage = day.chapters.length > 0 
@@ -131,24 +134,28 @@ const processChaptersData = (chapters: any[], startDate: string) => {
 };
 
 /**
- * Invalide le cache pour un utilisateur spécifique
+ * Invalide le cache de manière sélective et intelligente
  */
-export const invalidateUserCache = (userId: string, type?: string) => {
+export const invalidateUserCacheSelective = (userId: string, type?: string) => {
   if (type) {
     const cacheKey = getCacheKey(userId, type);
     globalCache.delete(cacheKey);
+    console.log(`🗑️ Invalidated cache for ${type} - ${userId}`);
   } else {
     // Invalider tout le cache pour cet utilisateur
+    let deletedCount = 0;
     for (const key of globalCache.keys()) {
-      if (key.includes(`-${userId}-`)) {
+      if (key.includes(`-${userId}`)) {
         globalCache.delete(key);
+        deletedCount++;
       }
     }
+    console.log(`🗑️ Invalidated ${deletedCount} cache entries for user ${userId}`);
   }
 };
 
 /**
- * Toggle optimisé du statut d'un chapitre avec mise à jour de cache intelligente
+ * Toggle ultra-optimisé du statut d'un chapitre avec cache intelligent
  */
 export const optimizedToggleChapterStatus = async (
   userId: string, 
@@ -156,7 +163,7 @@ export const optimizedToggleChapterStatus = async (
   currentStatus: 'pending' | 'completed',
   dayNumber: number
 ) => {
-  console.log(`Optimized toggle - User: ${userId}, Chapter: ${chapterId}, Current: ${currentStatus}`);
+  console.log(`🔄 Ultra-optimized toggle - User: ${userId}, Chapter: ${chapterId}, Current: ${currentStatus}`);
   
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
@@ -168,7 +175,7 @@ export const optimizedToggleChapterStatus = async (
   const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
   
   try {
-    // Vérification optimisée de l'existence
+    // Vérification ultra-rapide de l'existence
     const { data: existingEntries } = await supabase
       .from('user_progress')
       .select('id')
@@ -179,7 +186,7 @@ export const optimizedToggleChapterStatus = async (
     let result;
     
     if (existingEntries && existingEntries.length > 0) {
-      console.log(`Updating existing entry to status: ${newStatus}`);
+      console.log(`📝 Updating existing entry to status: ${newStatus}`);
       const { data, error } = await supabase
         .from('user_progress')
         .update({ 
@@ -193,7 +200,7 @@ export const optimizedToggleChapterStatus = async (
       if (error) throw error;
       result = { success: true, data };
     } else {
-      console.log(`Creating new entry with status: ${newStatus}`);
+      console.log(`➕ Creating new entry with status: ${newStatus}`);
       const { data, error } = await supabase
         .from('user_progress')
         .insert([{ 
@@ -208,8 +215,8 @@ export const optimizedToggleChapterStatus = async (
       result = { success: true, data };
     }
     
-    // Invalider seulement le cache du plan de lecture complet
-    invalidateUserCache(userId, 'full-reading-plan');
+    // Invalidation sélective - seulement le cache global
+    invalidateUserCacheSelective(userId, 'ultra-optimized-reading-plan');
     
     toast.success(newStatus === 'completed' ? 
       "Passage marqué comme lu" : 
@@ -218,20 +225,20 @@ export const optimizedToggleChapterStatus = async (
     
     return result;
   } catch (error: any) {
-    console.error("Error toggling chapter status:", error);
+    console.error("❌ Error toggling chapter status:", error);
     toast.error(`Une erreur est survenue: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
 
-// Fonctions utilitaires
-const formatDate = (startDateStr: string, dayOffset: number) => {
+// Fonctions utilitaires optimisées
+const formatDateOptimized = (startDateStr: string, dayOffset: number) => {
   const startDate = new Date(startDateStr);
   startDate.setDate(startDate.getDate() + dayOffset);
   return startDate.toISOString().split('T')[0];
 };
 
-const isToday = (startDateStr: string, dayOffset: number) => {
+const isTodayOptimized = (startDateStr: string, dayOffset: number) => {
   const startDate = new Date(startDateStr);
   startDate.setDate(startDate.getDate() + dayOffset);
   const today = new Date();

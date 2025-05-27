@@ -1,6 +1,6 @@
 
 /**
- * Page de plan de lecture optimisée avec cartes étendues
+ * Page de plan de lecture optimisée avec une seule requête
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -8,7 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import NavBar from '@/components/NavBar';
 import ExpandedDayCard from '@/components/ExpandedDayCard';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { supabase } from '@/integrations/supabase/client';
+import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -35,10 +35,10 @@ const isToday = (startDateStr: string, dayOffset: number) => {
 };
 
 /**
- * Page de plan de lecture optimisée avec cartes étendues
+ * Page de plan de lecture ultra-optimisée
  */
 const Reading = React.memo(() => {
-  const { profile, isLoading: authLoading, progressUpdateCounter } = useOptimizedAuth();
+  const { profile, isLoading: authLoading } = useOptimizedAuth();
   const { toast: useToastHook } = useToast();
 
   // Calcul mémorisé du jour courant
@@ -56,81 +56,19 @@ const Reading = React.memo(() => {
     return Math.max(1, diffDays + 1);
   }, [profile?.start_date]);
 
-  // Requête ultra-optimisée qui récupère TOUT en une seule fois
-  const { data: optimizedData = null, isLoading: dataLoading, error } = useQuery({
-    queryKey: ['reading-plan-full-data', profile?.id, progressUpdateCounter],
+  // Une seule requête ultra-optimisée pour TOUT le plan de lecture
+  const { data: optimizedData = [], isLoading: dataLoading, error } = useQuery({
+    queryKey: ['optimized-reading-plan-data', profile?.id],
     queryFn: async () => {
-      if (!profile) return null;
+      if (!profile) return [];
       
-      console.log('Fetching all reading plan data in single optimized query...');
+      console.log('🚀 Fetching ALL reading plan data in single optimized query...');
       
-      // Récupérer tous les chapitres avec leur progression en une seule requête
-      const { data: chaptersWithProgress, error: chaptersError } = await supabase
-        .from('reading_plan_chapters')
-        .select(`
-          id, 
-          day_number, 
-          reference,
-          user_progress!left(
-            id,
-            status,
-            completed_at,
-            user_id
-          )
-        `)
-        .eq('user_progress.user_id', profile.id)
-        .order('day_number', { ascending: true });
-      
-      if (chaptersError) throw chaptersError;
-
-      console.log(`Fetched ${chaptersWithProgress?.length || 0} chapters with progress in single query`);
-
-      // Grouper les données par jour
-      const dayGroups = new Map();
-      
-      chaptersWithProgress?.forEach(chapter => {
-        const dayNum = chapter.day_number;
-        if (!dayGroups.has(dayNum)) {
-          dayGroups.set(dayNum, {
-            day: dayNum,
-            chapters: [],
-            date: formatDate(profile.start_date, dayNum - 1),
-            isToday: isToday(profile.start_date, dayNum - 1)
-          });
-        }
-        
-        const dayData = dayGroups.get(dayNum);
-        dayData.chapters.push({
-          id: chapter.id,
-          reference: chapter.reference,
-          completed: chapter.user_progress && chapter.user_progress.length > 0 
-            ? chapter.user_progress[0].status === 'completed' 
-            : false,
-          progressId: chapter.user_progress && chapter.user_progress.length > 0 
-            ? chapter.user_progress[0].id 
-            : null
-        });
-      });
-
-      // Calculer la progression pour chaque jour
-      const daysWithProgress = Array.from(dayGroups.values()).map(day => {
-        const completedChapters = day.chapters.filter(chapter => chapter.completed);
-        const progressPercentage = day.chapters.length > 0 
-          ? Math.round((completedChapters.length / day.chapters.length) * 100) 
-          : 0;
-        
-        return {
-          ...day,
-          progressPercentage,
-          completed: progressPercentage === 100
-        };
-      });
-
-      console.log(`Processed ${daysWithProgress.length} days with progress calculations`);
-      return daysWithProgress;
+      return await getOptimizedReadingPlanData(profile.id, profile.start_date);
     },
     enabled: !!profile && !authLoading,
-    staleTime: 5 * 60 * 1000, // 5 minutes
+    staleTime: 10 * 60 * 1000, // 10 minutes - cache plus long
+    gcTime: 20 * 60 * 1000, // 20 minutes
   });
 
   // Gestion des erreurs avec useEffect
@@ -167,9 +105,9 @@ const Reading = React.memo(() => {
           <p className="font-medium">Aujourd'hui: Jour {currentDayNumber}</p>
         </div>
         
-        {/* Grille des cartes étendues optimisées */}
+        {/* Grille des cartes optimisées avec données pré-chargées */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
-          {optimizedData?.map(dayData => (
+          {optimizedData.map(dayData => (
             <ExpandedDayCard 
               key={dayData.day} 
               day={dayData.day} 
