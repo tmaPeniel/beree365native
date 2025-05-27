@@ -1,29 +1,17 @@
 
 /**
- * Page de plan de lecture optimisée
+ * Page de plan de lecture optimisée avec cartes étendues
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import NavBar from '@/components/NavBar';
-import DayCard from '@/components/DayCard';
-import DayReadingDialog from '@/components/DayReadingDialog';
+import ExpandedDayCard from '@/components/ExpandedDayCard';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
-/**
- * Calcule le nombre de jours écoulés depuis la date de début
- */
-const calculateDaysSinceStart = (startDateStr: string) => {
-  const startDate = new Date(startDateStr);
-  const today = new Date();
-  const diffTime = Math.abs(today.getTime() - startDate.getTime());
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
-};
 
 /**
  * Formate la date en ajoutant un offset de jours
@@ -47,13 +35,11 @@ const isToday = (startDateStr: string, dayOffset: number) => {
 };
 
 /**
- * Page de plan de lecture optimisée
+ * Page de plan de lecture optimisée avec cartes étendues
  */
 const Reading = React.memo(() => {
   const { profile, isLoading: authLoading, progressUpdateCounter } = useOptimizedAuth();
   const { toast: useToastHook } = useToast();
-  const [selectedDay, setSelectedDay] = useState<{ day: number; date: string; } | null>(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   // Calcul mémorisé du jour courant
   const currentDayNumber = useMemo(() => {
@@ -111,7 +97,7 @@ const Reading = React.memo(() => {
       }).sort((a, b) => a.day - b.day);
     },
     enabled: !!profile && !authLoading,
-    staleTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 2 * 60 * 1000,
   });
 
   // Gestion des erreurs avec useEffect
@@ -125,18 +111,6 @@ const Reading = React.memo(() => {
       toast.error(`Impossible de charger le plan de lecture: ${error.message}`);
     }
   }, [error, useToastHook]);
-
-  // Handlers mémorisés
-  const handleDayClick = useCallback((day: any) => {
-    console.log(`Selected day ${day.day}, date: ${day.date}`);
-    setSelectedDay({ day: day.day, date: day.date });
-    setIsDialogOpen(true);
-  }, []);
-  
-  const handleCloseDialog = useCallback(() => {
-    setIsDialogOpen(false);
-    setSelectedDay(null);
-  }, []);
 
   // Loading state
   if (authLoading || daysLoading) {
@@ -160,30 +134,18 @@ const Reading = React.memo(() => {
           <p className="font-medium">Aujourd'hui: Jour {currentDayNumber}</p>
         </div>
         
-        {/* Grille des jours optimisée */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+        {/* Grille des cartes étendues */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
           {days.map(day => (
-            <DayCard 
+            <ExpandedDayCard 
               key={day.day} 
               day={day.day} 
-              date={day.date} 
-              completed={day.completed} 
+              date={day.date}
               isToday={day.isToday} 
-              onClick={() => handleDayClick(day)} 
             />
           ))}
         </div>
       </div>
-      
-      {/* Dialog optimisé */}
-      {selectedDay && (
-        <DayReadingDialog 
-          day={selectedDay.day} 
-          date={selectedDay.date} 
-          isOpen={isDialogOpen} 
-          onClose={handleCloseDialog} 
-        />
-      )}
       
       <NavBar />
     </div>
