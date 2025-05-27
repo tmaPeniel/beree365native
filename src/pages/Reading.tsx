@@ -3,7 +3,7 @@
  * Page de plan de lecture optimisée
  */
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { useToast } from "@/hooks/use-toast";
 import NavBar from '@/components/NavBar';
 import DayCard from '@/components/DayCard';
@@ -71,7 +71,7 @@ const Reading = React.memo(() => {
   }, [profile?.start_date]);
 
   // Requête optimisée pour les données du plan de lecture
-  const { data: days = [], isLoading: daysLoading } = useQuery({
+  const { data: days = [], isLoading: daysLoading, error } = useQuery({
     queryKey: ['reading-plan-days', profile?.id, progressUpdateCounter],
     queryFn: async () => {
       if (!profile) return [];
@@ -112,7 +112,11 @@ const Reading = React.memo(() => {
     },
     enabled: !!profile && !authLoading,
     staleTime: 2 * 60 * 1000, // 2 minutes
-    onError: (error: any) => {
+  });
+
+  // Gestion des erreurs avec useEffect
+  useEffect(() => {
+    if (error) {
       useToastHook({
         title: "Erreur",
         description: `Impossible de charger le plan de lecture: ${error.message}`,
@@ -120,7 +124,7 @@ const Reading = React.memo(() => {
       });
       toast.error(`Impossible de charger le plan de lecture: ${error.message}`);
     }
-  });
+  }, [error, useToastHook]);
 
   // Handlers mémorisés
   const handleDayClick = useCallback((day: any) => {
