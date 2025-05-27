@@ -67,7 +67,11 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
     });
   }, [chaptersData, progressData]);
   
-  const handleToggleRead = useCallback(async (id: string) => {
+  const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
+    // Empêcher la propagation et le comportement par défaut
+    event.preventDefault();
+    event.stopPropagation();
+    
     if (!user) {
       toast.error("Vous devez être connecté pour modifier le statut de lecture");
       return;
@@ -87,18 +91,68 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
       );
       
       if (result.success) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['user-progress', user.id, day] 
+        // Mise à jour optimiste du cache au lieu d'invalidation agressive
+        queryClient.setQueryData(['user-progress', user.id, day], (oldData: any[]) => {
+          if (!oldData) return oldData;
+          
+          const existingIndex = oldData.findIndex(item => item.chapter_id === id);
+          const newStatus = item.completed ? 'pending' : 'completed';
+          
+          if (existingIndex >= 0) {
+            // Mettre à jour l'entrée existante
+            const updatedData = [...oldData];
+            updatedData[existingIndex] = {
+              ...updatedData[existingIndex],
+              status: newStatus,
+              completed_at: newStatus === 'completed' ? new Date().toISOString() : null
+            };
+            return updatedData;
+          } else {
+            // Ajouter une nouvelle entrée
+            return [...oldData, {
+              id: `temp-${id}`,
+              user_id: user.id,
+              chapter_id: id,
+              status: newStatus,
+              completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
+              reading_plan_chapters: chaptersData.find(c => c.id === id)
+            }];
+          }
         });
+        
+        // Mise à jour optimiste des données du plan de lecture global
+        queryClient.setQueryData(['reading-plan-days', user.id], (oldDays: any[]) => {
+          if (!oldDays) return oldDays;
+          return oldDays.map(dayData => {
+            if (dayData.day === day) {
+              // Recalculer le statut de completion pour ce jour
+              const dayChapters = chaptersData.length;
+              const currentProgress = queryClient.getQueryData(['user-progress', user.id, day]) as any[];
+              const completedCount = currentProgress?.filter(p => p.status === 'completed').length || 0;
+              
+              return {
+                ...dayData,
+                completed: completedCount === dayChapters && dayChapters > 0
+              };
+            }
+            return dayData;
+          });
+        });
+        
         triggerProgressUpdate();
       }
     } catch (error) {
       console.error(`Error toggling read status for chapter ${id}:`, error);
       toast.error("Une erreur est survenue lors de la mise à jour");
+      
+      // En cas d'erreur, invalider pour récupérer l'état correct
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-progress', user.id, day] 
+      });
     } finally {
       setProcessingIds(prev => prev.filter(itemId => itemId !== id));
     }
-  }, [user, readingItems, day, queryClient, triggerProgressUpdate]);
+  }, [user, readingItems, day, queryClient, triggerProgressUpdate, chaptersData]);
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
@@ -123,7 +177,8 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
                 readingItems.map((item) => (
                   <button
                     key={item.id}
-                    onClick={() => !processingIds.includes(item.id) && handleToggleRead(item.id)}
+                    type="button"
+                    onClick={(event) => !processingIds.includes(item.id) && handleToggleRead(event, item.id)}
                     disabled={processingIds.includes(item.id)}
                     className={`flex items-center w-full p-3 text-left rounded-md hover:bg-gray-100 transition-colors ${
                       item.completed ? 'text-gray-400 bg-gray-50' : 'text-gray-800'

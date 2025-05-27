@@ -61,7 +61,11 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   }, [chaptersData, progressData]);
 
   // Handler optimisé avec useCallback
-  const handleToggleRead = useCallback(async (id: string) => {
+  const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
+    // Empêcher la propagation et le comportement par défaut
+    event.preventDefault();
+    event.stopPropagation();
+    
     if (!user) {
       toast.error("Vous devez être connecté pour modifier le statut de lecture");
       return;
@@ -81,28 +85,59 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
       );
       
       if (result.success) {
-        // Invalider et refetch les données de progression
-        queryClient.invalidateQueries({ 
-          queryKey: ['user-progress', user.id, dayNumber] 
+        // Mise à jour optimiste du cache au lieu d'invalidation agressive
+        queryClient.setQueryData(['user-progress', user.id, dayNumber], (oldData: any[]) => {
+          if (!oldData) return oldData;
+          
+          const existingIndex = oldData.findIndex(item => item.chapter_id === id);
+          const newStatus = item.completed ? 'pending' : 'completed';
+          
+          if (existingIndex >= 0) {
+            // Mettre à jour l'entrée existante
+            const updatedData = [...oldData];
+            updatedData[existingIndex] = {
+              ...updatedData[existingIndex],
+              status: newStatus,
+              completed_at: newStatus === 'completed' ? new Date().toISOString() : null
+            };
+            return updatedData;
+          } else {
+            // Ajouter une nouvelle entrée
+            return [...oldData, {
+              id: `temp-${id}`,
+              user_id: user.id,
+              chapter_id: id,
+              status: newStatus,
+              completed_at: newStatus === 'completed' ? new Date().toISOString() : null,
+              reading_plan_chapters: chaptersData.find(c => c.id === id)
+            }];
+          }
         });
+        
         triggerProgressUpdate();
       }
     } catch (error) {
       console.error(`Error toggling read status for chapter ${id}:`, error);
       toast.error("Une erreur est survenue lors de la mise à jour");
+      
+      // En cas d'erreur, invalider pour récupérer l'état correct
+      queryClient.invalidateQueries({ 
+        queryKey: ['user-progress', user.id, dayNumber] 
+      });
     } finally {
       setProcessingIds(prev => prev.filter(itemId => itemId !== id));
     }
-  }, [user, readingItems, dayNumber, queryClient, triggerProgressUpdate]);
+  }, [user, readingItems, dayNumber, queryClient, triggerProgressUpdate, chaptersData]);
 
   // Composant de ligne mémorisé pour éviter les re-rendus
   const ReadingItemRow = React.memo<{
     item: ReadingItem;
     isProcessing: boolean;
-    onToggle: () => void;
+    onToggle: (event: React.MouseEvent) => void;
   }>(({ item, isProcessing, onToggle }) => (
     <li className="flex items-center">
       <button
+        type="button"
         onClick={onToggle}
         disabled={isProcessing}
         className={`flex items-center w-full text-left ${
@@ -156,7 +191,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
                   key={item.id}
                   item={item}
                   isProcessing={processingIds.includes(item.id)}
-                  onToggle={() => handleToggleRead(item.id)}
+                  onToggle={(event) => handleToggleRead(event, item.id)}
                 />
               ))}
             </ul>
