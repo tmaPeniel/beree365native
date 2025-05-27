@@ -2,7 +2,19 @@
 /**
  * Utilitaires centralisés pour les calculs de date du plan de lecture
  * Toutes les fonctions utilisent la même logique pour éviter les incohérences
+ * Correction du décalage de fuseau horaire
  */
+
+/**
+ * Parse une date ISO en forçant le fuseau horaire local
+ * @param dateStr Date au format ISO (YYYY-MM-DD)
+ * @returns Objet Date en fuseau horaire local
+ */
+const parseLocalDate = (dateStr: string): Date => {
+  const [year, month, day] = dateStr.split('-').map(Number);
+  // Mois - 1 car JavaScript utilise 0-11 pour les mois
+  return new Date(year, month - 1, day);
+};
 
 /**
  * Calcule la date pour un jour donné du plan de lecture
@@ -11,14 +23,18 @@
  * @returns Date calculée au format ISO (YYYY-MM-DD)
  */
 export const calculateDateForDay = (startDateStr: string, dayNumber: number): string => {
-  const startDate = new Date(startDateStr);
-  startDate.setHours(0, 0, 0, 0);
+  const startDate = parseLocalDate(startDateStr);
   
   // dayNumber commence à 1, donc on ajoute (dayNumber - 1) jours
   const targetDate = new Date(startDate);
   targetDate.setDate(startDate.getDate() + (dayNumber - 1));
   
-  return targetDate.toISOString().split('T')[0];
+  // Formater au format ISO local
+  const year = targetDate.getFullYear();
+  const month = String(targetDate.getMonth() + 1).padStart(2, '0');
+  const day = String(targetDate.getDate()).padStart(2, '0');
+  
+  return `${year}-${month}-${day}`;
 };
 
 /**
@@ -27,7 +43,7 @@ export const calculateDateForDay = (startDateStr: string, dayNumber: number): st
  * @returns Numéro du jour actuel (minimum 1)
  */
 export const calculateCurrentDayNumber = (startDateStr: string): number => {
-  const startDate = new Date(startDateStr);
+  const startDate = parseLocalDate(startDateStr);
   const today = new Date();
   
   // Normaliser les heures pour une comparaison précise
@@ -49,12 +65,14 @@ export const calculateCurrentDayNumber = (startDateStr: string): number => {
 export const isToday = (startDateStr: string, dayNumber: number): boolean => {
   const calculatedDate = calculateDateForDay(startDateStr, dayNumber);
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
   
-  const targetDate = new Date(calculatedDate);
-  targetDate.setHours(0, 0, 0, 0);
+  // Formater la date d'aujourd'hui au format ISO local
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${year}-${month}-${day}`;
   
-  return targetDate.getTime() === today.getTime();
+  return calculatedDate === todayStr;
 };
 
 /**
@@ -63,7 +81,7 @@ export const isToday = (startDateStr: string, dayNumber: number): boolean => {
  * @returns Date formatée en français
  */
 export const formatDateToFrench = (dateStr: string): string => {
-  const date = new Date(dateStr);
+  const date = parseLocalDate(dateStr);
   return date.toLocaleDateString('fr-FR', { 
     day: 'numeric', 
     month: 'short' 

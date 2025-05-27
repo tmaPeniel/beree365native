@@ -234,27 +234,3 @@ export const optimizedToggleChapterStatus = async (
     return { success: false, error: error.message };
   }
 };
-
-// Fonction utilitaire corrigée pour calculer la date en cohérence avec useCurrentDay
-const formatDateOptimized = (startDateStr: string, dayNumber: number) => {
-  const startDate = new Date(startDateStr);
-  startDate.setHours(0, 0, 0, 0);
-  
-  // Calculer la date en utilisant la même logique que useCurrentDay
-  // dayNumber correspond au jour du plan (1-365), donc on ajoute dayNumber - 1 jours
-  const targetDate = new Date(startDate);
-  targetDate.setDate(startDate.getDate() + (dayNumber - 1));
-  
-  return targetDate.toISOString().split('T')[0];
-};
-
-const isTodayOptimized = (startDateStr: string, dayNumber: number) => {
-  const calculatedDate = formatDateOptimized(startDateStr, dayNumber);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const targetDate = new Date(calculatedDate);
-  targetDate.setHours(0, 0, 0, 0);
-  
-  return targetDate.getTime() === today.getTime();
-};
