@@ -1,3 +1,4 @@
+
 /**
  * Page de tableau de bord
  * Affiche un aperçu du plan de lecture et des statistiques
@@ -11,7 +12,7 @@ import VerseOfDay from '@/components/VerseOfDay';
 import TodayDisplay from '@/components/TodayDisplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { calculateDayNumber } from '@/services/readingPlan';
+import { calculateCurrentDayNumber } from '@/utils/dateCalculations';
 import PlanDates from '@/components/ui/PlanDate';
 
 /**
@@ -24,11 +25,10 @@ const Dashboard = () => {
   const [remainingDays, setRemainingDays] = useState(365);
   const today = new Date();
   
-  // Calculer le numéro du jour et les jours restants
+  // Calculer le numéro du jour et les jours restants en utilisant la fonction centralisée
   useEffect(() => {
     if (profile?.start_date) {
-      const startDate = new Date(profile.start_date);
-      const calculatedDay = calculateDayNumber(startDate);
+      const calculatedDay = calculateCurrentDayNumber(profile.start_date);
       console.log(`Dashboard: Calculated day number is ${calculatedDay} from start date ${profile.start_date}`);
       setDayNumber(calculatedDay);
       setRemainingDays(365 - (calculatedDay - 1));
