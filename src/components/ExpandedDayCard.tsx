@@ -19,6 +19,7 @@ interface ExpandedDayCardProps {
   isToday?: boolean;
   chapters: Chapter[];
   progressPercentage: number;
+  isMobile?: boolean;
 }
 
 const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({ 
@@ -26,7 +27,8 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
   date, 
   isToday = false,
   chapters,
-  progressPercentage
+  progressPercentage,
+  isMobile = false
 }) => {
   const { user } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
@@ -109,68 +111,81 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     }
   }, [user, chapters, day, queryClient]);
 
-  // Classes CSS mémorisées
+  // Classes CSS mémorisées avec optimisation mobile
   const cardClasses = useMemo(() => 
-    `w-full rounded-xl border transition-all p-4 ${
+    `w-full rounded-xl border transition-all ${
+      isMobile ? 'p-3' : 'p-4'
+    } ${
       isToday 
         ? 'bg-green-50 border-green-200 shadow-md' 
         : 'bg-white border-gray-200 hover:shadow-sm'
-    }`, [isToday]
+    }`, [isToday, isMobile]
   );
   
   return (
     <div className={cardClasses}>
-      {/* En-tête de la carte */}
-      <div className="flex items-center justify-between mb-3">
+      {/* En-tête de la carte optimisé pour mobile */}
+      <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
         <div className="flex flex-col">
-          <span className={`text-sm font-semibold ${isToday ? 'text-green-700' : 'text-gray-900'}`}>
+          <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold ${
+            isToday ? 'text-green-700' : 'text-gray-900'
+          }`}>
             Jour {day}
           </span>
-          <span className="text-xs text-gray-500">{formattedDate}</span>
+          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-500`}>
+            {formattedDate}
+          </span>
         </div>
         
-        {progressPercentage > 0 && (
-          <div className="flex items-center">
-            <span className={`text-xs font-medium px-2 py-1 rounded-full ${
-              isToday ? 'bg-green-200 text-green-800' : 'bg-gray-100 text-gray-600'
-            }`}>
-              {progressPercentage}%
-            </span>
-          </div>
-        )}
+        {/* Toujours afficher le pourcentage, même à 0% */}
+        <div className="flex items-center">
+          <span className={`${
+            isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'
+          } font-medium rounded-full ${
+            progressPercentage === 0
+              ? 'bg-gray-100 text-gray-500' // Style discret pour 0%
+              : isToday 
+                ? 'bg-green-200 text-green-800' 
+                : 'bg-gray-100 text-gray-600'
+          }`}>
+            {progressPercentage}%
+          </span>
+        </div>
       </div>
       
-      {/* Liste des passages */}
-      <div className="space-y-2">
+      {/* Liste des passages optimisée pour mobile */}
+      <div className={`space-y-${isMobile ? '1.5' : '2'}`}>
         {chapters.length > 0 ? (
           chapters.map((chapter) => (
-            <div key={chapter.id} className="flex items-center space-x-2">
+            <div key={chapter.id} className={`flex items-center ${isMobile ? 'space-x-1.5' : 'space-x-2'}`}>
               <button
                 type="button"
                 onClick={(event) => handleToggleRead(event, chapter.id)}
                 disabled={processingIds.includes(chapter.id)}
-                className={`flex-shrink-0 h-4 w-4 rounded border-2 flex items-center justify-center transition-colors ${
+                className={`flex-shrink-0 ${
+                  isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'
+                } rounded border-2 flex items-center justify-center transition-colors ${
                   chapter.completed 
                     ? 'bg-green-500 border-green-500' 
                     : 'border-green-300 hover:border-green-400'
                 } ${processingIds.includes(chapter.id) ? 'opacity-70' : ''}`}
               >
                 {processingIds.includes(chapter.id) ? (
-                  <Loader2 className="h-2.5 w-2.5 text-white animate-spin" />
+                  <Loader2 className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-white animate-spin`} />
                 ) : (
-                  chapter.completed && <Check className="h-2.5 w-2.5 text-white" />
+                  chapter.completed && <Check className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-white`} />
                 )}
               </button>
               
-              <span className={`text-sm ${
+              <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${
                 chapter.completed ? 'line-through text-gray-400' : 'text-gray-700'
-              }`}>
+              } leading-tight`}>
                 {chapter.reference}
               </span>
             </div>
           ))
         ) : (
-          <p className="text-xs text-gray-400 italic">
+          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-400 italic`}>
             Aucun passage trouvé
           </p>
         )}

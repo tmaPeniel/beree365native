@@ -1,4 +1,3 @@
-
 /**
  * Page de plan de lecture optimisée avec une seule requête
  */
@@ -12,6 +11,7 @@ import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCac
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
  * Formate la date en ajoutant un offset de jours
@@ -40,6 +40,7 @@ const isToday = (startDateStr: string, dayOffset: number) => {
 const Reading = React.memo(() => {
   const { profile, isLoading: authLoading } = useOptimizedAuth();
   const { toast: useToastHook } = useToast();
+  const isMobile = useIsMobile();
 
   // Calcul mémorisé du jour courant
   const currentDayNumber = useMemo(() => {
@@ -105,8 +106,12 @@ const Reading = React.memo(() => {
           <p className="font-medium">Aujourd'hui: Jour {currentDayNumber}</p>
         </div>
         
-        {/* Grille des cartes optimisées avec données pré-chargées */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+        {/* Grille des cartes optimisées avec affichage mobile 2 colonnes */}
+        <div className={`grid gap-3 md:gap-6 ${
+          isMobile 
+            ? 'grid-cols-2' 
+            : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'
+        }`}>
           {optimizedData.map(dayData => (
             <ExpandedDayCard 
               key={dayData.day} 
@@ -115,6 +120,7 @@ const Reading = React.memo(() => {
               isToday={dayData.isToday}
               chapters={dayData.chapters}
               progressPercentage={dayData.progressPercentage}
+              isMobile={isMobile}
             />
           ))}
         </div>
