@@ -6,6 +6,7 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { calculateDateForDay, isToday } from "@/utils/dateCalculations";
 
 // Cache global ultra-optimisé
 interface GlobalCacheEntry {
@@ -97,11 +98,14 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
   chapters.forEach(chapter => {
     const dayNum = chapter.day_number;
     if (!dayGroups.has(dayNum)) {
+      const calculatedDate = calculateDateForDay(startDate, dayNum);
+      console.log(`🗓️ Day ${dayNum} calculated date: ${calculatedDate}`);
+      
       dayGroups.set(dayNum, {
         day: dayNum,
         chapters: [],
-        date: formatDateOptimized(startDate, dayNum - 1),
-        isToday: isTodayOptimized(startDate, dayNum - 1)
+        date: calculatedDate,
+        isToday: isToday(startDate, dayNum)
       });
     }
     
@@ -231,18 +235,26 @@ export const optimizedToggleChapterStatus = async (
   }
 };
 
-// Fonctions utilitaires optimisées
-const formatDateOptimized = (startDateStr: string, dayOffset: number) => {
+// Fonction utilitaire corrigée pour calculer la date en cohérence avec useCurrentDay
+const formatDateOptimized = (startDateStr: string, dayNumber: number) => {
   const startDate = new Date(startDateStr);
-  startDate.setDate(startDate.getDate() + dayOffset);
-  return startDate.toISOString().split('T')[0];
+  startDate.setHours(0, 0, 0, 0);
+  
+  // Calculer la date en utilisant la même logique que useCurrentDay
+  // dayNumber correspond au jour du plan (1-365), donc on ajoute dayNumber - 1 jours
+  const targetDate = new Date(startDate);
+  targetDate.setDate(startDate.getDate() + (dayNumber - 1));
+  
+  return targetDate.toISOString().split('T')[0];
 };
 
-const isTodayOptimized = (startDateStr: string, dayOffset: number) => {
-  const startDate = new Date(startDateStr);
-  startDate.setDate(startDate.getDate() + dayOffset);
+const isTodayOptimized = (startDateStr: string, dayNumber: number) => {
+  const calculatedDate = formatDateOptimized(startDateStr, dayNumber);
   const today = new Date();
-  return startDate.getDate() === today.getDate() && 
-         startDate.getMonth() === today.getMonth() && 
-         startDate.getFullYear() === today.getFullYear();
+  today.setHours(0, 0, 0, 0);
+  
+  const targetDate = new Date(calculatedDate);
+  targetDate.setHours(0, 0, 0, 0);
+  
+  return targetDate.getTime() === today.getTime();
 };
