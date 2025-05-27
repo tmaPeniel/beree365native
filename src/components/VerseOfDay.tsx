@@ -1,52 +1,53 @@
-import React, { useEffect, useState } from 'react';
+
+import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
-import { getDailyVerse } from '@/services/readingPlan';
-import { DailyVerse } from "@/types/supabase";
+import { Book } from 'lucide-react';
+import { getDailyVerse, getDefaultVerse } from '@/services/readingPlan/verseService';
+import { useQuery } from '@tanstack/react-query';
 
 interface VerseOfDayProps {
   dayNumber: number;
 }
 
+/**
+ * Composant pour afficher le verset du jour
+ */
 const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
-  const [verseOfDay, setVerseOfDay] = useState<DailyVerse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchVerse = async () => {
-      try {
-        setIsLoading(true);
-        setError(null);
-        
-        console.log(`VerseOfDay component: fetching verse for day ${dayNumber}`);
-        
-        if (!dayNumber || dayNumber < 1) {
-          console.warn(`VerseOfDay: Invalid day number: ${dayNumber}`);
-          setError(`Jour invalide: ${dayNumber}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        const verse = await getDailyVerse(dayNumber);
-        setVerseOfDay(verse);
-      } catch (err) {
-        console.error('Error fetching verse of day:', err);
-        setError('Impossible de charger le verset du jour');
-      } finally {
-        setIsLoading(false);
-      }
-    };
+  
+  const fetchVerse = async () => {
+    console.log(`VerseOfDay component: fetching verse for day ${dayNumber}`);
     
-    fetchVerse();
-  }, [dayNumber]);
+    // Limiter aux jours 1-365 et utiliser un verset par défaut si hors limite
+    if (dayNumber > 365 || dayNumber < 1) {
+      console.log(`Day ${dayNumber} is out of range (1-365), using default verse`);
+      return await getDefaultVerse();
+    }
+    
+    try {
+      const verse = await getDailyVerse(dayNumber);
+      return verse;
+    } catch (error) {
+      console.error(`Error fetching verse for day ${dayNumber}:`, error);
+      // En cas d'erreur, utiliser le verset par défaut
+      return await getDefaultVerse();
+    }
+  };
+
+  const { data: verse, isLoading, error } = useQuery({
+    queryKey: ['daily-verse', dayNumber],
+    queryFn: fetchVerse,
+    staleTime: 24 * 60 * 60 * 1000, // 24 heures
+    gcTime: 24 * 60 * 60 * 1000,
+    retry: 1 // Réessayer une seule fois en cas d'erreur
+  });
 
   if (isLoading) {
     return (
-      <Card className="bg-white border-none shadow-sm">
-        <CardContent className="p-6">
-          <h2 className="text-lg font-semibold mb-3">Verset du jour</h2>
-          <div className="bg-green-50 p-4 rounded-lg border border-green-100 flex justify-center items-center h-24">
-            <div className="animate-spin rounded-full h-6 w-6 border-t-2 border-b-2 border-green-500"></div>
+      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <CardContent className="p-6 text-center">
+          <div className="animate-pulse">
+            <div className="h-4 bg-green-200 rounded w-3/4 mx-auto mb-2"></div>
+            <div className="h-3 bg-green-200 rounded w-1/2 mx-auto"></div>
           </div>
         </CardContent>
       </Card>
@@ -55,38 +56,35 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
 
   if (error) {
     return (
-      <Card className="bg-white border-none shadow-sm">
-        <CardContent className="p-6">
-          <h2 className="text-lg font-semibold mb-3">Verset du jour</h2>
-          <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-            <p className="text-gray-700 italic mb-2">Erreur: {error}</p>
+      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+        <CardContent className="p-6 text-center">
+          <div className="flex items-center justify-center mb-4">
+            <Book className="h-8 w-8 text-green-600" />
           </div>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (!verseOfDay) {
-    return (
-      <Card className="bg-white border-none shadow-sm">
-        <CardContent className="p-6">
-          <h2 className="text-lg font-semibold mb-3">Verset du jour</h2>
-          <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-            <p className="text-gray-700 italic mb-2">Verset du jour non disponible pour le jour {dayNumber}</p>
-          </div>
+          <p className="text-gray-600 italic">
+            "Cherchez premièrement le royaume et la justice de Dieu; et toutes ces choses vous seront données par-dessus."
+          </p>
+          <p className="text-sm text-green-700 mt-2 font-medium">
+            Matthieu 6:33
+          </p>
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="bg-white border-none shadow-sm">
-      <CardContent className="p-6">
-        <h2 className="text-lg font-semibold mb-3">Verset du jour</h2>
-        <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-          <p className="text-gray-700 italic mb-2">"{verseOfDay.text}"</p>
-          <p className="text-right text-sm text-gray-500">{verseOfDay.reference}</p>
+    <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+      <CardContent className="p-6 text-center">
+        <div className="flex items-center justify-center mb-4">
+          <Book className="h-8 w-8 text-green-600" />
         </div>
+        <h2 className="text-lg font-semibold text-green-800 mb-3">Verset du jour</h2>
+        <blockquote className="text-gray-700 italic text-base mb-4 leading-relaxed">
+          "{verse?.text}"
+        </blockquote>
+        <cite className="text-sm text-green-700 font-medium">
+          {verse?.reference}
+        </cite>
       </CardContent>
     </Card>
   );

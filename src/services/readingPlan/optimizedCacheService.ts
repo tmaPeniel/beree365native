@@ -16,7 +16,7 @@ interface GlobalCacheEntry {
 }
 
 const globalCache = new Map<string, GlobalCacheEntry>();
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes - cache plus long
+const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - cache plus court pour plus de réactivité
 
 /**
  * Génère une clé de cache
@@ -97,9 +97,12 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
   // Traitement en une seule passe
   chapters.forEach(chapter => {
     const dayNum = chapter.day_number;
+    
+    // Limiter aux 365 premiers jours
+    if (dayNum > 365) return;
+    
     if (!dayGroups.has(dayNum)) {
       const calculatedDate = calculateDateForDay(startDate, dayNum);
-      console.log(`🗓️ Day ${dayNum} calculated date: ${calculatedDate}`);
       
       dayGroups.set(dayNum, {
         day: dayNum,

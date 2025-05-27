@@ -48,30 +48,28 @@ const ProfileCard = ({ onEdit }: ProfileCardProps) => {
       
       if (result.success) {
         setIsEditing(false);
+        
+        // Rafraîchir le profil d'abord
         await refreshProfile();
         
-        // Invalider tous les caches liés au plan de lecture après mise à jour
-        console.log('🔄 Invalidating all reading plan caches after profile update...');
+        // Ensuite invalider et refetcher tous les caches
+        console.log('🔄 Invalidating all caches after profile update...');
         
         // Invalider le cache global optimisé
         invalidateUserCacheSelective(user.id);
         
-        // Invalider tous les caches React Query liés au plan de lecture
-        await queryClient.invalidateQueries({ 
-          queryKey: ['optimized-reading-plan-data', user.id] 
-        });
+        // Invalider tous les caches React Query
+        queryClient.removeQueries({ queryKey: ['optimized-reading-plan-data'] });
+        queryClient.removeQueries({ queryKey: ['user-progress-optimized'] });
+        queryClient.removeQueries({ queryKey: ['reading-plan-chapters'] });
         
-        // Invalider aussi les caches de progression
-        await queryClient.invalidateQueries({ 
-          queryKey: ['user-progress-optimized', user.id] 
-        });
-        
-        // Forcer un re-fetch immédiat
-        await queryClient.refetchQueries({ 
-          queryKey: ['optimized-reading-plan-data', user.id] 
-        });
-        
-        console.log('✅ All caches invalidated and data refetched');
+        // Attendre un peu puis forcer un refetch complet
+        setTimeout(async () => {
+          await queryClient.refetchQueries({ 
+            queryKey: ['optimized-reading-plan-data', user.id] 
+          });
+          console.log('✅ All caches cleared and data refetched');
+        }, 100);
         
         toast.success("Profil mis à jour avec succès");
       }

@@ -12,7 +12,7 @@ import VerseOfDay from '@/components/VerseOfDay';
 import TodayDisplay from '@/components/TodayDisplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { calculateCurrentDayNumber } from '@/utils/dateCalculations';
+import { useCurrentDay } from '@/hooks/useCurrentDay';
 import PlanDates from '@/components/ui/PlanDate';
 
 /**
@@ -21,19 +21,16 @@ import PlanDates from '@/components/ui/PlanDate';
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const { profile, isLoading } = useAuth();
-  const [dayNumber, setDayNumber] = useState(1);
+  const { currentDayNumber } = useCurrentDay();
   const [remainingDays, setRemainingDays] = useState(365);
   const today = new Date();
   
-  // Calculer le numéro du jour et les jours restants en utilisant la fonction centralisée
+  // Calculer les jours restants basé sur le jour courant
   useEffect(() => {
-    if (profile?.start_date) {
-      const calculatedDay = calculateCurrentDayNumber(profile.start_date);
-      console.log(`Dashboard: Calculated day number is ${calculatedDay} from start date ${profile.start_date}`);
-      setDayNumber(calculatedDay);
-      setRemainingDays(365 - (calculatedDay - 1));
-    }
-  }, [profile]);
+    const remaining = Math.max(0, 365 - currentDayNumber);
+    setRemainingDays(remaining);
+    console.log(`Dashboard: Day ${currentDayNumber}, remaining: ${remaining}`);
+  }, [currentDayNumber]);
   
   // Calculer les dates du plan
   const startDate = profile?.start_date ? new Date(profile.start_date) : today;
@@ -59,13 +56,13 @@ const Dashboard = () => {
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
         {/* Affichage du jour actuel */}
         <TodayDisplay 
-          dayNumber={dayNumber} 
+          dayNumber={currentDayNumber} 
           date={today} 
           userName={profile?.full_name || 'Utilisateur'} 
         />
       
         {/* Verset du jour */}
-        <VerseOfDay dayNumber={dayNumber} />
+        <VerseOfDay dayNumber={currentDayNumber} />
         
         {/* Statistiques de progression */}
         <ProgressStats />
@@ -79,7 +76,7 @@ const Dashboard = () => {
           />
           
           {/* Plan de lecture du jour */}
-          <ReadingPlan dayNumber={dayNumber} />
+          <ReadingPlan dayNumber={currentDayNumber} />
         </div>
       </div>
       
