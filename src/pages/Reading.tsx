@@ -4,7 +4,6 @@
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { useToast } from "@/hooks/use-toast";
 import NavBar from '@/components/NavBar';
 import ExpandedDayCard from '@/components/ExpandedDayCard';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
@@ -20,7 +19,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
  */
 const Reading = React.memo(() => {
   const { profile, isLoading: authLoading } = useOptimizedAuth();
-  const { useToast: useToastHook } = useToast();
   const isMobile = useIsMobile();
   const { currentDayNumber } = useCurrentDay();
 
@@ -42,14 +40,9 @@ const Reading = React.memo(() => {
   // Gestion des erreurs avec useEffect
   useEffect(() => {
     if (error) {
-      useToastHook({
-        title: "Erreur",
-        description: `Impossible de charger le plan de lecture: ${error.message}`,
-        variant: "destructive"
-      });
       toast.error(`Impossible de charger le plan de lecture: ${error.message}`);
     }
-  }, [error, useToastHook]);
+  }, [error]);
 
   // Loading state
   if (authLoading || dataLoading) {
