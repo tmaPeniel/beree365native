@@ -30,7 +30,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
   progressPercentage,
   isMobile = false
 }) => {
-  const { user } = useOptimizedAuth();
+  const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
   
@@ -97,6 +97,9 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
             };
           });
         });
+        
+        // Déclencher la mise à jour des statistiques
+        triggerProgressUpdate();
       }
     } catch (error) {
       console.error(`Error toggling read status for chapter ${chapterId}:`, error);
@@ -109,11 +112,11 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     } finally {
       setProcessingIds(prev => prev.filter(itemId => itemId !== chapterId));
     }
-  }, [user, chapters, day, queryClient]);
+  }, [user, chapters, day, queryClient, triggerProgressUpdate]);
 
   // Classes CSS mémorisées avec optimisation mobile
   const cardClasses = useMemo(() => 
-    `w-full rounded-xl border transition-all ${
+    `relative w-full rounded-xl border transition-all ${
       isMobile ? 'p-3' : 'p-4'
     } ${
       isToday 
@@ -124,7 +127,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
   
   return (
     <div className={cardClasses}>
-      {/* En-tête de la carte optimisé pour mobile */}
+      {/* En-tête de la carte sans le pourcentage */}
       <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
         <div className="flex flex-col">
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold ${
@@ -136,25 +139,10 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
             {formattedDate}
           </span>
         </div>
-        
-        {/* Toujours afficher le pourcentage, même à 0% */}
-        <div className="flex items-center">
-          <span className={`${
-            isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'
-          } font-medium rounded-full ${
-            progressPercentage === 0
-              ? 'bg-gray-100 text-gray-500' // Style discret pour 0%
-              : isToday 
-                ? 'bg-green-200 text-green-800' 
-                : 'bg-gray-100 text-gray-600'
-          }`}>
-            {progressPercentage}%
-          </span>
-        </div>
       </div>
       
       {/* Liste des passages optimisée pour mobile */}
-      <div className={`space-y-${isMobile ? '1.5' : '2'}`}>
+      <div className={`space-y-${isMobile ? '1.5' : '2'} mb-3`}>
         {chapters.length > 0 ? (
           chapters.map((chapter) => (
             <div key={chapter.id} className={`flex items-center ${isMobile ? 'space-x-1.5' : 'space-x-2'}`}>
@@ -189,6 +177,21 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
             Aucun passage trouvé
           </p>
         )}
+      </div>
+      
+      {/* Pourcentage positionné en bas de la carte */}
+      <div className="absolute bottom-2 right-2">
+        <span className={`${
+          isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'
+        } font-medium rounded-full ${
+          progressPercentage === 0
+            ? 'bg-gray-100 text-gray-500' // Style discret pour 0%
+            : isToday 
+              ? 'bg-green-200 text-green-800' 
+              : 'bg-gray-100 text-gray-600'
+        }`}>
+          {progressPercentage}%
+        </span>
       </div>
     </div>
   );

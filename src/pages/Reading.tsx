@@ -1,3 +1,4 @@
+
 /**
  * Page de plan de lecture optimisée avec une seule requête
  */
@@ -7,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import NavBar from '@/components/NavBar';
 import ExpandedDayCard from '@/components/ExpandedDayCard';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import { useCurrentDay } from '@/hooks/useCurrentDay';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
 import { useQuery } from '@tanstack/react-query';
@@ -14,48 +16,13 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * Formate la date en ajoutant un offset de jours
- */
-const formatDate = (startDateStr: string, dayOffset: number) => {
-  const startDate = new Date(startDateStr);
-  startDate.setDate(startDate.getDate() + dayOffset);
-  return formatDateToFrench(startDate);
-};
-
-/**
- * Vérifie si une date correspond à aujourd'hui
- */
-const isToday = (startDateStr: string, dayOffset: number) => {
-  const startDate = new Date(startDateStr);
-  startDate.setDate(startDate.getDate() + dayOffset);
-  const today = new Date();
-  return startDate.getDate() === today.getDate() && 
-         startDate.getMonth() === today.getMonth() && 
-         startDate.getFullYear() === today.getFullYear();
-};
-
-/**
  * Page de plan de lecture ultra-optimisée
  */
 const Reading = React.memo(() => {
   const { profile, isLoading: authLoading } = useOptimizedAuth();
-  const { toast: useToastHook } = useToast();
+  const { useToast: useToastHook } = useToast();
   const isMobile = useIsMobile();
-
-  // Calcul mémorisé du jour courant
-  const currentDayNumber = useMemo(() => {
-    if (!profile?.start_date) return 1;
-    
-    const startDate = new Date(profile.start_date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    startDate.setHours(0, 0, 0, 0);
-    
-    const diffTime = today.getTime() - startDate.getTime();
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-    
-    return Math.max(1, diffDays + 1);
-  }, [profile?.start_date]);
+  const { currentDayNumber } = useCurrentDay();
 
   // Une seule requête ultra-optimisée pour TOUT le plan de lecture
   const { data: optimizedData = [], isLoading: dataLoading, error } = useQuery({
