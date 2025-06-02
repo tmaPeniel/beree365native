@@ -68,7 +68,24 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
     if (error) throw error;
 
     console.log(`✅ Single query returned ${chaptersWithProgress?.length || 0} chapters with progress`);
-
+    
+    // DEBUG: Analyser la distribution des jours
+    const dayDistribution = new Map();
+    chaptersWithProgress?.forEach(chapter => {
+      const day = chapter.day_number;
+      dayDistribution.set(day, (dayDistribution.get(day) || 0) + 1);
+    });
+    
+    console.log(`📊 DEBUG: Distribution des chapitres par jour:`);
+    console.log(`📊 DEBUG: Jours avec chapitres: ${Array.from(dayDistribution.keys()).sort((a, b) => a - b)}`);
+    console.log(`📊 DEBUG: Premier jour: ${Math.min(...dayDistribution.keys())}`);
+    console.log(`📊 DEBUG: Dernier jour: ${Math.max(...dayDistribution.keys())}`);
+    console.log(`📊 DEBUG: Nombre de jours uniques: ${dayDistribution.size}`);
+    
+    // DEBUG: Vérifier spécifiquement les jours 320+
+    const daysAfter320 = Array.from(dayDistribution.keys()).filter(day => day > 320);
+    console.log(`🔍 DEBUG: Jours après 320: ${daysAfter320.sort((a, b) => a - b)}`);
+    
     // Traitement ultra-optimisé des données avec génération complète des 365 jours
     const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate);
     
@@ -92,14 +109,25 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
  * CORRECTION: S'assure que tous les 365 jours sont générés
  */
 const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
+  console.log(`🔄 DEBUG: Processing ${chapters.length} chapters...`);
+  
   const dayGroups = new Map();
+  
+  // DEBUG: Analyser les chapitres d'entrée
+  const inputDays = new Set(chapters.map(ch => ch.day_number));
+  console.log(`📊 DEBUG: Jours dans les données d'entrée: ${inputDays.size} jours uniques`);
+  console.log(`📊 DEBUG: Premier jour dans l'entrée: ${Math.min(...inputDays)}`);
+  console.log(`📊 DEBUG: Dernier jour dans l'entrée: ${Math.max(...inputDays)}`);
   
   // Traitement en une seule passe des chapitres existants
   chapters.forEach(chapter => {
     const dayNum = chapter.day_number;
     
     // Traiter TOUS les jours de 1 à 365
-    if (dayNum < 1 || dayNum > 365) return;
+    if (dayNum < 1 || dayNum > 365) {
+      console.warn(`⚠️ DEBUG: Chapitre avec jour invalide: ${dayNum}`);
+      return;
+    }
     
     if (!dayGroups.has(dayNum)) {
       const calculatedDate = calculateDateForDay(startDate, dayNum);
@@ -125,6 +153,8 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
     });
   });
 
+  console.log(`📊 DEBUG: Après traitement des chapitres existants: ${dayGroups.size} jours créés`);
+
   // CORRECTION: Générer tous les jours manquants de 1 à 365
   for (let day = 1; day <= 365; day++) {
     if (!dayGroups.has(day)) {
@@ -136,8 +166,14 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
         date: calculatedDate,
         isToday: isToday(startDate, day)
       });
+      
+      if (day > 320) {
+        console.log(`⚠️ DEBUG: Jour ${day} créé sans chapitres (jour > 320)`);
+      }
     }
   }
+
+  console.log(`📊 DEBUG: Après génération de tous les jours: ${dayGroups.size} jours au total`);
 
   // Calculer la progression en une seule passe et trier par jour
   const result = Array.from(dayGroups.values())
@@ -154,6 +190,15 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
         completed: progressPercentage === 100
       };
     });
+
+  // DEBUG: Vérifier le résultat final
+  const resultDaysAfter320 = result.filter(day => day.day > 320);
+  console.log(`🔍 DEBUG: Jours après 320 dans le résultat: ${resultDaysAfter320.length}`);
+  console.log(`🔍 DEBUG: Exemples de jours après 320:`, resultDaysAfter320.slice(0, 5).map(d => ({
+    day: d.day,
+    chaptersCount: d.chapters.length,
+    references: d.chapters.map(ch => ch.reference)
+  })));
 
   console.log(`📊 Generated ${result.length} days (should be 365)`);
   return result;
