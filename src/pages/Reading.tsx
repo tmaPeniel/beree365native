@@ -11,7 +11,6 @@ import DayNavigationControls from '@/components/DayNavigationControls';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useCurrentDayFromDB } from '@/hooks/useCurrentDayFromDB';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
-import { formatDateToFrench } from '@/utils/readingPlanUtils';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -31,8 +30,9 @@ const Reading = React.memo(() => {
   } = useCurrentDayFromDB();
   const queryClient = useQueryClient();
   const currentDayRef = useRef<HTMLDivElement>(null);
+  const [hasScrolledToDay, setHasScrolledToDay] = useState(false);
 
-  console.log(`📖 Reading Page - Jour courant depuis DB: ${currentDayNumber}`);
+  console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
 
   // Fonction pour scroller vers le jour courant
   const scrollToCurrentDay = () => {
@@ -52,46 +52,97 @@ const Reading = React.memo(() => {
     }
   };
 
-  // Invalider le cache quand le jour change pour forcer la synchronisation
-  useEffect(() => {
-    if (profile?.id) {
-      console.log(`🔄 Reading - Invalidation du cache pour jour ${currentDayNumber}`);
-      queryClient.invalidateQueries({
-        queryKey: ['optimized-reading-plan-data', profile.id]
-      });
-    }
-  }, [currentDayNumber, profile?.id, queryClient]);
-
   // Une seule requête ultra-optimisée pour TOUT le plan de lecture
   const {
     data: optimizedData = [],
     isLoading: dataLoading,
-    error
+    error,
+    refetch
   } = useQuery({
     queryKey: ['optimized-reading-plan-data', profile?.id],
     queryFn: async () => {
       if (!profile) return [];
-      console.log('🚀 Fetching ALL reading plan data in single optimized query...');
+      console.log('🚀 Fetching ALL reading plan data...');
       return await getOptimizedReadingPlanData(profile.id, profile.start_date);
     },
     enabled: !!profile && !authLoading,
-    staleTime: 5 * 60 * 1000,
-    // 5 minutes
-    gcTime: 10 * 60 * 1000 // 10 minutes
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    retry: 2,
+    retryDelay: 1000
   });
 
-  // Gestion des erreurs avec useEffect
+  // Gestion des erreurs
   useEffect(() => {
     if (error) {
-      toast.error(`Impossible de charger le plan de lecture: ${error.message}`);
+      console.error('Error loading reading plan:', error);
+      toast.error(`Impossible de charger le plan de lecture. Tentative de rechargement...`);
+      // Retry automatiquement après une erreur
+      setTimeout(() => {
+        refetch();
+      }, 2000);
     }
-  }, [error]);
+  }, [error, refetch]);
+
+  // Auto-scroll vers le jour courant une seule fois quand les données sont chargées
+  useEffect(() => {
+    if (!hasScrolledToDay && optimizedData.length > 0 && currentDayNumber && !dataLoading) {
+      setTimeout(() => {
+        scrollToCurrentDay();
+        setHasScrolledToDay(true);
+      }, 500);
+    }
+  }, [optimizedData.length, currentDayNumber, dataLoading, hasScrolledToDay]);
 
   // Loading state
-  if (authLoading || dataLoading || dayLoading) {
+  if (authLoading || dayLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement du plan de lecture...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (dataLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
+          <p className="text-gray-500">Chargement de vos données...</p>
+        </div>
+        <div className="container mx-auto px-4 pb-16">
+          <div className="text-center py-12">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
+            <p className="text-gray-600">Chargement des passages...</p>
+          </div>
+        </div>
+        <NavBar />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+          <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
+          <p className="text-red-500">Une erreur est survenue</p>
+        </div>
+        <div className="container mx-auto px-4 pb-16">
+          <div className="text-center py-12">
+            <p className="text-red-600 mb-4">Impossible de charger le plan de lecture</p>
+            <button 
+              onClick={() => refetch()} 
+              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+            >
+              Réessayer
+            </button>
+          </div>
+        </div>
+        <NavBar />
       </div>
     );
   }
@@ -100,7 +151,9 @@ const Reading = React.memo(() => {
     <div className="min-h-screen bg-gray-50 pb-20">
       <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-        <p className="text-gray-500">Suivez votre progression au fil des jours</p>
+        <p className="text-gray-500">
+          Suivez votre progression au fil des jours ({optimizedData.length} jours disponibles)
+        </p>
         
         {/* Contrôles de navigation centralisés */}
         <div className="mt-4 flex justify-center">
@@ -109,25 +162,37 @@ const Reading = React.memo(() => {
       </div>
       
       <div className="container mx-auto px-4 pb-16">
-        {/* Grille des cartes optimisées avec affichage mobile 2 colonnes */}
-        <div className={`grid gap-3 md:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-          {optimizedData.map(dayData => (
-            <div
-              key={dayData.day}
-              ref={dayData.day === currentDayNumber ? currentDayRef : null}
-              className="transition-all duration-300"
+        {optimizedData.length === 0 ? (
+          <div className="text-center py-12">
+            <p className="text-gray-600">Aucune donnée de plan de lecture disponible</p>
+            <button 
+              onClick={() => refetch()} 
+              className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
             >
-              <ExpandedDayCard 
-                day={dayData.day} 
-                date={dayData.date} 
-                isToday={dayData.day === currentDayNumber} 
-                chapters={dayData.chapters} 
-                progressPercentage={dayData.progressPercentage} 
-                isMobile={isMobile} 
-              />
-            </div>
-          ))}
-        </div>
+              Recharger
+            </button>
+          </div>
+        ) : (
+          /* Grille des cartes optimisées avec affichage mobile 2 colonnes */
+          <div className={`grid gap-3 md:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+            {optimizedData.map(dayData => (
+              <div
+                key={dayData.day}
+                ref={dayData.day === currentDayNumber ? currentDayRef : null}
+                className="transition-all duration-300"
+              >
+                <ExpandedDayCard 
+                  day={dayData.day} 
+                  date={dayData.date} 
+                  isToday={dayData.day === currentDayNumber} 
+                  chapters={dayData.chapters} 
+                  progressPercentage={dayData.progressPercentage} 
+                  isMobile={isMobile} 
+                />
+              </div>
+            ))}
+          </div>
+        )}
       </div>
       
       <NavBar />

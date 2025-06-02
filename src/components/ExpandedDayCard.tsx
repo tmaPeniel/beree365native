@@ -127,7 +127,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
   
   return (
     <div className={cardClasses}>
-      {/* En-tête de la carte sans le pourcentage */}
+      {/* En-tête de la carte */}
       <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
         <div className="flex flex-col">
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold ${
@@ -143,7 +143,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       
       {/* Liste des passages optimisée pour mobile */}
       <div className={`space-y-${isMobile ? '1.5' : '2'} mb-3`}>
-        {chapters.length > 0 ? (
+        {chapters && chapters.length > 0 ? (
           chapters.map((chapter) => (
             <div key={chapter.id} className={`flex items-center ${isMobile ? 'space-x-1.5' : 'space-x-2'}`}>
               <button

@@ -1,3 +1,4 @@
+
 /**
  * Service de cache ultra-optimisé pour le plan de lecture
  * Une seule requête pour tout charger, cache global intelligent
@@ -48,7 +49,8 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
   try {
     console.log('🔥 Executing SINGLE ultra-optimized query for all reading plan data...');
     
-    // UNE SEULE requête pour récupérer TOUT avec jointure optimisée
+    // REQUÊTE OPTIMISÉE : Récupérer TOUS les chapitres avec leur progression
+    // Utiliser une limite élevée pour s'assurer de récupérer tous les chapitres
     const { data: chaptersWithProgress, error } = await supabase
       .from('reading_plan_chapters')
       .select(`
@@ -63,28 +65,27 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
         )
       `)
       .eq('user_progress.user_id', userId)
-      .order('day_number', { ascending: true });
+      .order('day_number', { ascending: true })
+      .limit(2000); // Limite généreuse pour s'assurer de tout récupérer
     
     if (error) throw error;
 
-    console.log(`✅ Single query returned ${chaptersWithProgress?.length || 0} chapters with progress`);
+    console.log(`✅ Query returned ${chaptersWithProgress?.length || 0} chapters total`);
     
-    // DEBUG: Analyser la distribution des jours
+    // Vérifier la distribution des jours
     const dayDistribution = new Map();
     chaptersWithProgress?.forEach(chapter => {
       const day = chapter.day_number;
       dayDistribution.set(day, (dayDistribution.get(day) || 0) + 1);
     });
     
-    console.log(`📊 DEBUG: Distribution des chapitres par jour:`);
-    console.log(`📊 DEBUG: Jours avec chapitres: ${Array.from(dayDistribution.keys()).sort((a, b) => a - b)}`);
-    console.log(`📊 DEBUG: Premier jour: ${Math.min(...dayDistribution.keys())}`);
-    console.log(`📊 DEBUG: Dernier jour: ${Math.max(...dayDistribution.keys())}`);
-    console.log(`📊 DEBUG: Nombre de jours uniques: ${dayDistribution.size}`);
+    console.log(`📊 Days coverage: ${dayDistribution.size} unique days (should be 365)`);
+    const maxDay = Math.max(...dayDistribution.keys());
+    console.log(`📊 Highest day number: ${maxDay}`);
     
-    // DEBUG: Vérifier spécifiquement les jours 320+
-    const daysAfter320 = Array.from(dayDistribution.keys()).filter(day => day > 320);
-    console.log(`🔍 DEBUG: Jours après 320: ${daysAfter320.sort((a, b) => a - b)}`);
+    if (maxDay < 365) {
+      console.warn(`⚠️ Missing days detected! Only have data up to day ${maxDay}`);
+    }
     
     // Traitement ultra-optimisé des données avec génération complète des 365 jours
     const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate);
@@ -96,36 +97,31 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
       userId
     });
     
-    console.log(`💾 Cached ${processedData.length} days of ultra-optimized reading plan data`);
+    console.log(`💾 Cached ${processedData.length} days of reading plan data`);
     return processedData;
   } catch (error) {
     console.error('❌ Error fetching ultra-optimized reading plan data:', error);
+    toast.error('Erreur lors du chargement du plan de lecture');
     throw error;
   }
 };
 
 /**
  * Traite les données des chapitres de manière ultra-optimisée
- * CORRECTION: S'assure que tous les 365 jours sont générés
+ * ASSURE que tous les 365 jours sont générés
  */
 const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
-  console.log(`🔄 DEBUG: Processing ${chapters.length} chapters...`);
+  console.log(`🔄 Processing ${chapters.length} chapters...`);
   
   const dayGroups = new Map();
-  
-  // DEBUG: Analyser les chapitres d'entrée
-  const inputDays = new Set(chapters.map(ch => ch.day_number));
-  console.log(`📊 DEBUG: Jours dans les données d'entrée: ${inputDays.size} jours uniques`);
-  console.log(`📊 DEBUG: Premier jour dans l'entrée: ${Math.min(...inputDays)}`);
-  console.log(`📊 DEBUG: Dernier jour dans l'entrée: ${Math.max(...inputDays)}`);
   
   // Traitement en une seule passe des chapitres existants
   chapters.forEach(chapter => {
     const dayNum = chapter.day_number;
     
-    // Traiter TOUS les jours de 1 à 365
-    if (dayNum < 1 || dayNum > 365) {
-      console.warn(`⚠️ DEBUG: Chapitre avec jour invalide: ${dayNum}`);
+    // Vérifier la validité du jour
+    if (!dayNum || dayNum < 1 || dayNum > 365) {
+      console.warn(`⚠️ Invalid day number: ${dayNum}`);
       return;
     }
     
@@ -153,29 +149,25 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
     });
   });
 
-  console.log(`📊 DEBUG: Après traitement des chapitres existants: ${dayGroups.size} jours créés`);
+  console.log(`📊 Created ${dayGroups.size} days with chapters`);
 
-  // CORRECTION: Générer tous les jours manquants de 1 à 365
+  // GÉNÉRER tous les jours manquants de 1 à 365
   for (let day = 1; day <= 365; day++) {
     if (!dayGroups.has(day)) {
       const calculatedDate = calculateDateForDay(startDate, day);
       
       dayGroups.set(day, {
         day: day,
-        chapters: [], // Aucun chapitre pour ce jour
+        chapters: [], // Jour sans chapitres
         date: calculatedDate,
         isToday: isToday(startDate, day)
       });
-      
-      if (day > 320) {
-        console.log(`⚠️ DEBUG: Jour ${day} créé sans chapitres (jour > 320)`);
-      }
     }
   }
 
-  console.log(`📊 DEBUG: Après génération de tous les jours: ${dayGroups.size} jours au total`);
+  console.log(`📊 Final result: ${dayGroups.size} total days (should be 365)`);
 
-  // Calculer la progression en une seule passe et trier par jour
+  // Calculer la progression et trier par jour
   const result = Array.from(dayGroups.values())
     .sort((a, b) => a.day - b.day)
     .map(day => {
@@ -191,16 +183,13 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
       };
     });
 
-  // DEBUG: Vérifier le résultat final
-  const resultDaysAfter320 = result.filter(day => day.day > 320);
-  console.log(`🔍 DEBUG: Jours après 320 dans le résultat: ${resultDaysAfter320.length}`);
-  console.log(`🔍 DEBUG: Exemples de jours après 320:`, resultDaysAfter320.slice(0, 5).map(d => ({
-    day: d.day,
-    chaptersCount: d.chapters.length,
-    references: d.chapters.map(ch => ch.reference)
-  })));
+  // Vérification finale
+  const daysWithoutChapters = result.filter(day => day.chapters.length === 0);
+  if (daysWithoutChapters.length > 0) {
+    console.log(`📊 Days without chapters: ${daysWithoutChapters.length}`);
+    console.log(`📊 Sample days without chapters:`, daysWithoutChapters.slice(0, 10).map(d => d.day));
+  }
 
-  console.log(`📊 Generated ${result.length} days (should be 365)`);
   return result;
 };
 
@@ -234,7 +223,7 @@ export const optimizedToggleChapterStatus = async (
   currentStatus: 'pending' | 'completed',
   dayNumber: number
 ) => {
-  console.log(`🔄 Ultra-optimized toggle - User: ${userId}, Chapter: ${chapterId}, Current: ${currentStatus}`);
+  console.log(`🔄 Toggle chapter - User: ${userId}, Chapter: ${chapterId}, Status: ${currentStatus} -> ${currentStatus === 'pending' ? 'completed' : 'pending'}`);
   
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
