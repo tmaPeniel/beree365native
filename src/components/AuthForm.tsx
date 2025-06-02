@@ -56,6 +56,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
     });
     
     const handleSubmit = (values: LoginFormValues) => {
+      console.log("Soumission du formulaire de connexion avec:", values);
       onSubmit({
         email: values.email,
         password: values.password
@@ -94,10 +95,11 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           />
           
           <div className="text-right">
-            <Link to="/forgot-password">
-              <Button variant="link" className="text-sm text-green-600 hover:text-green-700 p-0 h-auto">
-                Mot de passe oublié ?
-              </Button>
+            <Link 
+              to="/forgot-password"
+              className="text-sm text-green-600 hover:text-green-700 underline"
+            >
+              Mot de passe oublié ?
             </Link>
           </div>
           
