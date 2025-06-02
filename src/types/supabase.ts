@@ -9,6 +9,7 @@ export type Profile = {
   id: string;
   full_name: string | null;
   start_date: string;
+  current_day_number: number;
   created_at: string;
 };
 

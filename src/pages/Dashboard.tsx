@@ -2,7 +2,7 @@
 /**
  * Page de tableau de bord
  * Affiche un aperçu du plan de lecture et des statistiques
- * VERSION CORRIGÉE avec logs de synchronisation
+ * VERSION MISE À JOUR avec gestion du jour depuis la DB
  */
 
 import React, { useEffect, useState } from 'react';
@@ -13,21 +13,21 @@ import VerseOfDay from '@/components/VerseOfDay';
 import TodayDisplay from '@/components/TodayDisplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentDay } from '@/hooks/useCurrentDay';
+import { useCurrentDayFromDB } from '@/hooks/useCurrentDayFromDB';
 import PlanDates from '@/components/ui/PlanDate';
 
 /**
- * Page de tableau de bord CORRIGÉE
+ * Page de tableau de bord MISE À JOUR pour utiliser la DB
  */
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const { profile, isLoading } = useAuth();
-  const { currentDayNumber } = useCurrentDay();
+  const { currentDayNumber, isLoading: dayLoading } = useCurrentDayFromDB();
   const [remainingDays, setRemainingDays] = useState(365);
   const today = new Date();
   
   // Debug du jour courant dans le Dashboard
-  console.log(`🏠 Dashboard - Jour courant reçu: ${currentDayNumber}`);
+  console.log(`🏠 Dashboard - Jour courant depuis DB: ${currentDayNumber}`);
   
   // Calculer les jours restants basé sur le jour courant
   useEffect(() => {
@@ -42,7 +42,7 @@ const Dashboard = () => {
   endDate.setDate(startDate.getDate() + 364); // 365 jours au total, donc +364
   
   // Afficher un indicateur de chargement
-  if (isLoading || !profile) {
+  if (isLoading || !profile || dayLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
@@ -58,7 +58,7 @@ const Dashboard = () => {
       </div>
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Affichage du jour actuel avec logs */}
+        {/* Affichage du jour actuel avec contrôles de navigation */}
         <TodayDisplay 
           dayNumber={currentDayNumber} 
           date={today} 

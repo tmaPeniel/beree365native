@@ -33,18 +33,21 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          current_day_number: number
           full_name: string | null
           id: string
           start_date: string | null
         }
         Insert: {
           created_at?: string | null
+          current_day_number?: number
           full_name?: string | null
           id: string
           start_date?: string | null
         }
         Update: {
           created_at?: string | null
+          current_day_number?: number
           full_name?: string | null
           id?: string
           start_date?: string | null

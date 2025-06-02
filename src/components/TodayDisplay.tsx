@@ -1,5 +1,6 @@
 
 import React from 'react';
+import DayNavigationControls from './DayNavigationControls';
 
 interface TodayDisplayProps {
   dayNumber: number;
@@ -33,8 +34,11 @@ const TodayDisplay: React.FC<TodayDisplayProps> = ({ dayNumber, date, userName }
         JOUR {dayNumber}
       </h2>
       <p className="text-lg md:text-xl opacity-90 capitalize">{formattedDate}</p>
-      {/* Debug temporaire */}
-      <p className="text-xs opacity-75 mt-2">Debug: Jour affiché = {dayNumber}</p>
+      
+      {/* Contrôles de navigation */}
+      <div className="mt-4 flex justify-center">
+        <DayNavigationControls size="sm" />
+      </div>
     </div>
 
     </div>
