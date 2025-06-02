@@ -1,3 +1,4 @@
+
 /**
  * Utilitaires centralisés pour les calculs de date du plan de lecture
  * Toutes les fonctions utilisent la même logique pour éviter les incohérences
@@ -49,7 +50,7 @@ export const calculateCurrentDayNumber = (startDateStr: string): number => {
   const startDate = parseLocalDate(startDateStr);
   console.log(`📅 Date de début parsée: ${startDate.toDateString()}`);
   
-  // Obtenir la date d'aujourd'hui en utilisant la même logique
+  // Obtenir la date d'aujourd'hui à minuit pour une comparaison précise
   const today = new Date();
   const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
   console.log(`📅 Aujourd'hui normalisé: ${todayNormalized.toDateString()}`);

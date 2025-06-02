@@ -61,9 +61,9 @@ const Reading = React.memo(() => {
       </div>
       
       <div className="container mx-auto px-4 pb-16">
-        {/* Affichage du jour actuel sur mobile */}
+        {/* Affichage du jour actuel sur mobile - CORRECTION ICI */}
         <div className="md:hidden mb-4 p-4 bg-green-50 rounded-lg border border-green-100">
-          <p className="font-medium">Aujourd'hui: Jour {currentDayNumber+1}</p>
+          <p className="font-medium">Aujourd'hui: Jour {currentDayNumber}</p>
         </div>
         
         {/* Grille des cartes optimisées avec affichage mobile 2 colonnes */}
