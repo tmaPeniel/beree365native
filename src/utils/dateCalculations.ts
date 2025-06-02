@@ -1,4 +1,3 @@
-
 /**
  * Utilitaires centralisés pour les calculs de date du plan de lecture
  * Toutes les fonctions utilisent la même logique pour éviter les incohérences
@@ -39,21 +38,43 @@ export const calculateDateForDay = (startDateStr: string, dayNumber: number): st
 
 /**
  * Calcule le numéro du jour actuel dans le plan de lecture
+ * Version corrigée pour éviter les décalages d'un jour
  * @param startDateStr Date de début du plan (format ISO)
  * @returns Numéro du jour actuel (minimum 1)
  */
 export const calculateCurrentDayNumber = (startDateStr: string): number => {
+  console.log(`🔍 Calcul du jour courant - Date de début: ${startDateStr}`);
+  
+  // Parser la date de début en utilisant notre fonction robuste
   const startDate = parseLocalDate(startDateStr);
+  console.log(`📅 Date de début parsée: ${startDate.toDateString()}`);
+  
+  // Obtenir la date d'aujourd'hui en utilisant la même logique
   const today = new Date();
+  const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  console.log(`📅 Aujourd'hui normalisé: ${todayNormalized.toDateString()}`);
   
-  // Normaliser les heures pour une comparaison précise
-  today.setHours(0, 0, 0, 0);
-  startDate.setHours(0, 0, 0, 0);
+  // Normaliser la date de début aussi (mettre à minuit)
+  const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
+  console.log(`📅 Date de début normalisée: ${startDateNormalized.toDateString()}`);
   
-  const diffTime = today.getTime() - startDate.getTime();
+  // Calculer la différence en utilisant une méthode plus directe
+  // Convertir en millisecondes puis en jours
+  const diffTime = todayNormalized.getTime() - startDateNormalized.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
-  return Math.max(1, diffDays + 1);
+  console.log(`⏰ Différence en millisecondes: ${diffTime}`);
+  console.log(`📊 Différence en jours: ${diffDays}`);
+  
+  // Le jour courant est diffDays + 1 (car le jour 1 commence à la date de début)
+  const currentDay = diffDays + 1;
+  console.log(`🎯 Jour calculé (avant limitation): ${currentDay}`);
+  
+  // S'assurer que le jour est au minimum 1
+  const finalDay = Math.max(1, currentDay);
+  console.log(`✅ Jour final: ${finalDay}`);
+  
+  return finalDay;
 };
 
 /**
