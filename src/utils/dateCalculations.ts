@@ -75,7 +75,7 @@ export const calculateCurrentDayNumber = (startDateStr: string): number => {
   console.log(`📊 Différence en jours: ${diffDays}`);
   
   // CLEF: Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
-  const currentDay = diffDays + 1;
+  const currentDay = diffDays + 2;
   console.log(`🎯 Jour calculé (diffDays + 1): ${currentDay}`);
   
   // S'assurer que le jour est entre 1 et 365
