@@ -1,39 +1,58 @@
 
 /**
- * Page de plan de lecture optimisée avec lazy loading
- * VERSION MISE À JOUR avec virtualisation et chargement progressif
+ * Page de plan de lecture optimisée avec gestion du jour depuis la DB
+ * VERSION MISE À JOUR avec synchronisation DB
  */
 
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import NavBar from '@/components/NavBar';
-import VirtualizedReadingGrid from '@/components/VirtualizedReadingGrid';
-import DayNavigator from '@/components/DayNavigator';
+import ExpandedDayCard from '@/components/ExpandedDayCard';
+import DayNavigationControls from '@/components/DayNavigationControls';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useCurrentDayFromDB } from '@/hooks/useCurrentDayFromDB';
-import { useLazyReadingData } from '@/hooks/useLazyReadingData';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * Page de plan de lecture avec lazy loading et virtualisation
+ * Page de plan de lecture avec gestion DB du jour courant
  */
 const Reading = React.memo(() => {
   const {
     profile,
     isLoading: authLoading
   } = useOptimizedAuth();
+  const isMobile = useIsMobile();
   const {
     currentDayNumber,
-    isLoading: dayLoading,
-    goToSpecificDay
+    isLoading: dayLoading
   } = useCurrentDayFromDB();
-  
-  const [scrollToDay, setScrollToDay] = useState<((day: number) => void) | null>(null);
+  const queryClient = useQueryClient();
+  const currentDayRef = useRef<HTMLDivElement>(null);
+  const [hasScrolledToDay, setHasScrolledToDay] = useState(false);
 
   console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
 
-  // Requête optimisée pour TOUT le plan de lecture
+  // Fonction pour scroller vers le jour courant
+  const scrollToCurrentDay = () => {
+    if (currentDayRef.current) {
+      currentDayRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'center'
+      });
+      
+      // Ajouter un effet de highlight temporaire
+      currentDayRef.current.classList.add('ring-2', 'ring-green-400', 'ring-opacity-75');
+      setTimeout(() => {
+        if (currentDayRef.current) {
+          currentDayRef.current.classList.remove('ring-2', 'ring-green-400', 'ring-opacity-75');
+        }
+      }, 2000);
+    }
+  };
+
+  // Une seule requête ultra-optimisée pour TOUT le plan de lecture
   const {
     data: optimizedData = [],
     isLoading: dataLoading,
@@ -47,66 +66,33 @@ const Reading = React.memo(() => {
       return await getOptimizedReadingPlanData(profile.id, profile.start_date);
     },
     enabled: !!profile && !authLoading,
-    staleTime: 3 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: 3 * 60 * 1000, // 3 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
     retry: 2,
     retryDelay: 1000
   });
 
-  // Hook de lazy loading
-  const {
-    loadedData,
-    loadAroundDay,
-    updateVisibleRange
-  } = useLazyReadingData({
-    data: optimizedData,
-    pageSize: 50,
-    prefetchSize: 20
-  });
-
-  // Navigation vers un jour spécifique
-  const handleNavigateToDay = useCallback(async (dayNumber: number) => {
-    // Charger les données autour de ce jour
-    loadAroundDay(dayNumber);
-    
-    // Mettre à jour le jour courant en DB
-    await goToSpecificDay(dayNumber);
-    
-    // Scroller vers le jour
-    if (scrollToDay) {
-      setTimeout(() => {
-        scrollToDay(dayNumber);
-      }, 100);
-    }
-  }, [loadAroundDay, goToSpecificDay, scrollToDay]);
-
-  // Scroll vers le jour courant
-  const handleCurrentDayClick = useCallback(() => {
-    if (currentDayNumber && scrollToDay) {
-      loadAroundDay(currentDayNumber);
-      setTimeout(() => {
-        scrollToDay(currentDayNumber);
-      }, 100);
-    }
-  }, [currentDayNumber, scrollToDay, loadAroundDay]);
-
-  // Charger initialement les données autour du jour courant
-  React.useEffect(() => {
-    if (currentDayNumber && optimizedData.length > 0) {
-      loadAroundDay(currentDayNumber);
-    }
-  }, [currentDayNumber, optimizedData.length, loadAroundDay]);
-
   // Gestion des erreurs
-  React.useEffect(() => {
+  useEffect(() => {
     if (error) {
       console.error('Error loading reading plan:', error);
       toast.error(`Impossible de charger le plan de lecture. Tentative de rechargement...`);
+      // Retry automatiquement après une erreur
       setTimeout(() => {
         refetch();
       }, 2000);
     }
   }, [error, refetch]);
+
+  // Auto-scroll vers le jour courant une seule fois quand les données sont chargées
+  useEffect(() => {
+    if (!hasScrolledToDay && optimizedData.length > 0 && currentDayNumber && !dataLoading) {
+      setTimeout(() => {
+        scrollToCurrentDay();
+        setHasScrolledToDay(true);
+      }, 500);
+    }
+  }, [optimizedData.length, currentDayNumber, dataLoading, hasScrolledToDay]);
 
   // Loading state
   if (authLoading || dayLoading) {
@@ -169,14 +155,9 @@ const Reading = React.memo(() => {
           Suivez votre progression au fil des jours ({optimizedData.length} jours disponibles)
         </p>
         
-        {/* Navigateur de jours amélioré */}
+        {/* Contrôles de navigation centralisés */}
         <div className="mt-4 flex justify-center">
-          <DayNavigator
-            currentDay={currentDayNumber}
-            totalDays={365}
-            onNavigateToDay={handleNavigateToDay}
-            onCurrentDayClick={handleCurrentDayClick}
-          />
+          <DayNavigationControls onCurrentDayClick={scrollToCurrentDay} />
         </div>
       </div>
       
@@ -192,12 +173,25 @@ const Reading = React.memo(() => {
             </button>
           </div>
         ) : (
-          /* Grille virtualisée avec lazy loading */
-          <VirtualizedReadingGrid
-            data={optimizedData}
-            currentDayNumber={currentDayNumber}
-            onScrollToDay={setScrollToDay}
-          />
+          /* Grille des cartes optimisées avec affichage mobile 2 colonnes */
+          <div className={`grid gap-3 md:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
+            {optimizedData.map(dayData => (
+              <div
+                key={dayData.day}
+                ref={dayData.day === currentDayNumber ? currentDayRef : null}
+                className="transition-all duration-300"
+              >
+                <ExpandedDayCard 
+                  day={dayData.day} 
+                  date={dayData.date} 
+                  isToday={dayData.day === currentDayNumber} 
+                  chapters={dayData.chapters} 
+                  progressPercentage={dayData.progressPercentage} 
+                  isMobile={isMobile} 
+                />
+              </div>
+            ))}
+          </div>
         )}
       </div>
       
