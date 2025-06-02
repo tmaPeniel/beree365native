@@ -27,7 +27,7 @@ export const calculateDateForDay = (startDateStr: string, dayNumber: number): st
   
   // dayNumber commence à 1, donc on ajoute (dayNumber - 1) jours
   const targetDate = new Date(startDate);
-  targetDate.setDate(startDate.getDate() + (dayNumber - 1));
+  targetDate.setDate(startDate.getDate() + (dayNumber));
   
   // Formater au format ISO local
   const year = targetDate.getFullYear();
