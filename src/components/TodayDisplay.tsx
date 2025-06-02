@@ -1,17 +1,18 @@
-
 import React from 'react';
 import DayNavigationControls from './DayNavigationControls';
-
 interface TodayDisplayProps {
   dayNumber: number;
   date: Date;
   userName: string;
 }
-
-const TodayDisplay: React.FC<TodayDisplayProps> = ({ dayNumber, date, userName }) => {
+const TodayDisplay: React.FC<TodayDisplayProps> = ({
+  dayNumber,
+  date,
+  userName
+}) => {
   // Debug du jour reçu
   console.log(`🏷️ TodayDisplay - Jour reçu: ${dayNumber}`);
-  
+
   // Format the date: "Mardi, 20 Mai 2025"
   const formattedDate = date.toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -19,9 +20,7 @@ const TodayDisplay: React.FC<TodayDisplayProps> = ({ dayNumber, date, userName }
     month: 'long',
     year: 'numeric'
   });
-  
-  return (
-    <div>
+  return <div>
       <h2 className="text-2xl md:text-2xl font-bold mb-1 capitalize">
           Bienvenue {userName},
       </h2>
@@ -36,13 +35,9 @@ const TodayDisplay: React.FC<TodayDisplayProps> = ({ dayNumber, date, userName }
       <p className="text-lg md:text-xl opacity-90 capitalize">{formattedDate}</p>
       
       {/* Contrôles de navigation */}
-      <div className="mt-4 flex justify-center">
-        <DayNavigationControls size="sm" />
-      </div>
+      
     </div>
 
-    </div>
-  );
+    </div>;
 };
-
 export default TodayDisplay;
