@@ -1,4 +1,3 @@
-
 /**
  * Service de cache ultra-optimisé pour le plan de lecture
  * Une seule requête pour tout charger, cache global intelligent
@@ -70,7 +69,7 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
 
     console.log(`✅ Single query returned ${chaptersWithProgress?.length || 0} chapters with progress`);
 
-    // Traitement ultra-optimisé des données
+    // Traitement ultra-optimisé des données avec génération complète des 365 jours
     const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate);
     
     // Mise en cache globale
@@ -90,16 +89,17 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
 
 /**
  * Traite les données des chapitres de manière ultra-optimisée
+ * CORRECTION: S'assure que tous les 365 jours sont générés
  */
 const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
   const dayGroups = new Map();
   
-  // Traitement en une seule passe
+  // Traitement en une seule passe des chapitres existants
   chapters.forEach(chapter => {
     const dayNum = chapter.day_number;
     
-    // Limiter aux 365 premiers jours
-    if (dayNum > 365) return;
+    // Traiter TOUS les jours de 1 à 365
+    if (dayNum < 1 || dayNum > 365) return;
     
     if (!dayGroups.has(dayNum)) {
       const calculatedDate = calculateDateForDay(startDate, dayNum);
@@ -125,19 +125,38 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
     });
   });
 
-  // Calculer la progression en une seule passe
-  return Array.from(dayGroups.values()).map(day => {
-    const completedChapters = day.chapters.filter(chapter => chapter.completed);
-    const progressPercentage = day.chapters.length > 0 
-      ? Math.round((completedChapters.length / day.chapters.length) * 100) 
-      : 0;
-    
-    return {
-      ...day,
-      progressPercentage,
-      completed: progressPercentage === 100
-    };
-  });
+  // CORRECTION: Générer tous les jours manquants de 1 à 365
+  for (let day = 1; day <= 365; day++) {
+    if (!dayGroups.has(day)) {
+      const calculatedDate = calculateDateForDay(startDate, day);
+      
+      dayGroups.set(day, {
+        day: day,
+        chapters: [], // Aucun chapitre pour ce jour
+        date: calculatedDate,
+        isToday: isToday(startDate, day)
+      });
+    }
+  }
+
+  // Calculer la progression en une seule passe et trier par jour
+  const result = Array.from(dayGroups.values())
+    .sort((a, b) => a.day - b.day)
+    .map(day => {
+      const completedChapters = day.chapters.filter(chapter => chapter.completed);
+      const progressPercentage = day.chapters.length > 0 
+        ? Math.round((completedChapters.length / day.chapters.length) * 100) 
+        : 0;
+      
+      return {
+        ...day,
+        progressPercentage,
+        completed: progressPercentage === 100
+      };
+    });
+
+  console.log(`📊 Generated ${result.length} days (should be 365)`);
+  return result;
 };
 
 /**

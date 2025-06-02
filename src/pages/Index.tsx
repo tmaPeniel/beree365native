@@ -1,10 +1,33 @@
 
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import Logo from '@/components/Logo';
+import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 
 const Index = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useOptimizedAuth();
+
+  // Fonction pour gérer le clic sur "Commencer"
+  const handleGetStarted = () => {
+    if (isAuthenticated) {
+      navigate('/dashboard');
+    } else {
+      navigate('/signup');
+    }
+  };
+
+  // Affichage pendant le chargement
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
+        <p className="text-gray-600">Chargement...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-4 animate-enter">
       <div className="max-w-md w-full text-center">
@@ -19,25 +42,44 @@ const Index = () => {
         </p>
         
         <div className="space-y-4">
-          <Link to="/dashboard" className="block">
-            <Button className="w-full h-12 rounded-full bg-beree-500 hover:bg-beree-600">
-              Commencer
-            </Button>
-          </Link>
+          <Button 
+            onClick={handleGetStarted}
+            className="w-full h-12 rounded-full bg-beree-500 hover:bg-beree-600"
+          >
+            {isAuthenticated ? 'Tableau de bord' : 'Commencer'}
+          </Button>
           
-          <div className="flex space-x-4">
-            <Link to="/login" className="flex-1 block">
-              <Button variant="outline" className="w-full rounded-full border-beree-500 text-beree-500 hover:bg-beree-50">
-                Connexion
-              </Button>
-            </Link>
-            
-            <Link to="/signup" className="flex-1 block">
-              <Button variant="outline" className="w-full rounded-full border-beree-500 text-beree-500 hover:bg-beree-50">
-                Inscription
-              </Button>
-            </Link>
-          </div>
+          {!isAuthenticated && (
+            <div className="flex space-x-4">
+              <Link to="/login" className="flex-1 block">
+                <Button variant="outline" className="w-full rounded-full border-beree-500 text-beree-500 hover:bg-beree-50">
+                  Connexion
+                </Button>
+              </Link>
+              
+              <Link to="/signup" className="flex-1 block">
+                <Button variant="outline" className="w-full rounded-full border-beree-500 text-beree-500 hover:bg-beree-50">
+                  Inscription
+                </Button>
+              </Link>
+            </div>
+          )}
+
+          {isAuthenticated && (
+            <div className="flex space-x-4">
+              <Link to="/reading" className="flex-1 block">
+                <Button variant="outline" className="w-full rounded-full border-beree-500 text-beree-500 hover:bg-beree-50">
+                  Plan de lecture
+                </Button>
+              </Link>
+              
+              <Link to="/profile" className="flex-1 block">
+                <Button variant="outline" className="w-full rounded-full border-beree-500 text-beree-500 hover:bg-beree-50">
+                  Profil
+                </Button>
+              </Link>
+            </div>
+          )}
         </div>
       </div>
       
