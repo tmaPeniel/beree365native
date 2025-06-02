@@ -7,6 +7,8 @@ import ProfileHeader from '@/components/ProfileHeader';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 import { updateUserProfile } from '@/services/authService';
+import { invalidateUserCacheSelective } from '@/services/readingPlan/optimizedCacheService';
+import { useQueryClient } from '@tanstack/react-query';
 
 interface ProfileCardProps {
   onEdit?: () => void;
@@ -17,6 +19,7 @@ interface ProfileCardProps {
  */
 const ProfileCard = ({ onEdit }: ProfileCardProps) => {
   const { user, profile, refreshProfile } = useAuth();
+  const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   const [fullName, setFullName] = useState(profile?.full_name || '');
   const [startDate, setStartDate] = useState(profile?.start_date || '');
@@ -45,7 +48,29 @@ const ProfileCard = ({ onEdit }: ProfileCardProps) => {
       
       if (result.success) {
         setIsEditing(false);
+        
+        // Rafraîchir le profil d'abord
         await refreshProfile();
+        
+        // Ensuite invalider et refetcher tous les caches
+        console.log('🔄 Invalidating all caches after profile update...');
+        
+        // Invalider le cache global optimisé
+        invalidateUserCacheSelective(user.id);
+        
+        // Invalider tous les caches React Query
+        queryClient.removeQueries({ queryKey: ['optimized-reading-plan-data'] });
+        queryClient.removeQueries({ queryKey: ['user-progress-optimized'] });
+        queryClient.removeQueries({ queryKey: ['reading-plan-chapters'] });
+        
+        // Attendre un peu puis forcer un refetch complet
+        setTimeout(async () => {
+          await queryClient.refetchQueries({ 
+            queryKey: ['optimized-reading-plan-data', user.id] 
+          });
+          console.log('✅ All caches cleared and data refetched');
+        }, 100);
+        
         toast.success("Profil mis à jour avec succès");
       }
     } catch (error) {
