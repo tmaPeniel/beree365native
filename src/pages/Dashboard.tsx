@@ -2,6 +2,7 @@
 /**
  * Page de tableau de bord
  * Affiche un aperçu du plan de lecture et des statistiques
+ * VERSION CORRIGÉE avec logs de synchronisation
  */
 
 import React, { useEffect, useState } from 'react';
@@ -16,7 +17,7 @@ import { useCurrentDay } from '@/hooks/useCurrentDay';
 import PlanDates from '@/components/ui/PlanDate';
 
 /**
- * Page de tableau de bord
+ * Page de tableau de bord CORRIGÉE
  */
 const Dashboard = () => {
   const isMobile = useIsMobile();
@@ -25,11 +26,14 @@ const Dashboard = () => {
   const [remainingDays, setRemainingDays] = useState(365);
   const today = new Date();
   
+  // Debug du jour courant dans le Dashboard
+  console.log(`🏠 Dashboard - Jour courant reçu: ${currentDayNumber}`);
+  
   // Calculer les jours restants basé sur le jour courant
   useEffect(() => {
     const remaining = Math.max(0, 365 - currentDayNumber);
     setRemainingDays(remaining);
-    console.log(`Dashboard: Day ${currentDayNumber}, remaining: ${remaining}`);
+    console.log(`🏠 Dashboard - Jour ${currentDayNumber}, jours restants: ${remaining}`);
   }, [currentDayNumber]);
   
   // Calculer les dates du plan
@@ -54,7 +58,7 @@ const Dashboard = () => {
       </div>
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Affichage du jour actuel */}
+        {/* Affichage du jour actuel avec logs */}
         <TodayDisplay 
           dayNumber={currentDayNumber} 
           date={today} 

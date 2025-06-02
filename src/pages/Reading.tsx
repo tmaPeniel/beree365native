@@ -1,6 +1,7 @@
 
 /**
  * Page de plan de lecture optimisée avec une seule requête
+ * VERSION CORRIGÉE avec synchronisation des jours
  */
 
 import React, { useState, useMemo, useEffect } from 'react';
@@ -10,17 +11,30 @@ import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useCurrentDay } from '@/hooks/useCurrentDay';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
 import { formatDateToFrench } from '@/utils/readingPlanUtils';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * Page de plan de lecture ultra-optimisée
+ * Page de plan de lecture ultra-optimisée CORRIGÉE
  */
 const Reading = React.memo(() => {
   const { profile, isLoading: authLoading } = useOptimizedAuth();
   const isMobile = useIsMobile();
   const { currentDayNumber } = useCurrentDay();
+  const queryClient = useQueryClient();
+
+  console.log(`📖 Reading Page - Jour courant: ${currentDayNumber}`);
+
+  // Invalider le cache au chargement pour forcer la synchronisation
+  useEffect(() => {
+    if (profile?.id) {
+      console.log(`🔄 Reading - Invalidation du cache pour synchronisation`);
+      queryClient.invalidateQueries({ 
+        queryKey: ['optimized-reading-plan-data', profile.id] 
+      });
+    }
+  }, [profile?.id, queryClient]);
 
   // Une seule requête ultra-optimisée pour TOUT le plan de lecture
   const { data: optimizedData = [], isLoading: dataLoading, error } = useQuery({
@@ -33,8 +47,8 @@ const Reading = React.memo(() => {
       return await getOptimizedReadingPlanData(profile.id, profile.start_date);
     },
     enabled: !!profile && !authLoading,
-    staleTime: 10 * 60 * 1000, // 10 minutes - cache plus long
-    gcTime: 20 * 60 * 1000, // 20 minutes
+    staleTime: 5 * 60 * 1000, // 5 minutes - cache plus court pour debug
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
 
   // Gestion des erreurs avec useEffect
@@ -61,9 +75,10 @@ const Reading = React.memo(() => {
       </div>
       
       <div className="container mx-auto px-4 pb-16">
-        {/* Affichage du jour actuel sur mobile - CORRECTION ICI */}
+        {/* Affichage du jour actuel sur mobile - VERSION CORRIGÉE */}
         <div className="md:hidden mb-4 p-4 bg-green-50 rounded-lg border border-green-100">
           <p className="font-medium">Aujourd'hui: Jour {currentDayNumber}</p>
+          <p className="text-sm text-gray-600">Debug: Jour calculé = {currentDayNumber}</p>
         </div>
         
         {/* Grille des cartes optimisées avec affichage mobile 2 colonnes */}

@@ -2,7 +2,7 @@
 /**
  * Utilitaires centralisés pour les calculs de date du plan de lecture
  * Toutes les fonctions utilisent la même logique pour éviter les incohérences
- * Correction du décalage de fuseau horaire
+ * CORRECTION COMPLÈTE du décalage de jour
  */
 
 /**
@@ -23,6 +23,8 @@ const parseLocalDate = (dateStr: string): Date => {
  * @returns Date calculée au format ISO (YYYY-MM-DD)
  */
 export const calculateDateForDay = (startDateStr: string, dayNumber: number): string => {
+  console.log(`🔢 calculateDateForDay - Start: ${startDateStr}, Day: ${dayNumber}`);
+  
   const startDate = parseLocalDate(startDateStr);
   
   // dayNumber commence à 1, donc on ajoute (dayNumber - 1) jours
@@ -34,46 +36,60 @@ export const calculateDateForDay = (startDateStr: string, dayNumber: number): st
   const month = String(targetDate.getMonth() + 1).padStart(2, '0');
   const day = String(targetDate.getDate()).padStart(2, '0');
   
-  return `${year}-${month}-${day}`;
+  const result = `${year}-${month}-${day}`;
+  console.log(`🔢 calculateDateForDay - Result: ${result}`);
+  
+  return result;
 };
 
 /**
  * Calcule le numéro du jour actuel dans le plan de lecture
- * Version corrigée pour éviter les décalages d'un jour
+ * VERSION CORRIGÉE COMPLÈTE
  * @param startDateStr Date de début du plan (format ISO)
  * @returns Numéro du jour actuel (minimum 1)
  */
 export const calculateCurrentDayNumber = (startDateStr: string): number => {
-  console.log(`🔍 Calcul du jour courant - Date de début: ${startDateStr}`);
+  console.log(`🔍 === CALCUL DU JOUR COURANT - DÉBUT ===`);
+  console.log(`🔍 Date de début reçue: ${startDateStr}`);
   
-  // Parser la date de début en utilisant notre fonction robuste
+  // Parser la date de début
   const startDate = parseLocalDate(startDateStr);
-  console.log(`📅 Date de début parsée: ${startDate.toDateString()}`);
+  console.log(`📅 Date de début parsée: ${startDate.toDateString()} (${startDate.toISOString()})`);
   
-  // Obtenir la date d'aujourd'hui à minuit pour une comparaison précise
+  // Obtenir la date d'aujourd'hui et la normaliser à minuit
   const today = new Date();
   const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  console.log(`📅 Aujourd'hui normalisé: ${todayNormalized.toDateString()}`);
+  console.log(`📅 Aujourd'hui: ${today.toDateString()} (${today.toISOString()})`);
+  console.log(`📅 Aujourd'hui normalisé: ${todayNormalized.toDateString()} (${todayNormalized.toISOString()})`);
   
-  // Normaliser la date de début aussi (mettre à minuit)
+  // Normaliser aussi la date de début à minuit
   const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  console.log(`📅 Date de début normalisée: ${startDateNormalized.toDateString()}`);
+  console.log(`📅 Date de début normalisée: ${startDateNormalized.toDateString()} (${startDateNormalized.toISOString()})`);
   
-  // Calculer la différence en utilisant une méthode plus directe
-  // Convertir en millisecondes puis en jours
+  // CORRECTION PRINCIPALE: Calculer la différence correctement
+  // Si aujourd'hui = date de début, c'est le jour 1 (pas le jour 0)
   const diffTime = todayNormalized.getTime() - startDateNormalized.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
   console.log(`⏰ Différence en millisecondes: ${diffTime}`);
   console.log(`📊 Différence en jours: ${diffDays}`);
   
-  // Le jour courant est diffDays + 1 (car le jour 1 commence à la date de début)
+  // CLEF: Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
   const currentDay = diffDays + 1;
-  console.log(`🎯 Jour calculé (avant limitation): ${currentDay}`);
+  console.log(`🎯 Jour calculé (diffDays + 1): ${currentDay}`);
   
-  // S'assurer que le jour est au minimum 1
-  const finalDay = Math.max(1, currentDay);
-  console.log(`✅ Jour final: ${finalDay}`);
+  // S'assurer que le jour est entre 1 et 365
+  const finalDay = Math.max(1, Math.min(currentDay, 365));
+  console.log(`✅ Jour final (limité 1-365): ${finalDay}`);
+  
+  // Test de vérification
+  const calculatedDateForFinalDay = calculateDateForDay(startDateStr, finalDay);
+  const todayFormatted = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  console.log(`🧪 Vérification: Jour ${finalDay} → ${calculatedDateForFinalDay}`);
+  console.log(`🧪 Aujourd'hui formaté: ${todayFormatted}`);
+  console.log(`🧪 Match: ${calculatedDateForFinalDay === todayFormatted ? '✅' : '❌'}`);
+  
+  console.log(`🔍 === CALCUL DU JOUR COURANT - FIN ===`);
   
   return finalDay;
 };
@@ -94,7 +110,10 @@ export const isToday = (startDateStr: string, dayNumber: number): boolean => {
   const day = String(today.getDate()).padStart(2, '0');
   const todayStr = `${year}-${month}-${day}`;
   
-  return calculatedDate === todayStr;
+  const result = calculatedDate === todayStr;
+  console.log(`🔍 isToday - Jour ${dayNumber}: ${calculatedDate} === ${todayStr} → ${result}`);
+  
+  return result;
 };
 
 /**

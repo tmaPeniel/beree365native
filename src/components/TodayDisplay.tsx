@@ -8,6 +8,9 @@ interface TodayDisplayProps {
 }
 
 const TodayDisplay: React.FC<TodayDisplayProps> = ({ dayNumber, date, userName }) => {
+  // Debug du jour reçu
+  console.log(`🏷️ TodayDisplay - Jour reçu: ${dayNumber}`);
+  
   // Format the date: "Mardi, 20 Mai 2025"
   const formattedDate = date.toLocaleDateString('fr-FR', {
     weekday: 'long',
@@ -30,6 +33,8 @@ const TodayDisplay: React.FC<TodayDisplayProps> = ({ dayNumber, date, userName }
         JOUR {dayNumber}
       </h2>
       <p className="text-lg md:text-xl opacity-90 capitalize">{formattedDate}</p>
+      {/* Debug temporaire */}
+      <p className="text-xs opacity-75 mt-2">Debug: Jour affiché = {dayNumber}</p>
     </div>
 
     </div>
