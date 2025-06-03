@@ -31,7 +31,7 @@ export const getCurrentDayNumber = (startDateStr: string): number => {
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
   // Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
-  const currentDay = diffDays + 1;
+  const currentDay = diffDays + 2;
   
   // Limiter entre 1 et 365
   const finalDay = Math.max(1, Math.min(currentDay, 365));
