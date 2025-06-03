@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
-import { useCurrentDayFromDB } from '@/hooks/useCurrentDayFromDB';
+import { useDateService } from '@/hooks/useDateService';
 
 interface DayNavigationControlsProps {
   className?: string;
@@ -13,6 +13,7 @@ interface DayNavigationControlsProps {
 
 /**
  * Composant pour naviguer entre les jours du plan de lecture
+ * VERSION SIMPLIFIÉE - Utilise le service de date centralisé
  */
 const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
   className = '',
@@ -25,7 +26,7 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
     goToNext,
     goToPrevious,
     isLoading
-  } = useCurrentDayFromDB();
+  } = useDateService();
 
   const canGoBack = currentDayNumber > 1;
   const canGoForward = currentDayNumber < 365;
@@ -33,7 +34,6 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
   const handlePrevious = async () => {
     const success = await goToPrevious();
     if (success && onCurrentDayClick) {
-      // Petit délai pour laisser les données se mettre à jour
       setTimeout(onCurrentDayClick, 100);
     }
   };
@@ -41,7 +41,6 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
   const handleNext = async () => {
     const success = await goToNext();
     if (success && onCurrentDayClick) {
-      // Petit délai pour laisser les données se mettre à jour
       setTimeout(onCurrentDayClick, 100);
     }
   };
