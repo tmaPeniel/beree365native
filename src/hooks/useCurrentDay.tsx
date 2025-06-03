@@ -1,5 +1,4 @@
 
-import { useCurrentDayFromDB } from './useCurrentDayFromDB';
 
 /**
  * Hook centralisé pour calculer le jour courant du plan de lecture
