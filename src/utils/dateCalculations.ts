@@ -44,7 +44,7 @@ export const calculateDateForDay = (startDateStr: string, dayNumber: number): st
 
 /**
  * Calcule le numéro du jour actuel dans le plan de lecture
- * VERSION CORRIGÉE COMPLÈTE
+ * VERSION CORRIGÉE - Correction du +2 en +1
  * @param startDateStr Date de début du plan (format ISO)
  * @returns Numéro du jour actuel (minimum 1)
  */
@@ -74,8 +74,8 @@ export const calculateCurrentDayNumber = (startDateStr: string): number => {
   console.log(`⏰ Différence en millisecondes: ${diffTime}`);
   console.log(`📊 Différence en jours: ${diffDays}`);
   
-  // CLEF: Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
-  const currentDay = diffDays + 2;
+  // CORRECTION: Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
+  const currentDay = diffDays + 1; // Corrigé de +2 à +1
   console.log(`🎯 Jour calculé (diffDays + 1): ${currentDay}`);
   
   // S'assurer que le jour est entre 1 et 365
@@ -127,4 +127,13 @@ export const formatDateToFrench = (dateStr: string): string => {
     day: 'numeric', 
     month: 'short' 
   });
+};
+
+/**
+ * Synchronise le jour de la DB avec le calcul de date
+ * @param startDateStr Date de début du plan (format ISO)
+ * @returns Le jour calculé selon la date
+ */
+export const getCalculatedCurrentDay = (startDateStr: string): number => {
+  return calculateCurrentDayNumber(startDateStr);
 };

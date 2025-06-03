@@ -1,11 +1,10 @@
 
 /**
  * Page de tableau de bord
- * Affiche un aperçu du plan de lecture et des statistiques
- * VERSION MISE À JOUR avec gestion du jour depuis la DB
+ * VERSION SIMPLIFIÉE avec service de date centralisé
  */
 
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import NavBar from '@/components/NavBar';
 import ProgressStats from '@/components/ProgressStats';
 import ReadingPlan from '@/components/ReadingPlan';
@@ -13,39 +12,32 @@ import VerseOfDay from '@/components/VerseOfDay';
 import TodayDisplay from '@/components/TodayDisplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { useCurrentDayFromDB } from '@/hooks/useCurrentDayFromDB';
+import { useDateService } from '@/hooks/useDateService';
 import PlanDates from '@/components/ui/PlanDate';
 
-/**
- * Page de tableau de bord MISE À JOUR pour utiliser la DB
- */
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const { profile, isLoading } = useAuth();
-  const { currentDayNumber, isLoading: dayLoading } = useCurrentDayFromDB();
-  const [remainingDays, setRemainingDays] = useState(365);
+  const { currentDayNumber, isLoading: dayLoading, getStats } = useDateService();
   const today = new Date();
   
-  // Debug du jour courant dans le Dashboard
-  console.log(`🏠 Dashboard - Jour courant depuis DB: ${currentDayNumber}`);
+  console.log(`🏠 Dashboard - Jour courant: ${currentDayNumber}`);
   
-  // Calculer les jours restants basé sur le jour courant
-  useEffect(() => {
-    const remaining = Math.max(0, 365 - currentDayNumber);
-    setRemainingDays(remaining);
-    console.log(`🏠 Dashboard - Jour ${currentDayNumber}, jours restants: ${remaining}`);
-  }, [currentDayNumber]);
+  // Calculer les statistiques du plan
+  const stats = getStats();
   
   // Calculer les dates du plan
   const startDate = profile?.start_date ? new Date(profile.start_date) : today;
   const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + 364); // 365 jours au total, donc +364
+  endDate.setDate(startDate.getDate() + 364);
   
-  // Afficher un indicateur de chargement
   if (isLoading || !profile || dayLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement...</p>
+        </div>
       </div>
     );
   }
@@ -58,33 +50,27 @@ const Dashboard = () => {
       </div>
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
-        {/* Affichage du jour actuel avec contrôles de navigation */}
         <TodayDisplay 
           dayNumber={currentDayNumber} 
           date={today} 
           userName={profile?.full_name || 'Utilisateur'} 
         />
       
-        {/* Verset du jour */}
         <VerseOfDay dayNumber={currentDayNumber} />
         
-        {/* Statistiques de progression */}
         <ProgressStats />
 
         <div className={`${isMobile ? '' : 'grid grid-cols-2 gap-6'}`}>
-          {/* Dates du plan */}
           <PlanDates
             startDate={startDate}
             endDate={endDate}
-            remainingDays={remainingDays}
+            remainingDays={stats.remainingDays}
           />
           
-          {/* Plan de lecture du jour */}
           <ReadingPlan dayNumber={currentDayNumber} />
         </div>
       </div>
       
-      {/* Barre de navigation */}
       <NavBar />
     </div>
   );
