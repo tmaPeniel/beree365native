@@ -1,7 +1,7 @@
 
 /**
  * Page de plan de lecture optimisée avec gestion du jour depuis la DB
- * VERSION MISE À JOUR avec synchronisation DB
+ * VERSION MISE À JOUR avec synchronisation DB et navigation corrigée
  */
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
@@ -16,7 +16,7 @@ import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
- * Page de plan de lecture avec gestion DB du jour courant
+ * Page de plan de lecture avec gestion DB du jour courant et navigation corrigée
  */
 const Reading = React.memo(() => {
   const {
@@ -34,9 +34,13 @@ const Reading = React.memo(() => {
 
   console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
 
-  // Fonction pour scroller vers le jour courant
+  // Fonction pour scroller vers le jour courant AMÉLIORÉE
   const scrollToCurrentDay = () => {
+    console.log(`🎯 Tentative de scroll vers le jour ${currentDayNumber}`);
+    
     if (currentDayRef.current) {
+      console.log(`✅ Référence trouvée pour le jour ${currentDayNumber}, scroll en cours...`);
+      
       currentDayRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
@@ -49,6 +53,11 @@ const Reading = React.memo(() => {
           currentDayRef.current.classList.remove('ring-2', 'ring-green-400', 'ring-opacity-75');
         }
       }, 2000);
+      
+      toast.success(`Navigation vers le jour ${currentDayNumber}`);
+    } else {
+      console.warn(`❌ Aucune référence trouvée pour le jour ${currentDayNumber}`);
+      toast.error(`Impossible de trouver le jour ${currentDayNumber}`);
     }
   };
 
@@ -87,12 +96,18 @@ const Reading = React.memo(() => {
   // Auto-scroll vers le jour courant une seule fois quand les données sont chargées
   useEffect(() => {
     if (!hasScrolledToDay && optimizedData.length > 0 && currentDayNumber && !dataLoading) {
+      console.log(`🔄 Auto-scroll activé pour le jour ${currentDayNumber}`);
       setTimeout(() => {
         scrollToCurrentDay();
         setHasScrolledToDay(true);
       }, 500);
     }
   }, [optimizedData.length, currentDayNumber, dataLoading, hasScrolledToDay]);
+
+  // Réinitialiser le flag de scroll quand le jour change
+  useEffect(() => {
+    setHasScrolledToDay(false);
+  }, [currentDayNumber]);
 
   // Loading state
   if (authLoading || dayLoading) {
@@ -155,9 +170,12 @@ const Reading = React.memo(() => {
           Suivez votre progression au fil des jours ({optimizedData.length} jours disponibles)
         </p>
         
-        {/* Contrôles de navigation centralisés */}
+        {/* Contrôles de navigation centralisés avec boutons de navigation */}
         <div className="mt-4 flex justify-center">
-          <DayNavigationControls onCurrentDayClick={scrollToCurrentDay} />
+          <DayNavigationControls 
+            onCurrentDayClick={scrollToCurrentDay}
+            showNavigationButtons={true}
+          />
         </div>
       </div>
       

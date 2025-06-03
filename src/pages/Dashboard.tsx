@@ -2,7 +2,7 @@
 /**
  * Page de tableau de bord
  * Affiche un aperçu du plan de lecture et des statistiques
- * VERSION MISE À JOUR avec gestion du jour depuis la DB
+ * VERSION MISE À JOUR avec synchronisation complète
  */
 
 import React, { useEffect, useState } from 'react';
@@ -17,7 +17,7 @@ import { useCurrentDayFromDB } from '@/hooks/useCurrentDayFromDB';
 import PlanDates from '@/components/ui/PlanDate';
 
 /**
- * Page de tableau de bord MISE À JOUR pour utiliser la DB
+ * Page de tableau de bord avec synchronisation complète des systèmes de jour
  */
 const Dashboard = () => {
   const isMobile = useIsMobile();
@@ -27,7 +27,7 @@ const Dashboard = () => {
   const today = new Date();
   
   // Debug du jour courant dans le Dashboard
-  console.log(`🏠 Dashboard - Jour courant depuis DB: ${currentDayNumber}`);
+  console.log(`🏠 Dashboard - Jour courant synchronisé: ${currentDayNumber}`);
   
   // Calculer les jours restants basé sur le jour courant
   useEffect(() => {
@@ -45,7 +45,10 @@ const Dashboard = () => {
   if (isLoading || !profile || dayLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Synchronisation en cours...</p>
+        </div>
       </div>
     );
   }
