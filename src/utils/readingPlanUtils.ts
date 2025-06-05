@@ -31,41 +31,6 @@ export interface ReadingPlanStats {
   progressPercentage: number;
 }
 
-/**
- * Récupère le plan de lecture du jour
- * @returns {ReadingDay} Les données du plan de lecture pour le jour actuel
- */
-export const getTodayReadingPlan = (): ReadingDay => {
-  // Dans une application réelle, vous détermineriez quel jour il est dans le plan
-  // Pour la démonstration, renvoie le premier jour
-  return readingPlanData.days[0];
-};
-
-/**
- * Calcule les statistiques globales du plan de lecture
- * @returns {ReadingPlanStats} Les statistiques du plan de lecture
- */
-export const getReadingPlanStats = (): ReadingPlanStats => {
-  const totalPassages = readingPlanData.totalPassages;
-  
-  // Compte les passages terminés dans tous les jours
-  let passagesRead = 0;
-  readingPlanData.days.forEach(day => {
-    day.passages.forEach(passage => {
-      if (passage.completed) passagesRead++;
-    });
-  });
-  
-  const passagesRemaining = totalPassages - passagesRead;
-  const progressPercentage = Math.round((passagesRead / totalPassages) * 100);
-  
-  return {
-    totalPassages,
-    passagesRead,
-    passagesRemaining,
-    progressPercentage
-  };
-};
 
 /**
  * Calcule le nombre de jours restants dans le plan de lecture
