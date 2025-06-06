@@ -64,6 +64,7 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
           user_id
         )
       `)
+      .eq('user_progress.user_id', userId)
       .order('day_number', { ascending: true })
       .limit(2000); // Limite généreuse pour s'assurer de tout récupérer
     
