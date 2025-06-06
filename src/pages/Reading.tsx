@@ -136,7 +136,7 @@ const Reading = React.memo(() => {
       <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
         <p className="text-gray-500">
-          Suivez votre progression au fil des jours ({optimizedData.length} jours disponibles)
+          Suivez votre progression au fil des jours
         </p>
         
         <div className="mt-4 flex justify-center">
