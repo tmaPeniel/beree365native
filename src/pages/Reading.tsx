@@ -24,7 +24,7 @@ const Reading = React.memo(() => {
   console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
 
   const scrollToCurrentDay = () => {
-    console.log(`🎯 Scroll vers le jour ${currentDayNumber}`);
+    //console.log(`🎯 Scroll vers le jour ${currentDayNumber}`);
     
     if (currentDayRef.current) {
       currentDayRef.current.scrollIntoView({

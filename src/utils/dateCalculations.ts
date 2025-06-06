@@ -23,7 +23,7 @@ const parseLocalDate = (dateStr: string): Date => {
  * @returns Date calculée au format ISO (YYYY-MM-DD)
  */
 export const calculateDateForDay = (startDateStr: string, dayNumber: number): string => {
-  console.log(`🔢 calculateDateForDay - Start: ${startDateStr}, Day: ${dayNumber}`);
+  //console.log(`🔢 calculateDateForDay - Start: ${startDateStr}, Day: ${dayNumber}`);
   
   const startDate = parseLocalDate(startDateStr);
   
@@ -37,7 +37,7 @@ export const calculateDateForDay = (startDateStr: string, dayNumber: number): st
   const day = String(targetDate.getDate()).padStart(2, '0');
   
   const result = `${year}-${month}-${day}`;
-  console.log(`🔢 calculateDateForDay - Result: ${result}`);
+  //console.log(`🔢 calculateDateForDay - Result: ${result}`);
   
   return result;
 };
@@ -111,7 +111,7 @@ export const isToday = (startDateStr: string, dayNumber: number): boolean => {
   const todayStr = `${year}-${month}-${day}`;
   
   const result = calculatedDate === todayStr;
-  console.log(`🔍 isToday - Jour ${dayNumber}: ${calculatedDate} === ${todayStr} → ${result}`);
+  //console.log(`🔍 isToday - Jour ${dayNumber}: ${calculatedDate} === ${todayStr} → ${result}`);
   
   return result;
 };
