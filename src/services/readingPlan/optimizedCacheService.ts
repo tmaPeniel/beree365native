@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 
 /**
  * Service de cache ultra-optimisé pour le plan de lecture
