@@ -27,7 +27,6 @@ export const getReadingPlanForDay = async (dayNumber: number) => {
     
     console.log(`Successfully fetched ${data?.length || 0} chapters for day ${dayNumber}`);
     return data as ReadingPlanChapter[];
-    console.log(`${ReadingPlanChapter}`);
   } catch (error) {
     console.error(`Error fetching reading plan for day ${dayNumber}:`, error);
     return [];
