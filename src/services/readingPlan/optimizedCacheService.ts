@@ -16,7 +16,7 @@ interface GlobalCacheEntry {
 }
 
 const globalCache = new Map<string, GlobalCacheEntry>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - cache plus court pour plus de réactivité
+const CACHE_DURATION = 5 * 60 * 2000; // 5 minutes - cache plus court pour plus de réactivité
 
 /**
  * Génère une clé de cache
@@ -64,9 +64,8 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
           user_id
         )
       `)
-      .eq('user_progress.user_id', userId)
       .order('day_number', { ascending: true })
-      .limit(2000); // Limite généreuse pour s'assurer de tout récupérer
+      .range(0,1500); // Limite généreuse pour s'assurer de tout récupérer
     
     if (error) throw error;
 
