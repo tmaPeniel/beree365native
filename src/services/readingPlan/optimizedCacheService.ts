@@ -1,4 +1,3 @@
-
 /**
  * Service de cache ultra-optimisé pour le plan de lecture
  * Une seule requête pour tout charger, cache global intelligent
@@ -49,8 +48,8 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
   try {
     console.log('🔥 Executing SINGLE ultra-optimized query for all reading plan data...');
     
-    // REQUÊTE OPTIMISÉE : Récupérer TOUS les chapitres avec leur progression
-    // Utiliser une limite élevée pour s'assurer de récupérer tous les chapitres
+    // REQUÊTE CORRIGÉE : Récupérer TOUS les chapitres avec TOUS les progrès utilisateur
+    // Supprimer le filtre sur user_id pour récupérer tous les chapitres
     const { data: chaptersWithProgress, error } = await supabase
       .from('reading_plan_chapters')
       .select(`
@@ -64,7 +63,6 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
           user_id
         )
       `)
-      .eq('user_progress.user_id', userId)
       .order('day_number', { ascending: true })
       .limit(2000); // Limite généreuse pour s'assurer de tout récupérer
     
@@ -88,7 +86,7 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
     }
     
     // Traitement ultra-optimisé des données avec génération complète des 365 jours
-    const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate);
+    const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate, userId);
     
     // Mise en cache globale
     globalCache.set(cacheKey, {
@@ -108,10 +106,10 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
 
 /**
  * Traite les données des chapitres de manière ultra-optimisée
- * ASSURE que tous les 365 jours sont générés
+ * ASSURE que tous les 365 jours sont générés avec filtrage utilisateur en JavaScript
  */
-const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
-  console.log(`🔄 Processing ${chapters.length} chapters...`);
+const processChaptersDataOptimized = (chapters: any[], startDate: string, userId: string) => {
+  console.log(`🔄 Processing ${chapters.length} chapters for user ${userId}...`);
   
   const dayGroups = new Map();
   
@@ -137,15 +135,15 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
     }
     
     const dayData = dayGroups.get(dayNum);
+    
+    // FILTRAGE EN JAVASCRIPT : Récupérer seulement le progrès de l'utilisateur actuel
+    const userProgress = chapter.user_progress?.find((progress: any) => progress.user_id === userId);
+    
     dayData.chapters.push({
       id: chapter.id,
       reference: chapter.reference,
-      completed: chapter.user_progress && chapter.user_progress.length > 0 
-        ? chapter.user_progress[0].status === 'completed' 
-        : false,
-      progressId: chapter.user_progress && chapter.user_progress.length > 0 
-        ? chapter.user_progress[0].id 
-        : null
+      completed: userProgress ? userProgress.status === 'completed' : false,
+      progressId: userProgress ? userProgress.id : null
     });
   });
 
