@@ -1,4 +1,3 @@
-
 /**
  * Service centralisé pour la gestion des dates et jours du plan de lecture
  * SYSTÈME SIMPLIFIÉ - Une seule source de vérité basée sur la date
@@ -24,15 +23,15 @@ export const getCurrentDayNumber = (startDateStr: string): number => {
   console.log(`📅 Calcul du jour courant: ${today}`);
   
   // Normaliser les dates à minuit pour éviter les problèmes d'heures
-  const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(),0 ,0, 0);
+  const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate(), today.getHours(), today.getMinutes(), today.getSeconds());
   
   // Calculer la différence en jours
   const diffTime = todayNormalized.getTime() - startDateNormalized.getTime();
-  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const diffDays = Math.trunc(diffTime / (1000 * 60 * 60 * 24));
   
   // Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
-  const currentDay = diffDays + 1;
+  const currentDay = diffDays+1;
   
   // Limiter entre 1 et 365
   const finalDay = Math.max(1, Math.min(currentDay, 365));
