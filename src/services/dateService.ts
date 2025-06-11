@@ -21,6 +21,7 @@ export const getCurrentDayNumber = (startDateStr: string): number => {
   
   const startDate = parseLocalDate(startDateStr);
   const today = new Date();
+  console.log(`📅 Calcul du jour courant: ${today}`);
   
   // Normaliser les dates à minuit pour éviter les problèmes d'heures
   const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
