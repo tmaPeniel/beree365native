@@ -35,7 +35,7 @@ export const getCurrentDayNumber = (startDateStr: string): number => {
   const currentDay = diffDays + 1;
   
   // Limiter entre 1 et 365
-  const finalDay = Math.max(1, Math.min(currentDay, 365));
+  const finalDay = Math.max(1, Math.min(currentDay, 365))+1;
   
   console.log(`📅 Jour calculé: ${finalDay} (diffDays: ${diffDays})`);
   
