@@ -1,19 +1,14 @@
-
 import React, { useEffect, useState } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import CircularProgress from '@/components/CircularProgress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
-import { getUnifiedOverallProgress } from '@/services/readingPlan/unifiedProgressService';
+import { getOverallProgress } from '@/services/readingPlan';
 import { toast } from 'sonner';
 
-/**
- * Composant d'affichage des statistiques de progression globale
- * Utilise le service unifié pour assurer la cohérence des données
- */
 const ProgressStats = () => {
   const isMobile = useIsMobile();
-  const { user, profile, progressUpdateCounter } = useAuth();
+  const { user, progressUpdateCounter } = useAuth();
   const [stats, setStats] = useState({
     totalPassages: 0,
     passagesRead: 0,
@@ -24,13 +19,11 @@ const ProgressStats = () => {
   
   useEffect(() => {
     const fetchStats = async () => {
-      if (!user || !profile?.start_date) return;
+      if (!user) return;
       
       setIsLoading(true);
       try {
-        console.log(`📊 ProgressStats - Chargement pour utilisateur ${user.id}`);
-        const progress = await getUnifiedOverallProgress(user.id, profile.start_date);
-        console.log(`📊 ProgressStats - Données reçues:`, progress);
+        const progress = await getOverallProgress(user.id);
         setStats(progress);
       } catch (error) {
         console.error("Erreur lors du chargement des statistiques:", error);
@@ -41,7 +34,7 @@ const ProgressStats = () => {
     };
     
     fetchStats();
-  }, [user, profile?.start_date, progressUpdateCounter]);
+  }, [user, progressUpdateCounter]);
   
   if (isLoading) {
     return (
