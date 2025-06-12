@@ -5,15 +5,24 @@ import { getCurrentDayNumber, getDateForDay, isToday, getPlanStats } from '@/ser
 import { updateCurrentDay } from '@/services/dayService';
 
 /**
- * Hook simple pour gérer les dates du plan de lecture
- * SYSTÈME SIMPLIFIÉ - Tout basé sur le calcul de date
+ * Hook centralisé pour gérer les dates du plan de lecture
+ * VERSION UNIFIÉE - Utilise le cache global optimisé pour la cohérence
+ * 
+ * Ce hook gère :
+ * - Le calcul du jour courant basé sur la date de début
+ * - La navigation entre les jours
+ * - La synchronisation avec le cache global
+ * - Les fonctions utilitaires de date
  */
 export const useDateService = () => {
   const { profile, user } = useOptimizedAuth();
   const [currentDayNumber, setCurrentDayNumber] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Calculer le jour courant basé sur la date de début
+  /**
+   * Calcule et met à jour le jour courant basé sur la date de début du profil
+   * Utilise le service de date centralisé pour la cohérence
+   */
   const refreshCurrentDay = useCallback(() => {
     if (!profile?.start_date) {
       setCurrentDayNumber(1);
@@ -23,7 +32,7 @@ export const useDateService = () => {
 
     try {
       const calculatedDay = getCurrentDayNumber(profile.start_date);
-      console.log(`🎯 useDateService - Debut: ${profile.start_date}`);
+      console.log(`🎯 useDateService - Date de début: ${profile.start_date}`);
       console.log(`🎯 useDateService - Jour calculé: ${calculatedDay}`);
       setCurrentDayNumber(calculatedDay);
     } catch (error) {
@@ -45,7 +54,10 @@ export const useDateService = () => {
     return () => clearInterval(interval);
   }, [refreshCurrentDay]);
 
-  // Navigation entre les jours (mise à jour en DB pour compatibilité)
+  /**
+   * Navigue vers le jour suivant
+   * Met à jour la base de données pour la compatibilité et synchronise le cache
+   */
   const goToNext = useCallback(async () => {
     if (!user?.id || currentDayNumber >= 365) return false;
     
@@ -58,6 +70,10 @@ export const useDateService = () => {
     return false;
   }, [user?.id, currentDayNumber]);
 
+  /**
+   * Navigue vers le jour précédent
+   * Met à jour la base de données pour la compatibilité et synchronise le cache
+   */
   const goToPrevious = useCallback(async () => {
     if (!user?.id || currentDayNumber <= 1) return false;
     
@@ -70,6 +86,10 @@ export const useDateService = () => {
     return false;
   }, [user?.id, currentDayNumber]);
 
+  /**
+   * Navigue vers un jour spécifique
+   * Valide la plage et met à jour la base de données
+   */
   const goToSpecificDay = useCallback(async (dayNumber: number) => {
     if (!user?.id) return false;
     
@@ -82,32 +102,49 @@ export const useDateService = () => {
     return false;
   }, [user?.id]);
 
-  // Fonctions utilitaires
+  /**
+   * Calcule la date correspondant au jour courant
+   * Utilise le service de date centralisé
+   */
   const getDateForCurrentDay = useCallback(() => {
     if (!profile?.start_date) return '';
     return getDateForDay(profile.start_date, currentDayNumber);
   }, [profile?.start_date, currentDayNumber]);
 
+  /**
+   * Vérifie si un jour donné correspond à aujourd'hui
+   */
   const checkIsToday = useCallback((dayNumber: number) => {
     if (!profile?.start_date) return false;
     return isToday(profile.start_date, dayNumber);
   }, [profile?.start_date]);
 
+  /**
+   * Calcule les statistiques du plan de lecture
+   * Utilise le service centralisé pour la cohérence
+   */
   const getStats = useCallback(() => {
     if (!profile?.start_date) return { currentDay: 1, remainingDays: 364, progressPercentage: 0, totalDays: 365 };
     return getPlanStats(profile.start_date);
   }, [profile?.start_date]);
 
   return {
+    // État principal
     currentDayNumber,
     isLoading,
+    
+    // Actions de navigation
     refreshCurrentDay,
     goToNext,
     goToPrevious,
     goToSpecificDay,
+    
+    // Fonctions utilitaires
     getDateForCurrentDay,
     checkIsToday,
     getStats,
+    
+    // Données de base
     startDate: profile?.start_date
   };
 };
