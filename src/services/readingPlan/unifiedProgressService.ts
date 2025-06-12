@@ -31,6 +31,16 @@ export interface DayProgressData {
 }
 
 /**
+ * Interface pour la progression globale (compatible avec ProgressStats)
+ */
+export interface OverallProgressData {
+  totalPassages: number;
+  passagesRead: number;
+  passagesRemaining: number;
+  progressPercentage: number;
+}
+
+/**
  * Récupère la progression de l'utilisateur pour un jour donné
  * Utilise le cache global pour la cohérence
  */
@@ -183,16 +193,20 @@ export const invalidateAllProgressCaches = (userId: string) => {
 };
 
 /**
- * Récupère la progression globale de l'utilisateur
- * Compatible avec l'ancien code
+ * Récupère la progression globale de l'utilisateur avec la structure complète
+ * Compatible avec ProgressStats.tsx - retourne TOUS les champs requis
  */
-export const getUnifiedOverallProgress = async (userId: string, startDate: string) => {
+export const getUnifiedOverallProgress = async (userId: string, startDate: string): Promise<OverallProgressData> => {
   try {
+    console.log(`📊 Calcul progression globale pour utilisateur ${userId}`);
+    
     const optimizedData = await getOptimizedReadingPlanData(userId, startDate);
     
     if (!optimizedData || optimizedData.length === 0) {
       return {
+        totalPassages: 0,
         passagesRead: 0,
+        passagesRemaining: 0,
         progressPercentage: 0
       };
     }
@@ -206,16 +220,24 @@ export const getUnifiedOverallProgress = async (userId: string, startDate: strin
     }, 0);
     
     const progressPercentage = totalChapters > 0 ? Math.round((totalCompleted / totalChapters) * 100) : 0;
+    const passagesRemaining = totalChapters - totalCompleted;
     
-    return {
+    const result: OverallProgressData = {
+      totalPassages: totalChapters,
       passagesRead: totalCompleted,
-      progressPercentage
+      passagesRemaining: passagesRemaining,
+      progressPercentage: progressPercentage
     };
+    
+    console.log(`📊 Progression globale calculée:`, result);
+    return result;
     
   } catch (error) {
     console.error("Erreur calcul progression globale:", error);
     return {
+      totalPassages: 0,
       passagesRead: 0,
+      passagesRemaining: 0,
       progressPercentage: 0
     };
   }
