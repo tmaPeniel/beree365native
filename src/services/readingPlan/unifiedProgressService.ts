@@ -1,4 +1,3 @@
-
 /**
  * Service unifié pour la gestion de la progression utilisateur
  * Centralise toute la logique de progression avec cache optimisé
@@ -7,7 +6,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { toast } from "sonner";
-import { queryClient } from "@/main"; // Import du query client pour invalider le cache
+import { queryClient } from "@/lib/queryClient"; // Import corrigé du query client centralisé
 
 /**
  * Type pour la progression d'un jour avec les informations des chapitres
