@@ -1,7 +1,7 @@
 
 /**
  * Point d'entrée pour les services du plan de lecture
- * Exporte les fonctions de tous les services liés au plan de lecture
+ * VERSION OPTIMISÉE - Exporte les services unifiés et optimisés
  */
 
 // Export des fonctions du service de chapitres
@@ -16,10 +16,27 @@ export {
   getDefaultVerse
 } from './verseService';
 
-// Export des fonctions du service de progression
+// Export des fonctions du service de progression (optimisé)
 export {
   getUserProgressForDay,
   toggleChapterStatus,
   getDayProgress,
-  getOverallProgress
+  getOverallProgress,
+  type DayProgressWithChapters
 } from './progressService';
+
+// Export des nouveaux services unifiés pour usage avancé
+export {
+  getUnifiedStats,
+  calculateCompletedDays,
+  isDayFullyCompleted,
+  getDayProgressPercentage,
+  type UnifiedStats
+} from './unifiedStatsService';
+
+export {
+  getUnifiedUserProgressForDay,
+  toggleUnifiedChapterStatus,
+  invalidateProgressCache,
+  getMultipleDaysProgress
+} from './unifiedProgressService';
