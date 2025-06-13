@@ -1,3 +1,4 @@
+
 /**
  * Version ultra-optimisée du composant ReadingPlan
  */
@@ -25,7 +26,7 @@ interface OptimizedReadingPlanProps {
  * Composant ReadingPlan ultra-optimisé
  */
 const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber }) => {
-  const { user, triggerProgressUpdate, progressUpdateCounter } = useOptimizedAuth();
+  const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
@@ -38,9 +39,9 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     enabled: !!dayNumber
   });
 
-  // Requête optimisée pour la progression utilisateur avec synchronisation automatique
+  // Requête optimisée pour la progression utilisateur avec cache intelligent
   const { data: progressData = [], isLoading } = useQuery({
-    queryKey: ['user-progress-optimized', user?.id, dayNumber, progressUpdateCounter],
+    queryKey: ['user-progress-optimized', user?.id, dayNumber],
     queryFn: () => user ? getCachedUserProgressForDay(user.id, dayNumber) : [],
     staleTime: 5 * 60 * 1000, // 5 minutes
     gcTime: 15 * 60 * 1000, // 15 minutes
@@ -86,7 +87,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
       
       if (result.success) {
         // Mise à jour optimiste ultra-ciblée
-        queryClient.setQueryData(['user-progress-optimized', user.id, dayNumber, progressUpdateCounter], (oldData: any[]) => {
+        queryClient.setQueryData(['user-progress-optimized', user.id, dayNumber], (oldData: any[]) => {
           if (!oldData) return oldData;
           
           const existingIndex = oldData.findIndex(item => item.chapter_id === id);
@@ -125,12 +126,12 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
       
       // En cas d'erreur, invalider pour récupérer l'état correct
       queryClient.invalidateQueries({ 
-        queryKey: ['user-progress-optimized', user.id, dayNumber, progressUpdateCounter] 
+        queryKey: ['user-progress-optimized', user.id, dayNumber] 
       });
     } finally {
       setProcessingIds(prev => prev.filter(itemId => itemId !== id));
     }
-  }, [user, readingItems, dayNumber, queryClient, triggerProgressUpdate, chaptersData, progressUpdateCounter]);
+  }, [user, readingItems, dayNumber, queryClient, triggerProgressUpdate, chaptersData]);
 
   // Composant de ligne ultra-optimisé
   const ReadingItemRow = React.memo<{
