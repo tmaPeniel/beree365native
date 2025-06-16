@@ -79,9 +79,9 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
         <div className="flex items-center justify-center mb-4">
           <Book className="h-8 w-8 text-green-600" />
         </div>
-        <h2 className="text-lg font-semibold text-green-800 mb-3">Sagesse du jour</h2>
+        <h2 className="text-lg font-semibold text-green-800 mb-3">{wisdomContent}</h2>
         <blockquote className="text-gray-700 italic text-base mb-4 leading-relaxed">
-          "{wisdomContent}"
+          "{verse.text}"
         </blockquote>
         {verse?.reference && (
           <cite className="text-sm text-green-700 font-medium">
