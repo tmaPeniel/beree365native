@@ -46,22 +46,23 @@ export const getDailyVerse = async (dayNumber: number) => {
  * @returns {DailyVerse} Verset par défaut
  */
 export const getDefaultVerse = (dayNumber: number): DailyVerse => {
-  const defaultVerses = [
-    { reference: 'Psaumes 119:105', text: 'Ta parole est une lampe à mes pieds, et une lumière sur mon sentier.' },
-    { reference: 'Jean 3:16', text: 'Car Dieu a tant aimé le monde qu\'il a donné son Fils unique, afin que quiconque croit en lui ne périsse point, mais qu\'il ait la vie éternelle.' },
-    { reference: 'Philippiens 4:13', text: 'Je puis tout par celui qui me fortifie.' },
-    { reference: 'Jérémie 29:11', text: 'Car je connais les projets que j\'ai formés sur vous, dit l\'Éternel, projets de paix et non de malheur, afin de vous donner un avenir et de l\'espérance.' },
-    { reference: 'Esaïe 40:31', text: 'Mais ceux qui se confient en l\'Éternel renouvellent leur force. Ils prennent leur vol comme les aigles; Ils courent, et ne se lassent point, Ils marchent, et ne se fatiguent point.' }
+  const defaultWisdoms = [
+    'La sagesse commence par la crainte de l\'Éternel',
+    'Un cœur joyeux est un bon remède',
+    'La patience vaut mieux que l\'orgueil',
+    'Celui qui marche avec les sages devient sage',
+    'La confiance en l\'Éternel est source de force'
   ];
   
-  // Utiliser le numéro du jour pour sélectionner un verset de manière déterministe
-  const index = (dayNumber - 1) % defaultVerses.length;
-  const selectedVerse = defaultVerses[index];
+  // Utiliser le numéro du jour pour sélectionner une sagesse de manière déterministe
+  const index = (dayNumber - 1) % defaultWisdoms.length;
+  const selectedWisdom = defaultWisdoms[index];
   
   return {
     id: `default-${dayNumber}`,
     day_number: dayNumber,
-    reference: selectedVerse.reference,
-    text: selectedVerse.text
+    reference: 'Proverbes',
+    text: '', // On n'utilise plus ce champ
+    wisdomType: selectedWisdom
   };
 };

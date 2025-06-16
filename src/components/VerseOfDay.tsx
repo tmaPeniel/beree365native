@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Book } from 'lucide-react';
@@ -9,7 +10,7 @@ interface VerseOfDayProps {
 }
 
 /**
- * Composant pour afficher le verset du jour
+ * Composant pour afficher la sagesse du jour
  */
 const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
   
@@ -53,6 +54,9 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
     );
   }
 
+  // Déterminer le contenu à afficher
+  const wisdomContent = verse?.wisdomType || "Sagesse du Jour";
+
   if (error) {
     return (
       <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
@@ -60,11 +64,9 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
           <div className="flex items-center justify-center mb-4">
             <Book className="h-8 w-8 text-green-600" />
           </div>
+          <h2 className="text-lg font-semibold text-green-800 mb-3">Sagesse du jour</h2>
           <p className="text-gray-600 italic">
-            "Cherchez premièrement le royaume et la justice de Dieu; et toutes ces choses vous seront données par-dessus."
-          </p>
-          <p className="text-sm text-green-700 mt-2 font-medium">
-            Matthieu 6:33
+            "Sagesse du Jour"
           </p>
         </CardContent>
       </Card>
@@ -77,13 +79,15 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
         <div className="flex items-center justify-center mb-4">
           <Book className="h-8 w-8 text-green-600" />
         </div>
-        <h2 className="text-lg font-semibold text-green-800 mb-3">Verset du jour</h2>
+        <h2 className="text-lg font-semibold text-green-800 mb-3">Sagesse du jour</h2>
         <blockquote className="text-gray-700 italic text-base mb-4 leading-relaxed">
-          "{verse?.text}"
+          "{wisdomContent}"
         </blockquote>
-        <cite className="text-sm text-green-700 font-medium">
-          {verse?.reference}
-        </cite>
+        {verse?.reference && (
+          <cite className="text-sm text-green-700 font-medium">
+            {verse.reference}
+          </cite>
+        )}
       </CardContent>
     </Card>
   );
