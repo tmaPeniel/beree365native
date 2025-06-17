@@ -45,9 +45,9 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   const { data: progressData = [], isLoading } = useQuery({
     queryKey: ['user-progress-optimized', user?.id, dayNumber],
     queryFn: () => user ? getCachedUserProgressForDay(user.id, dayNumber) : [],
-    staleTime: 30 * 60 * 1000, // 30 minutes
-    gcTime: 60 * 60 * 1000, // 1 heure
-    refetchOnMount: true, // Préserver les données en cache
+    staleTime: 0, // 30 minutes
+    //gcTime: 60 * 60 * 1000, // 1 heure
+    refetchOnMount: "always", // Préserver les données en cache
     refetchOnWindowFocus: true, // Ne pas refetch au focus
     enabled: !!user && !!dayNumber
   });
