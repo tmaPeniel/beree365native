@@ -36,7 +36,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     queryFn: () => getReadingPlanForDay(dayNumber),
     staleTime: 60 * 60 * 1000, // 1 heure - cache plus persistant
     gcTime: 2 * 60 * 60 * 1000, // 2 heures
-    refetchOnMount: false, // Ne pas refetch au montage
+    refetchOnMount: true, // Ne pas refetch au montage
     refetchOnWindowFocus: false, // Ne pas refetch au focus
     enabled: !!dayNumber
   });
