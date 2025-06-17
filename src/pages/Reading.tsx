@@ -1,6 +1,18 @@
 
 /**
- * Page de plan de lecture avec système de date simplifié
+ * Page principale du plan de lecture
+ * 
+ * Cette page affiche :
+ * - La liste complète des 365 jours du plan de lecture
+ * - La progression pour chaque jour
+ * - Navigation vers le jour courant
+ * - Interface responsive pour mobile et desktop
+ * 
+ * Fonctionnalités clés :
+ * - Scroll automatique vers le jour courant
+ * - Cache optimisé pour les performances
+ * - Gestion d'erreurs robuste
+ * - Interface responsive
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -14,24 +26,35 @@ import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+/**
+ * Composant principal de la page de lecture
+ * React.memo pour optimiser les performances
+ */
 const Reading = React.memo(() => {
+  // Hooks pour l'authentification et la détection mobile
   const { profile, isLoading: authLoading } = useOptimizedAuth();
   const isMobile = useIsMobile();
   const { currentDayNumber, isLoading: dayLoading } = useDateService();
+  
+  // Références et état local pour la navigation
   const currentDayRef = useRef<HTMLDivElement>(null);
   const [hasScrolledToDay, setHasScrolledToDay] = useState(false);
 
   console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
 
+  /**
+   * Fonction pour faire défiler vers le jour courant
+   * Inclut une animation et un feedback visuel
+   */
   const scrollToCurrentDay = () => {
-    //console.log(`🎯 Scroll vers le jour ${currentDayNumber}`);
-    
     if (currentDayRef.current) {
+      // Animation de scroll fluide
       currentDayRef.current.scrollIntoView({
         behavior: 'smooth',
         block: 'center'
       });
       
+      // Effet visuel temporaire pour mettre en évidence le jour
       currentDayRef.current.classList.add('ring-2', 'ring-green-400', 'ring-opacity-75');
       setTimeout(() => {
         if (currentDayRef.current) {
@@ -45,19 +68,22 @@ const Reading = React.memo(() => {
     }
   };
 
+  // Requête principale pour charger toutes les données du plan de lecture
+  // Cache optimisé pour de meilleures performances
   const { data: optimizedData = [], isLoading: dataLoading, error, refetch } = useQuery({
     queryKey: ['optimized-reading-plan-data', profile?.id],
     queryFn: async () => {
       if (!profile) return [];
       return await getOptimizedReadingPlanData(profile.id, profile.start_date);
     },
-    enabled: !!profile && !authLoading,
-    staleTime: 3 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
-    retry: 2,
-    retryDelay: 1000
+    enabled: !!profile && !authLoading, // Seulement si profil disponible
+    staleTime: 3 * 60 * 1000, // Cache valide pendant 3 minutes
+    gcTime: 10 * 60 * 1000, // Garde en mémoire pendant 10 minutes
+    retry: 2, // Réessayer 2 fois en cas d'erreur
+    retryDelay: 1000 // Délai entre les tentatives
   });
 
+  // Gestion des erreurs avec retry automatique
   useEffect(() => {
     if (error) {
       console.error('Error loading reading plan:', error);
@@ -66,6 +92,7 @@ const Reading = React.memo(() => {
     }
   }, [error, refetch]);
 
+  // Scroll automatique vers le jour courant une seule fois
   useEffect(() => {
     if (!hasScrolledToDay && optimizedData.length > 0 && currentDayNumber && !dataLoading) {
       setTimeout(() => {
@@ -75,10 +102,12 @@ const Reading = React.memo(() => {
     }
   }, [optimizedData.length, currentDayNumber, dataLoading, hasScrolledToDay]);
 
+  // Réinitialiser le flag de scroll quand le jour courant change
   useEffect(() => {
     setHasScrolledToDay(false);
   }, [currentDayNumber]);
 
+  // États de chargement avec interfaces claires
   if (authLoading || dayLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -90,13 +119,17 @@ const Reading = React.memo(() => {
     );
   }
 
+  // État de chargement des données
   if (dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
+        {/* En-tête avec état de chargement */}
         <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
           <p className="text-gray-500">Chargement de vos données...</p>
         </div>
+        
+        {/* Contenu avec indicateur de chargement */}
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
@@ -108,6 +141,7 @@ const Reading = React.memo(() => {
     );
   }
 
+  // État d'erreur avec option de retry
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50">
@@ -131,14 +165,17 @@ const Reading = React.memo(() => {
     );
   }
 
+  // Rendu principal de la page
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
+      {/* En-tête avec titre et contrôles de navigation */}
       <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
         <p className="text-gray-500">
           Suivez votre progression au fil des jours
         </p>
         
+        {/* Contrôles de navigation centrés */}
         <div className="mt-4 flex justify-center">
           <DayNavigationControls 
             onCurrentDayClick={scrollToCurrentDay}
@@ -147,8 +184,10 @@ const Reading = React.memo(() => {
         </div>
       </div>
       
+      {/* Contenu principal - grille des jours */}
       <div className="container mx-auto px-4 pb-16">
         {optimizedData.length === 0 ? (
+          /* État vide avec option de rechargement */
           <div className="text-center py-12">
             <p className="text-gray-600">Aucune donnée de plan de lecture disponible</p>
             <button 
@@ -159,6 +198,7 @@ const Reading = React.memo(() => {
             </button>
           </div>
         ) : (
+          /* Grille responsive des jours */
           <div className={`grid gap-3 md:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
             {optimizedData.map(dayData => (
               <div
@@ -180,10 +220,12 @@ const Reading = React.memo(() => {
         )}
       </div>
       
+      {/* Barre de navigation en bas */}
       <NavBar />
     </div>
   );
 });
 
+// Nom d'affichage pour le débogage
 Reading.displayName = 'Reading';
 export default Reading;
