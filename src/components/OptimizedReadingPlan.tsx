@@ -30,21 +30,25 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const queryClient = useQueryClient();
 
-  // Requête optimisée pour les chapitres du jour avec cache plus long
+  // Requête optimisée pour les chapitres du jour avec cache persistant
   const { data: chaptersData = [] } = useQuery({
     queryKey: ['reading-plan-chapters', dayNumber],
     queryFn: () => getReadingPlanForDay(dayNumber),
-    staleTime: 30 * 60 * 1000, // 30 minutes - cache plus long
-    gcTime: 60 * 60 * 1000, // 1 heure
+    staleTime: 60 * 60 * 1000, // 1 heure - cache plus persistant
+    gcTime: 2 * 60 * 60 * 1000, // 2 heures
+    refetchOnMount: false, // Ne pas refetch au montage
+    refetchOnWindowFocus: false, // Ne pas refetch au focus
     enabled: !!dayNumber
   });
 
-  // Requête optimisée pour la progression utilisateur avec cache intelligent
+  // Requête optimisée pour la progression utilisateur avec cache persistant
   const { data: progressData = [], isLoading } = useQuery({
     queryKey: ['user-progress-optimized', user?.id, dayNumber],
     queryFn: () => user ? getCachedUserProgressForDay(user.id, dayNumber) : [],
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 15 * 60 * 1000, // 15 minutes
+    staleTime: 30 * 60 * 1000, // 30 minutes
+    gcTime: 60 * 60 * 1000, // 1 heure
+    refetchOnMount: false, // Préserver les données en cache
+    refetchOnWindowFocus: false, // Ne pas refetch au focus
     enabled: !!user && !!dayNumber
   });
 
@@ -113,9 +117,10 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
           }
         });
         
-        // Aussi invalider le cache global si présent
+        // Invalider seulement le cache global si nécessaire
         queryClient.invalidateQueries({ 
-          queryKey: ['optimized-reading-plan-data', user.id] 
+          queryKey: ['optimized-reading-plan-data', user.id],
+          refetchType: 'none' // Ne pas refetch immédiatement
         });
         
         triggerProgressUpdate();

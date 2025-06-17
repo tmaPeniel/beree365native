@@ -4,7 +4,7 @@
  * VERSION SIMPLIFIÉE avec service de date centralisé
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import NavBar from '@/components/NavBar';
 import ProgressStats from '@/components/ProgressStats';
 import ReadingPlan from '@/components/ReadingPlan';
@@ -13,35 +13,15 @@ import TodayDisplay from '@/components/TodayDisplay';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useDateService } from '@/hooks/useDateService';
-import { useQueryClient } from '@tanstack/react-query';
 import PlanDates from '@/components/ui/PlanDate';
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const { profile, isLoading } = useAuth();
   const { currentDayNumber, isLoading: dayLoading, getStats } = useDateService();
-  const queryClient = useQueryClient();
   const today = new Date();
   
   console.log(`🏠 Dashboard - Jour courant: ${currentDayNumber}`);
-  
-  // Invalider le cache du ReadingPlan à chaque navigation vers le Dashboard
-  useEffect(() => {
-    if (profile?.id && currentDayNumber) {
-      console.log('🔄 Invalidating ReadingPlan cache on Dashboard navigation');
-      
-      // Invalider spécifiquement les caches du ReadingPlan
-      queryClient.invalidateQueries({ 
-        queryKey: ['reading-plan-chapters', currentDayNumber] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['user-progress-optimized', profile.id, currentDayNumber] 
-      });
-      queryClient.invalidateQueries({ 
-        queryKey: ['optimized-reading-plan-data', profile.id] 
-      });
-    }
-  }, [profile?.id, currentDayNumber, queryClient]);
   
   // Calculer les statistiques du plan
   const stats = getStats();
