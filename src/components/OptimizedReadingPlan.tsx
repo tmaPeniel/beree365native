@@ -47,8 +47,8 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     queryFn: () => user ? getCachedUserProgressForDay(user.id, dayNumber) : [],
     staleTime: 30 * 60 * 1000, // 30 minutes
     gcTime: 60 * 60 * 1000, // 1 heure
-    refetchOnMount: false, // Préserver les données en cache
-    refetchOnWindowFocus: false, // Ne pas refetch au focus
+    refetchOnMount: true, // Préserver les données en cache
+    refetchOnWindowFocus: true, // Ne pas refetch au focus
     enabled: !!user && !!dayNumber
   });
 
