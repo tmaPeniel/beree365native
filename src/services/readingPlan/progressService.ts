@@ -265,7 +265,7 @@ const getCompletedDaysCountFallback = async (userId: string): Promise<number> =>
     if (!allDays) return 0;
     
     // Obtenir les numéros de jours uniques avec typage explicite
-    const uniqueDays: number[] = [...new Set(allDays.map((day: { day_number: number }) => day.day_number))];
+    const uniqueDays = [...new Set(allDays.map((day: { day_number: number }) => day.day_number))];
     let completedDaysCount = 0;
     
     // Pour chaque jour, vérifier s'il est complété à 100%
