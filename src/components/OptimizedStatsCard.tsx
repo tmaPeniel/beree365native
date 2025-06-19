@@ -57,23 +57,18 @@ const OptimizedStatsCard = React.memo(() => {
             <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
               <p className="text-gray-600 text-sm font-medium">Jours complétés</p>
               <p className="text-2xl font-bold text-green-600">{stats?.completedDays || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">À 100%</p>
             </div>
             
             {/* Chapitres lus au total */}
             <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <p className="text-gray-600 text-sm font-medium">Chapitres lus</p>
               <p className="text-2xl font-bold text-blue-600">{stats?.passagesRead || 0}</p>
-              <p className="text-xs text-gray-500 mt-1">Au total</p>
             </div>
             
             {/* Progression totale */}
             <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500 col-span-2">
               <p className="text-gray-600 text-sm font-medium">Progression totale</p>
               <p className="text-2xl font-bold text-purple-600">{stats?.progressPercentage || 0}%</p>
-              <p className="text-xs text-gray-500 mt-1">
-                {stats?.passagesRead || 0} / {stats?.totalPassages || 0} chapitres
-              </p>
             </div>
           </div>
         )}
