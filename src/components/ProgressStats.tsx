@@ -20,7 +20,6 @@ interface ProgressStatsData {
   passagesRead: number;
   passagesRemaining: number;
   progressPercentage: number;
-  completedDays: number;
 }
 
 const ProgressStats = () => {
@@ -33,7 +32,6 @@ const ProgressStats = () => {
     passagesRead: 0,
     passagesRemaining: 0,
     progressPercentage: 0,
-    completedDays: 0
   });
   const [isLoading, setIsLoading] = useState(true);
   
@@ -93,6 +91,12 @@ const ProgressStats = () => {
             <div className="grid grid-cols-2 items-center bg-orange-100 p-2 md:p-3 rounded-md">
               <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages lus</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
+            </div>
+            
+            {/* Jours complétés à 100% */}
+            <div className="grid grid-cols-2 items-center bg-green-100 p-2 md:p-3 rounded-md border-r-2 border-green-600">
+              <span className="text-sm md:text-base text-gray-700 font-medium">Jours complétés (100%)</span>
+              <span className="text-right font-bold text-sm md:text-base text-green-600">{stats.completedDays}</span>
             </div>
             
             {/* Total passages restants */}
