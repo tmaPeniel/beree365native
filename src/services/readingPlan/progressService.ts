@@ -253,7 +253,7 @@ export const getCompletedDaysCount = async (userId: string) => {
  * @param {string} userId ID de l'utilisateur
  * @returns {Promise<number>} Nombre de jours complètement terminés
  */
-const getCompletedDaysCountFallback = async (userId: string) => {
+const getCompletedDaysCountFallback = async (userId: string): Promise<number> => {
   try {
     // Récupérer tous les jours distincts du plan de lecture
     const { data: allDays, error: daysError } = await supabase
@@ -264,8 +264,8 @@ const getCompletedDaysCountFallback = async (userId: string) => {
     if (daysError) throw daysError;
     if (!allDays) return 0;
     
-    // Obtenir les numéros de jours uniques
-    const uniqueDays = [...new Set(allDays.map(day => day.day_number))];
+    // Obtenir les numéros de jours uniques avec typage explicite
+    const uniqueDays: number[] = [...new Set(allDays.map((day: { day_number: number }) => day.day_number))];
     let completedDaysCount = 0;
     
     // Pour chaque jour, vérifier s'il est complété à 100%
