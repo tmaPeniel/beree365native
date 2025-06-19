@@ -93,12 +93,6 @@ const ProgressStats = () => {
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
             </div>
             
-            {/* Jours complétés à 100% */}
-            <div className="grid grid-cols-2 items-center bg-green-100 p-2 md:p-3 rounded-md border-r-2 border-green-600">
-              <span className="text-sm md:text-base text-gray-700 font-medium">Jours complétés (100%)</span>
-              <span className="text-right font-bold text-sm md:text-base text-green-600">{stats.completedDays}</span>
-            </div>
-            
             {/* Total passages restants */}
             <div className="grid grid-cols-2 items-center bg-gray-100 p-2 md:p-3 rounded-md border-r-2 border-gray-400">
               <span className="text-sm md:text-base text-gray-700 font-medium">Total Passages restants</span>
