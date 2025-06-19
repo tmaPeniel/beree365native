@@ -6,6 +6,7 @@
  * - Affichage des statistiques de progression globale
  * - Cache intelligent pour éviter les rechargements inutiles
  * - Interface utilisateur responsive et claire
+ * - Affichage du nombre de jours complétés à 100%
  * 
  * Optimisations :
  * - Utilisation de React.memo pour éviter les re-rendus
@@ -34,7 +35,8 @@ const OptimizedStatsCard = React.memo(() => {
     queryFn: () => user ? getOverallProgress(user.id) : null,
     enabled: !!user, // Seulement si utilisateur connecté
     staleTime: 5 * 60 * 1000, // Cache valide pendant 5 minutes
-    refetchOnWindowFocus: false // Ne pas recharger au focus de fenêtre
+    refetchOnWindowFocus: false, // Ne pas recharger au focus de fenêtre
+    gcTime: 10 * 60 * 1000 // Garder en cache pendant 10 minutes
   });
 
   return (
@@ -51,22 +53,27 @@ const OptimizedStatsCard = React.memo(() => {
         ) : (
           /* Grille de statistiques */
           <div className="grid grid-cols-2 gap-4 text-center">
-            {/* Jours complétés */}
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-gray-500 text-sm">Jours complétés</p>
-              <p className="text-2xl font-bold text-green-500">{stats?.passagesRead || 0}</p>
+            {/* Jours complétés à 100% */}
+            <div className="p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
+              <p className="text-gray-600 text-sm font-medium">Jours complétés</p>
+              <p className="text-2xl font-bold text-green-600">{stats?.completedDays || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">À 100%</p>
             </div>
             
-            {/* Chapitres lus */}
-            <div className="p-4 bg-gray-50 rounded-lg">
-              <p className="text-gray-500 text-sm">Chapitres lus</p>
-              <p className="text-2xl font-bold text-green-500">{stats?.passagesRead || 0}</p>
+            {/* Chapitres lus au total */}
+            <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <p className="text-gray-600 text-sm font-medium">Chapitres lus</p>
+              <p className="text-2xl font-bold text-blue-600">{stats?.passagesRead || 0}</p>
+              <p className="text-xs text-gray-500 mt-1">Au total</p>
             </div>
             
             {/* Progression totale */}
-            <div className="p-4 bg-gray-50 rounded-lg col-span-2">
-              <p className="text-gray-500 text-sm">Progression totale</p>
-              <p className="text-2xl font-bold text-green-500">{stats?.progressPercentage || 0}%</p>
+            <div className="p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500 col-span-2">
+              <p className="text-gray-600 text-sm font-medium">Progression totale</p>
+              <p className="text-2xl font-bold text-purple-600">{stats?.progressPercentage || 0}%</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {stats?.passagesRead || 0} / {stats?.totalPassages || 0} chapitres
+              </p>
             </div>
           </div>
         )}

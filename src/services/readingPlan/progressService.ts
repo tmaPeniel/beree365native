@@ -220,12 +220,79 @@ export const getDayProgress = async (userId: string, dayNumber: number) => {
 };
 
 /**
+ * Calcule le nombre de jours complétés à 100%
+ * @param {string} userId ID de l'utilisateur
+ * @returns {Promise<number>} Nombre de jours complètement terminés
+ */
+export const getCompletedDaysCount = async (userId: string) => {
+  try {
+    console.log(`Calculating completed days count for user ${userId}...`);
+    
+    // Requête optimisée pour compter les jours où tous les chapitres sont complétés
+    const { data, error } = await supabase.rpc('get_completed_days_count', {
+      p_user_id: userId
+    });
+    
+    if (error) {
+      // Si la fonction RPC n'existe pas, utiliser une approche alternative
+      console.log('RPC function not available, using alternative approach');
+      return await getCompletedDaysCountFallback(userId);
+    }
+    
+    const completedDaysCount = data || 0;
+    console.log(`User ${userId} has ${completedDaysCount} completed days`);
+    return completedDaysCount;
+  } catch (error) {
+    console.error("Erreur lors du calcul des jours complétés:", error);
+    return await getCompletedDaysCountFallback(userId);
+  }
+};
+
+/**
+ * Méthode alternative pour calculer les jours complétés (fallback)
+ * @param {string} userId ID de l'utilisateur
+ * @returns {Promise<number>} Nombre de jours complètement terminés
+ */
+const getCompletedDaysCountFallback = async (userId: string) => {
+  try {
+    // Récupérer tous les jours distincts du plan de lecture
+    const { data: allDays, error: daysError } = await supabase
+      .from('reading_plan_chapters')
+      .select('day_number')
+      .order('day_number');
+    
+    if (daysError) throw daysError;
+    if (!allDays) return 0;
+    
+    // Obtenir les numéros de jours uniques
+    const uniqueDays = [...new Set(allDays.map(day => day.day_number))];
+    let completedDaysCount = 0;
+    
+    // Pour chaque jour, vérifier s'il est complété à 100%
+    for (const dayNumber of uniqueDays) {
+      const progressPercentage = await getDayProgress(userId, dayNumber);
+      if (progressPercentage === 100) {
+        completedDaysCount++;
+      }
+    }
+    
+    console.log(`Fallback method: User ${userId} has ${completedDaysCount} completed days`);
+    return completedDaysCount;
+  } catch (error) {
+    console.error("Erreur dans la méthode fallback des jours complétés:", error);
+    return 0;
+  }
+};
+
+/**
  * Calcule la progression globale du plan de lecture
  * @param {string} userId ID de l'utilisateur
- * @returns {Promise<{totalPassages: number, passagesRead: number, passagesRemaining: number, progressPercentage: number}>}
+ * @returns {Promise<{totalPassages: number, passagesRead: number, passagesRemaining: number, progressPercentage: number, completedDays: number}>}
  */
 export const getOverallProgress = async (userId: string) => {
   try {
+    console.log(`Calculating overall progress for user ${userId}...`);
+    
     // Récupérer le nombre total de chapitres
     const { count: totalCount, error: totalError } = await supabase
       .from('reading_plan_chapters')
@@ -234,7 +301,6 @@ export const getOverallProgress = async (userId: string) => {
     if (totalError) throw totalError;
     
     // Récupérer seulement les chapitres marqués comme 'completed'
-    // (les chapitres sans entrée dans user_progress sont considérés comme non lus)
     const { count: completedCount, error: completedError } = await supabase
       .from('user_progress')
       .select('*', { count: 'exact', head: true })
@@ -243,14 +309,18 @@ export const getOverallProgress = async (userId: string) => {
     
     if (completedError) throw completedError;
     
+    // Calculer le nombre de jours complétés à 100%
+    const completedDays = await getCompletedDaysCount(userId);
+    
     const result = {
       totalPassages: totalCount || 0,
       passagesRead: completedCount || 0,
       passagesRemaining: (totalCount || 0) - (completedCount || 0),
-      progressPercentage: totalCount ? Math.round(((completedCount || 0) / totalCount) * 100) : 0
+      progressPercentage: totalCount ? Math.round(((completedCount || 0) / totalCount) * 100) : 0,
+      completedDays: completedDays
     };
     
-    console.log(`Overall progress: ${result.passagesRead}/${result.totalPassages} (${result.progressPercentage}%)`);
+    console.log(`Overall progress for user ${userId}:`, result);
     return result;
   } catch (error) {
     console.error("Erreur lors du calcul de la progression globale:", error);
@@ -258,7 +328,8 @@ export const getOverallProgress = async (userId: string) => {
       totalPassages: 0,
       passagesRead: 0,
       passagesRemaining: 0,
-      progressPercentage: 0
+      progressPercentage: 0,
+      completedDays: 0
     };
   }
 };
