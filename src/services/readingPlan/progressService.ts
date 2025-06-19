@@ -1,4 +1,3 @@
-
 /**
  * Service gérant la progression de l'utilisateur
  */

@@ -122,7 +122,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_completed_days_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       chapter_status: "pending" | "completed"
