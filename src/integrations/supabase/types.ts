@@ -15,18 +15,21 @@ export type Database = {
           id: string
           reference: string
           text: string
+          wisdomType: string | null
         }
         Insert: {
           day_number: number
           id?: string
           reference: string
           text: string
+          wisdomType?: string | null
         }
         Update: {
           day_number?: number
           id?: string
           reference?: string
           text?: string
+          wisdomType?: string | null
         }
         Relationships: []
       }
@@ -119,7 +122,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      get_completed_days_count: {
+        Args: { p_user_id: string }
+        Returns: number
+      }
     }
     Enums: {
       chapter_status: "pending" | "completed"

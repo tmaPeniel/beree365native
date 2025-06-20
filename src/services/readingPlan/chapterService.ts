@@ -17,8 +17,7 @@ export const getReadingPlanForDay = async (dayNumber: number) => {
     const { data, error } = await supabase
       .from('reading_plan_chapters')
       .select('*')
-      .eq('day_number', dayNumber)
-      .order('reference');
+      .eq('day_number', dayNumber);
     
     if (error) {
       console.error(`Error fetching reading plan for day ${dayNumber}:`, error);

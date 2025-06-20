@@ -39,4 +39,5 @@ export type DailyVerse = {
   day_number: number;
   reference: string;
   text: string;
+  wisdomType: string | null;
 };
