@@ -229,11 +229,6 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
             <span className="text-sm bg-green-100 text-green-700 py-1 px-3 rounded-full">
               Jour {dayNumber}/365
             </span>
-            {/* AJOUT : Indicateur de rafraîchissement automatique */}
-            <div className="flex items-center gap-1 text-xs text-gray-500">
-              <div className="h-2 w-2 bg-green-400 rounded-full animate-pulse"></div>
-              <span>Auto</span>
-            </div>
           </div>
         </div>
         
@@ -258,21 +253,6 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
           )}
         </div>
         
-        {/* Statistiques en temps réel avec indicateur de dernière mise à jour */}
-        <div className="text-center text-sm text-gray-500">
-          {readingItems.length > 0 && (
-            <div className="space-y-1">
-              <span>
-                {readingItems.filter(i => i.completed).length} / {readingItems.length} passages complétés
-              </span>
-              {lastUpdateTime && (
-                <div className="text-xs text-green-600">
-                  Dernière mise à jour : {lastUpdateTime.toLocaleTimeString()}
-                </div>
-              )}
-            </div>
-          )}
-        </div>
       </CardContent>
     </Card>
   );
