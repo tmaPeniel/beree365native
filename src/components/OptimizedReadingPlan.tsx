@@ -55,7 +55,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     enabled: !!user && !!dayNumber,
-    refetchInterval: 30 * 1000 // AJOUT : Rafraîchissement auto toutes les 30 secondes
+    refetchInterval: 2 * 1000 // AJOUT : Rafraîchissement auto toutes les 30 secondes
   });
 
   // AJOUT : Rafraîchissement automatique après chaque mise à jour
