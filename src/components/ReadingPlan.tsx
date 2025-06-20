@@ -6,7 +6,6 @@
 
 import React, { useState } from 'react';
 import OptimizedReadingPlan from './OptimizedReadingPlan';
-import ReadingPlanDiagnostics from './ReadingPlanDiagnostics';
 
 interface ReadingPlanProps {
   dayNumber: number;
