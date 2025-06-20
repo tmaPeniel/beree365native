@@ -22,22 +22,6 @@ const ReadingPlan: React.FC<ReadingPlanProps> = ({ dayNumber }) => {
   return (
     <div>
       <OptimizedReadingPlan dayNumber={dayNumber} />
-      
-      {/* Bouton pour afficher/masquer les diagnostics */}
-      <div className="mt-2 text-center">
-        <button
-          onClick={() => setShowDiagnostics(!showDiagnostics)}
-          className="text-xs text-gray-400 hover:text-gray-600"
-        >
-          {showDiagnostics ? 'Masquer' : 'Afficher'} les diagnostics
-        </button>
-      </div>
-      
-      {/* Composant de diagnostics */}
-      <ReadingPlanDiagnostics 
-        dayNumber={dayNumber} 
-        visible={showDiagnostics}
-      />
     </div>
   );
 };
