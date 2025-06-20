@@ -1,11 +1,12 @@
 
 /**
  * Composant pour afficher le plan de lecture quotidien
- * Version mise à jour utilisant les composants optimisés
+ * VERSION MISE À JOUR avec diagnostics optionnels
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import OptimizedReadingPlan from './OptimizedReadingPlan';
+import ReadingPlanDiagnostics from './ReadingPlanDiagnostics';
 
 interface ReadingPlanProps {
   dayNumber: number;
@@ -13,10 +14,32 @@ interface ReadingPlanProps {
 }
 
 /**
- * Wrapper pour maintenir la compatibilité avec l'ancien composant
+ * Wrapper amélioré avec support des diagnostics
  */
 const ReadingPlan: React.FC<ReadingPlanProps> = ({ dayNumber }) => {
-  return <OptimizedReadingPlan dayNumber={dayNumber} />;
+  const [showDiagnostics, setShowDiagnostics] = useState(false);
+
+  return (
+    <div>
+      <OptimizedReadingPlan dayNumber={dayNumber} />
+      
+      {/* Bouton pour afficher/masquer les diagnostics */}
+      <div className="mt-2 text-center">
+        <button
+          onClick={() => setShowDiagnostics(!showDiagnostics)}
+          className="text-xs text-gray-400 hover:text-gray-600"
+        >
+          {showDiagnostics ? 'Masquer' : 'Afficher'} les diagnostics
+        </button>
+      </div>
+      
+      {/* Composant de diagnostics */}
+      <ReadingPlanDiagnostics 
+        dayNumber={dayNumber} 
+        visible={showDiagnostics}
+      />
+    </div>
+  );
 };
 
 export default ReadingPlan;
