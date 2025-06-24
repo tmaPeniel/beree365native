@@ -102,24 +102,9 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
                 Utilisateur
               </SortableHeader>
             </TableHead>
-            <TableHead>
-              <SortableHeader 
-                sortKey="email" 
-                currentSort={sortConfig} 
-                onSort={requestSort}
-              >
-                Email
-              </SortableHeader>
-            </TableHead>
-            <TableHead>
-              <SortableHeader 
-                sortKey="start_date" 
-                currentSort={sortConfig} 
-                onSort={requestSort}
-              >
-                Date de début
-              </SortableHeader>
-            </TableHead>
+            
+            
+            
             <TableHead>
               <SortableHeader 
                 sortKey="last_login_at" 
@@ -129,6 +114,7 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
                 Dernière connexion
               </SortableHeader>
             </TableHead>
+            
             <TableHead>
               <SortableHeader 
                 sortKey="is_active" 
@@ -156,6 +142,26 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
                 Jours complétés
               </SortableHeader>
             </TableHead>
+
+            <TableHead>
+              <SortableHeader 
+                sortKey="email" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Email
+              </SortableHeader>
+            </TableHead>
+            
+            <TableHead>
+              <SortableHeader 
+                sortKey="start_date" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Date de début
+              </SortableHeader>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -171,10 +177,7 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
                 <TableCell className="font-medium">
                   {user.full_name || 'Nom non défini'}
                 </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  {user.start_date ? new Date(user.start_date).toLocaleDateString('fr-FR') : 'Non définie'}
-                </TableCell>
+                
                 <TableCell>
                   {formatLastLogin(user.last_login_at)}
                 </TableCell>
@@ -192,6 +195,10 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
                   <Badge variant={getProgressBadgeColor(user.total_days_completed)}>
                     {user.total_days_completed}/365
                   </Badge>
+                </TableCell>
+                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  {user.start_date ? new Date(user.start_date).toLocaleDateString('fr-FR') : 'Non définie'}
                 </TableCell>
               </TableRow>
             ))
