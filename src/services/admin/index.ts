@@ -69,3 +69,27 @@ export const getRecentlyActiveUsers = async (days: number = 7): Promise<UserStat
     throw error;
   }
 };
+
+/**
+ * Récupère les utilisateurs inactifs depuis N jours
+ */
+export const getInactiveUsers = async (days: number = 7): Promise<UserStats[]> => {
+  try {
+    const allUsers = await getUserStats();
+    const cutoffDate = new Date();
+    cutoffDate.setDate(cutoffDate.getDate() - days);
+    
+    return allUsers.filter(user => {
+      // Utilisateur inactif si :
+      // - Jamais connecté (last_login_at null)
+      // - Dernière connexion antérieure à la date limite
+      // - Marqué comme inactif
+      if (!user.last_login_at) return true;
+      if (user.is_active === false) return true;
+      return new Date(user.last_login_at) < cutoffDate;
+    });
+  } catch (error) {
+    console.error("Erreur lors de la récupération des utilisateurs inactifs:", error);
+    throw error;
+  }
+};

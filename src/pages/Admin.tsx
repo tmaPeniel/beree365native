@@ -14,7 +14,8 @@ import { toast } from 'sonner';
 import AdminRoute from '@/components/admin/AdminRoute';
 import UserStatsTable from '@/components/admin/UserStatsTable';
 import AdminStats from '@/components/admin/AdminStats';
-import { getUserStats, getRecentlyActiveUsers, isCurrentUserAdmin } from '@/services/admin';
+import InactiveUsersCard from '@/components/admin/InactiveUsersCard';
+import { getUserStats, getRecentlyActiveUsers, getInactiveUsers, isCurrentUserAdmin } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
 import NavBar from '@/components/NavBar';
 
@@ -63,6 +64,20 @@ const Admin = () => {
     enabled: isAdminStatus === true && allUsers.length > 0, // Dépend des données des utilisateurs
   });
 
+  // Requête pour les utilisateurs inactifs
+  const { 
+    data: inactiveUsers = [], 
+    isLoading: inactiveUsersLoading, 
+    refetch: refetchInactiveUsers,
+    error: inactiveUsersError,
+    isError: inactiveUsersIsError
+  } = useQuery({
+    queryKey: ['admin-inactive-users'],
+    queryFn: () => getInactiveUsers(7),
+    staleTime: 30 * 1000, // 30 secondes
+    enabled: isAdminStatus === true && allUsers.length > 0, // Dépend des données des utilisateurs
+  });
+
   // Gestion des erreurs avec plus de détails
   React.useEffect(() => {
     if (allUsersError) {
@@ -93,17 +108,20 @@ const Admin = () => {
       adminCheckLoading,
       allUsersCount: allUsers.length,
       recentUsersCount: recentUsers.length,
+      inactiveUsersCount: inactiveUsers.length,
       allUsersLoading,
       recentUsersLoading,
+      inactiveUsersLoading,
       allUsersIsError,
-      recentUsersIsError
+      recentUsersIsError,
+      inactiveUsersIsError
     });
-  }, [isAdminStatus, adminCheckLoading, allUsers, recentUsers, allUsersLoading, recentUsersLoading, allUsersIsError, recentUsersIsError]);
+  }, [isAdminStatus, adminCheckLoading, allUsers, recentUsers, inactiveUsers, allUsersLoading, recentUsersLoading, inactiveUsersLoading, allUsersIsError, recentUsersIsError, inactiveUsersIsError]);
 
   const handleRefresh = async () => {
     try {
       console.log('Actualisation des données admin...');
-      await Promise.all([refetchAllUsers(), refetchRecentUsers()]);
+      await Promise.all([refetchAllUsers(), refetchRecentUsers(), refetchInactiveUsers()]);
       toast.success('Données mises à jour');
       console.log('Actualisation terminée avec succès');
     } catch (error) {
@@ -185,14 +203,15 @@ const Admin = () => {
           </div>
 
           {/* Statistiques générales */}
-          <AdminStats users={allUsers} />
+          <AdminStats users={allUsers} inactiveUsers={inactiveUsers} />
 
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
               <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
               <TabsTrigger value="recent-users">Utilisateurs récents</TabsTrigger>
+              <TabsTrigger value="inactive-users">Utilisateurs inactifs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
@@ -232,6 +251,36 @@ const Admin = () => {
                     />
                   </CardContent>
                 </Card>
+
+                <InactiveUsersCard 
+                  users={inactiveUsers.slice(0, 5)} 
+                  isLoading={inactiveUsersLoading}
+                  title="Utilisateurs à risque"
+                />
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Résumé d'activité</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-3">
+                      <div className="flex justify-between">
+                        <span className="text-sm">Utilisateurs actifs cette semaine</span>
+                        <span className="font-medium">{recentUsers.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Utilisateurs inactifs</span>
+                        <span className="font-medium text-orange-600">{inactiveUsers.length}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-sm">Taux d'activité</span>
+                        <span className="font-medium">
+                          {allUsers.length > 0 ? Math.round((recentUsers.length / allUsers.length) * 100) : 0}%
+                        </span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
               </div>
             </TabsContent>
 
@@ -255,6 +304,14 @@ const Admin = () => {
                   <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="inactive-users" className="mt-6">
+              <InactiveUsersCard 
+                users={sortUsersByName(inactiveUsers)} 
+                isLoading={inactiveUsersLoading}
+                title="Utilisateurs inactifs depuis 1 semaine"
+              />
             </TabsContent>
           </Tabs>
         </div>
