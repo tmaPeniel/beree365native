@@ -39,6 +39,8 @@ export type Database = {
           current_day_number: number
           full_name: string | null
           id: string
+          is_active: boolean | null
+          last_login_at: string | null
           start_date: string | null
         }
         Insert: {
@@ -46,6 +48,8 @@ export type Database = {
           current_day_number?: number
           full_name?: string | null
           id: string
+          is_active?: boolean | null
+          last_login_at?: string | null
           start_date?: string | null
         }
         Update: {
@@ -53,6 +57,8 @@ export type Database = {
           current_day_number?: number
           full_name?: string | null
           id?: string
+          is_active?: boolean | null
+          last_login_at?: string | null
           start_date?: string | null
         }
         Relationships: []
@@ -117,6 +123,27 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -126,8 +153,33 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_user_stats: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          full_name: string
+          email: string
+          start_date: string
+          last_login_at: string
+          is_active: boolean
+          completed_chapters_count: number
+          total_days_completed: number
+        }[]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      is_admin: {
+        Args: Record<PropertyKey, never>
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "user"
       chapter_status: "pending" | "completed"
     }
     CompositeTypes: {
@@ -244,6 +296,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "user"],
       chapter_status: ["pending", "completed"],
     },
   },

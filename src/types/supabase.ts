@@ -11,6 +11,8 @@ export type Profile = {
   start_date: string;
   current_day_number: number;
   created_at: string;
+  last_login_at?: string | null;
+  is_active?: boolean | null;
 };
 
 // Type pour les chapitres du plan de lecture
@@ -40,4 +42,25 @@ export type DailyVerse = {
   reference: string;
   text: string;
   wisdomType: string | null;
+};
+
+// Nouveaux types pour l'administration
+export type AppRole = 'admin' | 'user';
+
+export type UserRole = {
+  id: string;
+  user_id: string;
+  role: AppRole;
+  created_at: string;
+};
+
+export type UserStats = {
+  user_id: string;
+  full_name: string | null;
+  email: string;
+  start_date: string | null;
+  last_login_at: string | null;
+  is_active: boolean | null;
+  completed_chapters_count: number;
+  total_days_completed: number;
 };
