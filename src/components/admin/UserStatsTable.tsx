@@ -16,13 +16,50 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { useSortableTable } from '@/hooks/useSortableTable';
+import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-react';
 
 interface UserStatsTableProps {
   users: UserStats[];
   isLoading?: boolean;
 }
 
+interface SortableHeaderProps {
+  children: React.ReactNode;
+  sortKey: string;
+  currentSort: { key: string; direction: 'asc' | 'desc' | null };
+  onSort: (key: string) => void;
+}
+
+const SortableHeader: React.FC<SortableHeaderProps> = ({ 
+  children, 
+  sortKey, 
+  currentSort, 
+  onSort 
+}) => {
+  const getSortIcon = () => {
+    if (currentSort.key !== sortKey || !currentSort.direction) {
+      return <ChevronsUpDown className="h-4 w-4 ml-1" />;
+    }
+    return currentSort.direction === 'asc' 
+      ? <ChevronUp className="h-4 w-4 ml-1" />
+      : <ChevronDown className="h-4 w-4 ml-1" />;
+  };
+
+  return (
+    <button
+      className="flex items-center hover:bg-gray-50 px-2 py-1 rounded -mx-2 -my-1 transition-colors"
+      onClick={() => onSort(sortKey)}
+    >
+      {children}
+      {getSortIcon()}
+    </button>
+  );
+};
+
 const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => {
+  const { sortedData, sortConfig, requestSort } = useSortableTable(users, 'full_name');
+
   const formatLastLogin = (lastLogin: string | null) => {
     if (!lastLogin) return 'Jamais connecté';
     
@@ -56,24 +93,80 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Utilisateur</TableHead>
-            <TableHead>Email</TableHead>
-            <TableHead>Date de début</TableHead>
-            <TableHead>Dernière connexion</TableHead>
-            <TableHead>Statut</TableHead>
-            <TableHead>Chapitres complétés</TableHead>
-            <TableHead>Jours complétés</TableHead>
+            <TableHead>
+              <SortableHeader 
+                sortKey="full_name" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Utilisateur
+              </SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader 
+                sortKey="email" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Email
+              </SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader 
+                sortKey="start_date" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Date de début
+              </SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader 
+                sortKey="last_login_at" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Dernière connexion
+              </SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader 
+                sortKey="is_active" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Statut
+              </SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader 
+                sortKey="completed_chapters_count" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Chapitres complétés
+              </SortableHeader>
+            </TableHead>
+            <TableHead>
+              <SortableHeader 
+                sortKey="total_days_completed" 
+                currentSort={sortConfig} 
+                onSort={requestSort}
+              >
+                Jours complétés
+              </SortableHeader>
+            </TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {users.length === 0 ? (
+          {sortedData.length === 0 ? (
             <TableRow>
               <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                 Aucun utilisateur trouvé
               </TableCell>
             </TableRow>
           ) : (
-            users.map((user) => (
+            sortedData.map((user) => (
               <TableRow key={user.user_id}>
                 <TableCell className="font-medium">
                   {user.full_name || 'Nom non défini'}
