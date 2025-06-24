@@ -252,35 +252,7 @@ const Admin = () => {
                   </CardContent>
                 </Card>
 
-                <InactiveUsersCard 
-                  users={inactiveUsers.slice(0, 5)} 
-                  isLoading={inactiveUsersLoading}
-                  title="Utilisateurs à risque"
-                />
-
-                <Card>
-                  <CardHeader>
-                    <CardTitle>Résumé d'activité</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-3">
-                      <div className="flex justify-between">
-                        <span className="text-sm">Utilisateurs actifs cette semaine</span>
-                        <span className="font-medium">{recentUsers.length}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Utilisateurs inactifs</span>
-                        <span className="font-medium text-orange-600">{inactiveUsers.length}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-sm">Taux d'activité</span>
-                        <span className="font-medium">
-                          {allUsers.length > 0 ? Math.round((recentUsers.length / allUsers.length) * 100) : 0}%
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            
               </div>
             </TabsContent>
 
