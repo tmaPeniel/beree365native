@@ -284,14 +284,6 @@ const Admin = () => {
               />
               </div>
             </TabsContent>
-
-            <TabsContent value="inactive-users" className="mt-6">
-              <InactiveUsersCard 
-                users={sortUsersByName(inactiveUsers)} 
-                isLoading={inactiveUsersLoading}
-                title="Utilisateurs inactifs depuis 1 semaine"
-              />
-            </TabsContent>
           </Tabs>
         </div>
         <NavBar />
