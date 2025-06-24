@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import AdminRoute from '@/components/admin/AdminRoute';
 import UserStatsTable from '@/components/admin/UserStatsTable';
 import AdminStats from '@/components/admin/AdminStats';
+import SecurityPanel from '@/components/admin/SecurityPanel';
 import { getUserStats, getRecentlyActiveUsers, isCurrentUserAdmin } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
 import NavBar from '@/components/NavBar';
@@ -31,7 +32,7 @@ const Admin = () => {
     staleTime: 60 * 1000, // 1 minute
   });
 
-  // Requête pour tous les utilisateurs
+  // Requête pour tous les utilisateurs (utilise maintenant la fonction sécurisée)
   const { 
     data: allUsers = [], 
     isLoading: allUsersLoading, 
@@ -189,10 +190,11 @@ const Admin = () => {
 
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
               <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
               <TabsTrigger value="recent-users">Utilisateurs récents</TabsTrigger>
+              <TabsTrigger value="security">Sécurité</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
@@ -255,6 +257,10 @@ const Admin = () => {
                   <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="security" className="mt-6">
+              <SecurityPanel />
             </TabsContent>
           </Tabs>
         </div>
