@@ -210,7 +210,7 @@ const Admin = () => {
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
               <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
-              <TabsTrigger value="recent-users">Utilisateurs récents</TabsTrigger>
+              <TabsTrigger value="recent-users">Activités d’utilisateurs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
