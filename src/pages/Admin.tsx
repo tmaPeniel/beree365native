@@ -16,6 +16,7 @@ import UserStatsTable from '@/components/admin/UserStatsTable';
 import AdminStats from '@/components/admin/AdminStats';
 import { getUserStats, getRecentlyActiveUsers } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
+import NavBar from '@/components/NavBar';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -158,6 +159,7 @@ const Admin = () => {
             </TabsContent>
           </Tabs>
         </div>
+        <NavBar />
       </div>
     </AdminRoute>
   );
