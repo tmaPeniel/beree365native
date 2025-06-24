@@ -267,6 +267,7 @@ const Admin = () => {
             </TabsContent>
 
             <TabsContent value="recent-users" className="mt-6">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <Card>
                 <CardHeader>
                   <CardTitle>Utilisateurs connectés cette semaine ({recentUsers.length})</CardTitle>
@@ -281,6 +282,7 @@ const Admin = () => {
                 isLoading={inactiveUsersLoading}
                 title="Utilisateurs inactifs depuis 1 semaine"
               />
+              </div>
             </TabsContent>
 
             <TabsContent value="inactive-users" className="mt-6">
