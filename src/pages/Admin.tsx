@@ -9,28 +9,44 @@ import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import AdminRoute from '@/components/admin/AdminRoute';
 import UserStatsTable from '@/components/admin/UserStatsTable';
 import AdminStats from '@/components/admin/AdminStats';
-import { getUserStats, getRecentlyActiveUsers } from '@/services/admin';
+import { getUserStats, getRecentlyActiveUsers, isCurrentUserAdmin } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
 import NavBar from '@/components/NavBar';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('overview');
 
+  // Vérification du statut admin pour déboguer
+  const { 
+    data: isAdminStatus, 
+    isLoading: adminCheckLoading 
+  } = useQuery({
+    queryKey: ['admin-status-check'],
+    queryFn: isCurrentUserAdmin,
+    staleTime: 60 * 1000, // 1 minute
+  });
+
   // Requête pour tous les utilisateurs
   const { 
     data: allUsers = [], 
     isLoading: allUsersLoading, 
     refetch: refetchAllUsers,
-    error: allUsersError
+    error: allUsersError,
+    isError: allUsersIsError
   } = useQuery({
     queryKey: ['admin-all-users'],
     queryFn: getUserStats,
     staleTime: 30 * 1000, // 30 secondes
+    enabled: isAdminStatus === true, // N'exécuter que si l'utilisateur est admin
+    retry: (failureCount, error) => {
+      console.error(`Tentative ${failureCount + 1} - Erreur getUserStats:`, error);
+      return failureCount < 2; // Réessayer jusqu'à 2 fois
+    }
   });
 
   // Requête pour les utilisateurs actifs cette semaine
@@ -38,36 +54,108 @@ const Admin = () => {
     data: recentUsers = [], 
     isLoading: recentUsersLoading, 
     refetch: refetchRecentUsers,
-    error: recentUsersError
+    error: recentUsersError,
+    isError: recentUsersIsError
   } = useQuery({
     queryKey: ['admin-recent-users'],
     queryFn: () => getRecentlyActiveUsers(7),
     staleTime: 30 * 1000, // 30 secondes
+    enabled: isAdminStatus === true && allUsers.length > 0, // Dépend des données des utilisateurs
   });
 
-  // Gestion des erreurs
+  // Gestion des erreurs avec plus de détails
   React.useEffect(() => {
     if (allUsersError) {
-      console.error('Erreur lors du chargement des utilisateurs:', allUsersError);
-      toast.error('Erreur lors du chargement des données utilisateur');
+      console.error('Erreur détaillée lors du chargement des utilisateurs:', {
+        error: allUsersError,
+        message: allUsersError.message,
+        stack: allUsersError.stack
+      });
+      toast.error(`Erreur lors du chargement des données utilisateur: ${allUsersError.message}`);
     }
   }, [allUsersError]);
 
   React.useEffect(() => {
     if (recentUsersError) {
-      console.error('Erreur lors du chargement des utilisateurs récents:', recentUsersError);
-      toast.error('Erreur lors du chargement des utilisateurs actifs');
+      console.error('Erreur détaillée lors du chargement des utilisateurs récents:', {
+        error: recentUsersError,
+        message: recentUsersError.message,
+        stack: recentUsersError.stack
+      });
+      toast.error(`Erreur lors du chargement des utilisateurs actifs: ${recentUsersError.message}`);
     }
   }, [recentUsersError]);
 
+  // Log des données pour débogage
+  React.useEffect(() => {
+    console.log('État admin debug:', {
+      isAdminStatus,
+      adminCheckLoading,
+      allUsersCount: allUsers.length,
+      recentUsersCount: recentUsers.length,
+      allUsersLoading,
+      recentUsersLoading,
+      allUsersIsError,
+      recentUsersIsError
+    });
+  }, [isAdminStatus, adminCheckLoading, allUsers, recentUsers, allUsersLoading, recentUsersLoading, allUsersIsError, recentUsersIsError]);
+
   const handleRefresh = async () => {
     try {
+      console.log('Actualisation des données admin...');
       await Promise.all([refetchAllUsers(), refetchRecentUsers()]);
       toast.success('Données mises à jour');
+      console.log('Actualisation terminée avec succès');
     } catch (error) {
+      console.error('Erreur lors de l\'actualisation:', error);
       toast.error('Erreur lors de la mise à jour');
     }
   };
+
+  // Affichage d'erreur si problème de chargement critique
+  if (allUsersIsError && !allUsersLoading) {
+    return (
+      <AdminRoute>
+        <div className="min-h-screen bg-gray-50 p-6">
+          <div className="max-w-7xl mx-auto">
+            <Card className="border-red-200 bg-red-50">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-red-700">
+                  <AlertCircle className="h-5 w-5" />
+                  Erreur de chargement des données
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-red-600 mb-4">
+                  Impossible de charger les données utilisateur. Cela peut être dû à :
+                </p>
+                <ul className="list-disc list-inside text-red-600 mb-4 space-y-1">
+                  <li>Un problème de permissions administrateur</li>
+                  <li>Une erreur de base de données</li>
+                  <li>Un problème de connexion</li>
+                </ul>
+                <div className="flex gap-2">
+                  <Button onClick={handleRefresh} variant="outline" size="sm">
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                    Réessayer
+                  </Button>
+                </div>
+                {allUsersError && (
+                  <details className="mt-4">
+                    <summary className="cursor-pointer text-sm font-medium">Détails de l'erreur</summary>
+                    <pre className="mt-2 text-xs bg-red-100 p-2 rounded overflow-auto">
+                      {JSON.stringify(allUsersError, null, 2)}
+                    </pre>
+                  </details>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+          <NavBar />
+        </div>
+      </AdminRoute>
+    );
+  }
 
   return (
     <AdminRoute>
@@ -77,7 +165,14 @@ const Admin = () => {
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold">Administration</h1>
-              <p className="text-gray-600">Gestion des utilisateurs et statistiques</p>
+              <p className="text-gray-600">
+                Gestion des utilisateurs et statistiques
+                {isAdminStatus !== undefined && (
+                  <span className="ml-2 text-sm">
+                    • Statut admin: {isAdminStatus ? '✅' : '❌'}
+                  </span>
+                )}
+              </p>
             </div>
             <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
