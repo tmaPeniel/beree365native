@@ -18,7 +18,7 @@ export const useSortableTable = <T extends Record<string, any>>(
 ) => {
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: defaultSortKey || '',
-    direction: defaultSortKey ? 'asc' : null
+    direction: null
   });
 
   const sortedData = useMemo(() => {
