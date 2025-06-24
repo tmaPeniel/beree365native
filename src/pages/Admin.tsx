@@ -275,6 +275,12 @@ const Admin = () => {
                   <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
                 </CardContent>
               </Card>
+
+              <InactiveUsersCard 
+                users={sortUsersByName(inactiveUsers)} 
+                isLoading={inactiveUsersLoading}
+                title="Utilisateurs inactifs depuis 1 semaine"
+              />
             </TabsContent>
 
             <TabsContent value="inactive-users" className="mt-6">
