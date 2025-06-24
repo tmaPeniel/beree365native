@@ -211,7 +211,6 @@ const Admin = () => {
               <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
               <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
               <TabsTrigger value="recent-users">Utilisateurs récents</TabsTrigger>
-              <TabsTrigger value="inactive-users">Utilisateurs inactifs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
