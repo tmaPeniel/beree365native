@@ -32,31 +32,39 @@ const Signup = () => {
   const toggleForm = () => {
     setIsLogin(!isLogin);
     if (isLogin) {
-      // Si on passe de la connexion à l'inscription, naviguer vers /signup
       navigate('/signup');
     } else {
-      // Si on passe de l'inscription à la connexion, naviguer vers /login
       navigate('/login');
     }
   };
   
   /**
    * Gère la soumission du formulaire d'inscription
-   * @param {Object} data Données du formulaire
    */
   const handleSubmit = async (data: { email: string; password: string; name?: string; startDate?: Date }) => {
     try {
-      if (data.name && data.startDate) {
-        const result = await signUp(data.email, data.password, data.name, data.startDate);
-        if (result.success) {
-          toast.success("Inscription réussie ! Bienvenue !");
-          navigate('/dashboard');
-        }
-      } else {
-        toast.error("Veuillez remplir tous les champs");
+      console.log("Tentative d'inscription avec les données:", data);
+      
+      if (!data.name || !data.startDate) {
+        toast.error("Veuillez remplir tous les champs obligatoires");
+        return;
       }
-    } catch (error) {
+      
+      const result = await signUp(data.email, data.password, data.name, data.startDate);
+      
+      if (result.success) {
+        toast.success("Inscription réussie ! Bienvenue !");
+        // Attendre un peu pour que l'authentification se propage
+        setTimeout(() => {
+          navigate('/dashboard');
+        }, 500);
+      } else {
+        console.error("Échec de l'inscription:", result.error);
+        toast.error(result.error || "Erreur lors de l'inscription");
+      }
+    } catch (error: any) {
       console.error("Erreur d'inscription:", error);
+      toast.error(`Erreur d'inscription: ${error.message}`);
     }
   };
   
