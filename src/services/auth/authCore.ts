@@ -1,4 +1,3 @@
-
 /**
  * Service d'authentification de base
  * Fournit les fonctions fondamentales d'authentification
@@ -19,7 +18,7 @@ export const signUp = async (email: string, password: string, fullName: string, 
   try {
     console.log("Démarrage de l'inscription avec:", { email, fullName, startDate });
     
-    // Créer le compte utilisateur avec les métadonnées pour le trigger
+    // Créer le compte utilisateur avec les métadonnées pour les triggers
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -34,47 +33,15 @@ export const signUp = async (email: string, password: string, fullName: string, 
     if (signUpError) throw signUpError;
     
     if (authData.user) {
-      console.log("Utilisateur créé avec succès dans auth.users:", authData.user.id);
-      
-      // Vérifier si le profil a été créé automatiquement par le trigger
-      const { data: profileData, error: profileCheckError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .maybeSingle();
-        
-      if (profileCheckError) {
-        console.error("Erreur lors de la vérification du profil:", profileCheckError);
-      }
-      
-      // Si le profil n'existe pas encore, le créer manuellement
-      if (!profileData) {
-        console.log("Profil non trouvé, tentative de création manuelle");
-        
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            full_name: fullName,
-            start_date: startDate.toISOString().split('T')[0]
-          }]);
-        
-        if (profileError) {
-          console.error("Erreur lors de la création manuelle du profil:", profileError);
-          toast.error("Votre compte a été créé mais votre profil n'a pas pu être initialisé");
-        } else {
-          console.log("Profil créé manuellement avec succès");
-        }
-      } else {
-        console.log("Profil existant trouvé:", profileData.id);
-      }
+      console.log("Utilisateur créé avec succès:", authData.user.id);
+      console.log("Les triggers vont automatiquement créer le profil et assigner le rôle");
       
       return { success: true, user: authData.user };
     }
     
     return { success: false, error: "Inscription réussie, mais l'utilisateur n'a pas été créé" };
   } catch (error: any) {
-    console.error("Erreur complète lors de l'inscription:", error);
+    console.error("Erreur lors de l'inscription:", error);
     toast.error(`Erreur d'inscription: ${error.message}`);
     return { success: false, error: error.message };
   }
@@ -94,32 +61,6 @@ export const signIn = async (email: string, password: string) => {
     });
 
     if (error) throw error;
-    
-    if (data.user) {
-      // Vérifier si l'utilisateur a un profil
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
-        
-      if (profileError) {
-        console.error("Erreur lors de la vérification du profil:", profileError);
-      }
-      
-      // Si aucun profil n'existe, en créer un
-      if (!profileData) {
-        console.log("Profil non trouvé lors de la connexion, création d'un profil par défaut");
-        
-        await supabase
-          .from('profiles')
-          .insert([{
-            id: data.user.id,
-            full_name: 'Utilisateur',
-            start_date: new Date().toISOString().split('T')[0]
-          }]);
-      }
-    }
     
     return { success: true, user: data.user };
   } catch (error: any) {

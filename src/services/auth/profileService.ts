@@ -57,58 +57,43 @@ export const updateUserProfile = async (
 
 /**
  * Rafraîchit le profil de l'utilisateur
- * Si le profil n'existe pas, en crée un par défaut
+ * Attend que le profil soit créé par les triggers si nécessaire
  * @param {string} userId ID de l'utilisateur
  * @returns {Promise<Profile|null>} Le profil de l'utilisateur ou null
  */
 export const refreshUserProfile = async (userId: string): Promise<Profile | null> => {
   try {
-    // Vérifier si l'utilisateur a un profil
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', userId)
-      .maybeSingle();
-      
-    if (error) {
-      console.error("Erreur lors de la récupération du profil:", error);
-      throw error;
-    }
+    // Attendre un peu pour laisser les triggers faire leur travail
+    let attempts = 0;
+    const maxAttempts = 5;
     
-    // Si aucun profil n'existe, essayer d'en créer un
-    if (!profile) {
-      console.log("Profil non trouvé, tentative de création");
-      
-      try {
-        // Utiliser une assertion de type pour éviter l'erreur TypeScript
-        await (supabase.rpc as any)('disable_rls');
+    while (attempts < maxAttempts) {
+      const { data: profile, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .maybeSingle();
         
-        const { data: newProfile, error: insertError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: userId,
-            full_name: 'Utilisateur',
-            start_date: new Date().toISOString().split('T')[0]
-          }])
-          .select()
-          .single();
-          
-        // Utiliser une assertion de type pour éviter l'erreur TypeScript
-        await (supabase.rpc as any)('enable_rls');
-        
-        if (insertError) {
-          console.error("Erreur lors de la création du profil:", insertError);
-          throw insertError;
-        }
-        
-        return newProfile as Profile;
-      } catch (error) {
-        console.error("Erreur lors de la gestion RLS:", error);
+      if (error) {
+        console.error("Erreur lors de la récupération du profil:", error);
         throw error;
+      }
+      
+      if (profile) {
+        console.log("Profil trouvé:", profile.id);
+        return profile as Profile;
+      }
+      
+      // Si pas de profil, attendre un peu avant de réessayer
+      attempts++;
+      if (attempts < maxAttempts) {
+        console.log(`Tentative ${attempts}/${maxAttempts}: profil non trouvé, attente...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
     }
     
-    return profile as Profile;
+    console.warn("Profil non trouvé après", maxAttempts, "tentatives");
+    return null;
   } catch (error) {
     console.error("Erreur lors du rafraîchissement du profil:", error);
     toast.error("Impossible de récupérer votre profil");
