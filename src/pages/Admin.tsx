@@ -207,7 +207,7 @@ const Admin = () => {
 
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
               <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
               <TabsTrigger value="recent-users">Utilisateurs récents</TabsTrigger>
