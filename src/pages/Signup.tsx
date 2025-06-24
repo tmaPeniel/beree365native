@@ -18,6 +18,7 @@ const Signup = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
   const [isLogin, setIsLogin] = React.useState(false);
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
   
   // Rediriger vers le tableau de bord si l'utilisateur est déjà authentifié
   useEffect(() => {
@@ -42,7 +43,13 @@ const Signup = () => {
    * Gère la soumission du formulaire d'inscription
    */
   const handleSubmit = async (data: { email: string; password: string; name?: string; startDate?: Date }) => {
+    if (isSubmitting) {
+      console.log("Soumission déjà en cours, ignorée");
+      return;
+    }
+
     try {
+      setIsSubmitting(true);
       console.log("Tentative d'inscription avec les données:", data);
       
       if (!data.name || !data.startDate) {
@@ -65,6 +72,8 @@ const Signup = () => {
     } catch (error: any) {
       console.error("Erreur d'inscription:", error);
       toast.error(`Erreur d'inscription: ${error.message}`);
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -83,6 +92,7 @@ const Signup = () => {
         isLogin={isLogin} 
         toggleForm={toggleForm} 
         onSubmit={handleSubmit}
+        isSubmitting={isSubmitting}
       />
     </div>
   );

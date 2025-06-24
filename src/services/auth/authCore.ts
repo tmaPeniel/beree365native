@@ -18,7 +18,7 @@ export const signUp = async (email: string, password: string, fullName: string, 
   try {
     console.log("Démarrage de l'inscription avec:", { email, fullName, startDate });
     
-    // Créer le compte utilisateur
+    // Créer le compte utilisateur avec les métadonnées
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -32,36 +32,55 @@ export const signUp = async (email: string, password: string, fullName: string, 
 
     if (signUpError) {
       console.error("Erreur lors de l'inscription:", signUpError);
-      throw signUpError;
+      return { success: false, error: signUpError.message };
     }
     
     if (!authData.user) {
-      throw new Error("Aucun utilisateur créé lors de l'inscription");
+      console.error("Aucun utilisateur créé lors de l'inscription");
+      return { success: false, error: "Aucun utilisateur créé lors de l'inscription" };
     }
 
     console.log("Utilisateur créé avec succès:", authData.user.id);
     
-    // Créer le profil manuellement si nécessaire
-    const { error: profileError } = await supabase
-      .from('profiles')
-      .upsert({
-        id: authData.user.id,
-        full_name: fullName,
-        start_date: startDate.toISOString().split('T')[0]
-      });
+    // Attendre un moment pour que les triggers se déclenchent
+    await new Promise(resolve => setTimeout(resolve, 1000));
     
-    if (profileError) {
-      console.error("Erreur lors de la création du profil:", profileError);
-      // Ne pas bloquer l'inscription si le profil ne peut pas être créé
-      toast.warning("Votre compte a été créé mais votre profil n'a pas pu être initialisé complètement");
+    // Vérifier si le profil a été créé par le trigger
+    const { data: existingProfile, error: profileCheckError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', authData.user.id)
+      .maybeSingle();
+    
+    if (profileCheckError) {
+      console.error("Erreur lors de la vérification du profil:", profileCheckError);
+    }
+    
+    // Si le profil n'existe pas, le créer manuellement
+    if (!existingProfile) {
+      console.log("Création manuelle du profil...");
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert({
+          id: authData.user.id,
+          full_name: fullName,
+          start_date: startDate.toISOString().split('T')[0]
+        });
+      
+      if (profileError) {
+        console.error("Erreur lors de la création manuelle du profil:", profileError);
+        // Ne pas bloquer l'inscription pour une erreur de profil
+        toast.warning("Votre compte a été créé mais votre profil n'a pas pu être initialisé complètement");
+      } else {
+        console.log("Profil créé manuellement avec succès");
+      }
     } else {
-      console.log("Profil créé avec succès");
+      console.log("Profil trouvé, créé automatiquement par le trigger");
     }
     
     return { success: true, user: authData.user };
   } catch (error: any) {
     console.error("Erreur complète lors de l'inscription:", error);
-    toast.error(`Erreur d'inscription: ${error.message}`);
     return { success: false, error: error.message };
   }
 };

@@ -19,6 +19,7 @@ interface AuthFormProps {
   isLogin: boolean;
   toggleForm: () => void;
   onSubmit: (data: { email: string; password: string; name?: string; startDate?: Date }) => void;
+  isSubmitting?: boolean;
 }
 
 // Schéma pour le formulaire de connexion
@@ -42,7 +43,7 @@ type SignupFormValues = z.infer<typeof signupSchema>;
 /**
  * Composant de formulaire d'authentification
  */
-const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) => {
+const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit, isSubmitting = false }) => {
   /**
    * Formulaire pour la connexion
    */
@@ -73,7 +74,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="votre@email.com" {...field} />
+                  <Input type="email" placeholder="votre@email.com" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -87,7 +88,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
               <FormItem>
                 <FormLabel>Mot de passe</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input type="password" placeholder="••••••••" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -103,8 +104,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
             </Link>
           </div>
           
-          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-            Se connecter
+          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
+            {isSubmitting ? "Connexion en cours..." : "Se connecter"}
           </Button>
         </form>
       </Form>
@@ -144,7 +145,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
               <FormItem>
                 <FormLabel>Nom complet</FormLabel>
                 <FormControl>
-                  <Input placeholder="Nom complet" {...field} />
+                  <Input placeholder="Nom complet" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -158,7 +159,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="votre@email.com" {...field} />
+                  <Input type="email" placeholder="votre@email.com" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -172,7 +173,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
               <FormItem>
                 <FormLabel>Mot de passe</FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input type="password" placeholder="••••••••" {...field} disabled={isSubmitting} />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -193,6 +194,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
                       field.onChange(date);
                     }}
                     value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                    disabled={isSubmitting}
                   />
                 </FormControl>
                 <FormMessage />
@@ -200,8 +202,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
             )}
           />
           
-          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-            S'inscrire
+          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700" disabled={isSubmitting}>
+            {isSubmitting ? "Inscription en cours..." : "S'inscrire"}
           </Button>
         </form>
       </Form>
@@ -219,7 +221,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
       </CardContent>
       
       <CardFooter className="flex justify-center">
-        <Button variant="link" onClick={toggleForm} className="text-green-600 hover:text-green-700 w-full">
+        <Button variant="link" onClick={toggleForm} className="text-green-600 hover:text-green-700 w-full" disabled={isSubmitting}>
           {isLogin 
             ? "Pas encore de compte? S'inscrire" 
             : "Déjà un compte? Se connecter"}
