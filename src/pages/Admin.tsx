@@ -167,11 +167,6 @@ const Admin = () => {
               <h1 className="text-3xl font-bold">Administration</h1>
               <p className="text-gray-600">
                 Gestion des utilisateurs et statistiques
-                {isAdminStatus !== undefined && (
-                  <span className="ml-2 text-sm">
-                    • Statut admin: {isAdminStatus ? '✅' : '❌'}
-                  </span>
-                )}
               </p>
             </div>
             <Button onClick={handleRefresh} variant="outline" size="sm">
