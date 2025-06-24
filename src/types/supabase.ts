@@ -57,7 +57,7 @@ export type UserRole = {
 export type UserStats = {
   user_id: string;
   full_name: string | null;
-  email: string;
+  email: string; // Type mis à jour pour correspondre à VARCHAR(255) de la DB
   start_date: string | null;
   last_login_at: string | null;
   is_active: boolean | null;
