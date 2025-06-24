@@ -1,3 +1,4 @@
+
 /**
  * Service d'authentification de base
  * Fournit les fonctions fondamentales d'authentification
@@ -18,7 +19,7 @@ export const signUp = async (email: string, password: string, fullName: string, 
   try {
     console.log("Démarrage de l'inscription avec:", { email, fullName, startDate });
     
-    // Créer le compte utilisateur avec les métadonnées
+    // Créer le compte utilisateur avec les métadonnées pour le trigger
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
@@ -30,57 +31,51 @@ export const signUp = async (email: string, password: string, fullName: string, 
       }
     });
 
-    if (signUpError) {
-      console.error("Erreur lors de l'inscription:", signUpError);
-      return { success: false, error: signUpError.message };
-    }
+    if (signUpError) throw signUpError;
     
-    if (!authData.user) {
-      console.error("Aucun utilisateur créé lors de l'inscription");
-      return { success: false, error: "Aucun utilisateur créé lors de l'inscription" };
-    }
-
-    console.log("Utilisateur créé avec succès:", authData.user.id);
-    
-    // Attendre un moment pour que les triggers se déclenchent
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    // Vérifier si le profil a été créé par le trigger
-    const { data: existingProfile, error: profileCheckError } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('id', authData.user.id)
-      .maybeSingle();
-    
-    if (profileCheckError) {
-      console.error("Erreur lors de la vérification du profil:", profileCheckError);
-    }
-    
-    // Si le profil n'existe pas, le créer manuellement
-    if (!existingProfile) {
-      console.log("Création manuelle du profil...");
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: authData.user.id,
-          full_name: fullName,
-          start_date: startDate.toISOString().split('T')[0]
-        });
+    if (authData.user) {
+      console.log("Utilisateur créé avec succès dans auth.users:", authData.user.id);
       
-      if (profileError) {
-        console.error("Erreur lors de la création manuelle du profil:", profileError);
-        // Ne pas bloquer l'inscription pour une erreur de profil
-        toast.warning("Votre compte a été créé mais votre profil n'a pas pu être initialisé complètement");
-      } else {
-        console.log("Profil créé manuellement avec succès");
+      // Vérifier si le profil a été créé automatiquement par le trigger
+      const { data: profileData, error: profileCheckError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', authData.user.id)
+        .maybeSingle();
+        
+      if (profileCheckError) {
+        console.error("Erreur lors de la vérification du profil:", profileCheckError);
       }
-    } else {
-      console.log("Profil trouvé, créé automatiquement par le trigger");
+      
+      // Si le profil n'existe pas encore, le créer manuellement
+      if (!profileData) {
+        console.log("Profil non trouvé, tentative de création manuelle");
+        
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert([{
+            id: authData.user.id,
+            full_name: fullName,
+            start_date: startDate.toISOString().split('T')[0]
+          }]);
+        
+        if (profileError) {
+          console.error("Erreur lors de la création manuelle du profil:", profileError);
+          toast.error("Votre compte a été créé mais votre profil n'a pas pu être initialisé");
+        } else {
+          console.log("Profil créé manuellement avec succès");
+        }
+      } else {
+        console.log("Profil existant trouvé:", profileData.id);
+      }
+      
+      return { success: true, user: authData.user };
     }
     
-    return { success: true, user: authData.user };
+    return { success: false, error: "Inscription réussie, mais l'utilisateur n'a pas été créé" };
   } catch (error: any) {
     console.error("Erreur complète lors de l'inscription:", error);
+    toast.error(`Erreur d'inscription: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
