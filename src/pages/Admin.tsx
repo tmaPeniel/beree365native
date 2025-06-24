@@ -4,7 +4,7 @@
  * Accessible uniquement aux utilisateurs avec le rôle admin
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,31 +24,40 @@ const Admin = () => {
   const { 
     data: allUsers = [], 
     isLoading: allUsersLoading, 
-    refetch: refetchAllUsers 
+    refetch: refetchAllUsers,
+    error: allUsersError
   } = useQuery({
     queryKey: ['admin-all-users'],
     queryFn: getUserStats,
     staleTime: 30 * 1000, // 30 secondes
-    onError: (error) => {
-      console.error('Erreur lors du chargement des utilisateurs:', error);
-      toast.error('Erreur lors du chargement des données utilisateur');
-    }
   });
 
   // Requête pour les utilisateurs actifs cette semaine
   const { 
     data: recentUsers = [], 
     isLoading: recentUsersLoading, 
-    refetch: refetchRecentUsers 
+    refetch: refetchRecentUsers,
+    error: recentUsersError
   } = useQuery({
     queryKey: ['admin-recent-users'],
     queryFn: () => getRecentlyActiveUsers(7),
     staleTime: 30 * 1000, // 30 secondes
-    onError: (error) => {
-      console.error('Erreur lors du chargement des utilisateurs récents:', error);
+  });
+
+  // Gestion des erreurs
+  React.useEffect(() => {
+    if (allUsersError) {
+      console.error('Erreur lors du chargement des utilisateurs:', allUsersError);
+      toast.error('Erreur lors du chargement des données utilisateur');
+    }
+  }, [allUsersError]);
+
+  React.useEffect(() => {
+    if (recentUsersError) {
+      console.error('Erreur lors du chargement des utilisateurs récents:', recentUsersError);
       toast.error('Erreur lors du chargement des utilisateurs actifs');
     }
-  });
+  }, [recentUsersError]);
 
   const handleRefresh = async () => {
     try {

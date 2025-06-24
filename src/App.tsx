@@ -12,6 +12,7 @@ import Profile from "./pages/Profile";
 import Reading from "./pages/Reading";
 import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
+import AdminRoute from "./components/admin/AdminRoute";
 import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
@@ -59,7 +60,9 @@ function App() {
                 path="/admin" 
                 element={
                   <ProtectedRoute>
-                    <Admin />
+                    <AdminRoute>
+                      <Admin />
+                    </AdminRoute>
                   </ProtectedRoute>
                 } 
               />
