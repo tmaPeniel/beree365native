@@ -112,6 +112,15 @@ const Admin = () => {
     }
   };
 
+  // Fonction pour trier les utilisateurs par ordre alphabétique
+  const sortUsersByName = (users: UserStats[]) => {
+    return [...users].sort((a, b) => {
+      const nameA = (a.full_name || 'Nom non défini').toLowerCase();
+      const nameB = (b.full_name || 'Nom non défini').toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+  };
+
   // Affichage d'erreur si problème de chargement critique
   if (allUsersIsError && !allUsersLoading) {
     return (
@@ -232,7 +241,7 @@ const Admin = () => {
                   <CardTitle>Tous les utilisateurs ({allUsers.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <UserStatsTable users={allUsers} isLoading={allUsersLoading} />
+                  <UserStatsTable users={sortUsersByName(allUsers)} isLoading={allUsersLoading} />
                 </CardContent>
               </Card>
             </TabsContent>
