@@ -1,3 +1,4 @@
+
 /**
  * Page d'administration
  * Accessible uniquement aux utilisateurs avec le rôle admin
@@ -142,7 +143,7 @@ const Admin = () => {
   if (allUsersIsError && !allUsersLoading) {
     return (
       <AdminRoute>
-        <div className="min-h-screen bg-gray-50 p-4 md:p-6 pb-20">
+        <div className="min-h-screen bg-gray-50 p-6">
           <div className="max-w-7xl mx-auto">
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
@@ -185,17 +186,17 @@ const Admin = () => {
 
   return (
     <AdminRoute>
-      <div className="min-h-screen bg-gray-50 p-4 md:p-6 pb-20">
+      <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-7xl mx-auto">
           {/* En-tête */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+          <div className="flex justify-between items-center mb-6">
             <div>
-              <h1 className="text-2xl md:text-3xl font-bold">Administration</h1>
-              <p className="text-sm md:text-base text-gray-600">
+              <h1 className="text-3xl font-bold">Administration</h1>
+              <p className="text-gray-600">
                 Gestion des utilisateurs et statistiques
               </p>
             </div>
-            <Button onClick={handleRefresh} variant="outline" size="sm" className="self-start sm:self-auto">
+            <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualiser
             </Button>
@@ -206,26 +207,17 @@ const Admin = () => {
 
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-6">
-              <TabsTrigger value="overview" className="text-xs md:text-sm px-2 md:px-3">
-                Vue d'ensemble
-              </TabsTrigger>
-              <TabsTrigger value="all-users" className="text-xs md:text-sm px-2 md:px-3">
-                Tous les utilisateurs
-              </TabsTrigger>
-              <TabsTrigger value="recent-users" className="text-xs md:text-sm px-2 md:px-3">
-                Activité
-              </TabsTrigger>
-              <TabsTrigger value="inactive-users" className="text-xs md:text-sm px-2 md:px-3">
-                Inactifs
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
+              <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
+              <TabsTrigger value="recent-users">Activités d’utilisateurs</TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg md:text-xl">Utilisateurs les plus actifs</CardTitle>
+                    <CardTitle>Utilisateurs les plus actifs</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <UserStatsTable 
@@ -241,7 +233,7 @@ const Admin = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-lg md:text-xl">Dernières connexions</CardTitle>
+                    <CardTitle>Dernières connexions</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <UserStatsTable 
@@ -265,7 +257,7 @@ const Admin = () => {
             <TabsContent value="all-users" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-lg md:text-xl">Tous les utilisateurs ({allUsers.length})</CardTitle>
+                  <CardTitle>Tous les utilisateurs ({allUsers.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <UserStatsTable users={sortUsersByName(allUsers)} isLoading={allUsersLoading} />
@@ -275,29 +267,21 @@ const Admin = () => {
 
             <TabsContent value="recent-users" className="mt-6">
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-lg md:text-xl">Utilisateurs connectés cette semaine ({recentUsers.length})</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
-                  </CardContent>
-                </Card>
+              <Card>
+                <CardHeader>
+                  <CardTitle>Utilisateurs connectés cette semaine ({recentUsers.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
+                </CardContent>
+              </Card>
 
-                <InactiveUsersCard 
-                  users={sortUsersByName(inactiveUsers)} 
-                  isLoading={inactiveUsersLoading}
-                  title="Utilisateurs inactifs depuis 1 semaine"
-                />
-              </div>
-            </TabsContent>
-
-            <TabsContent value="inactive-users" className="mt-6">
               <InactiveUsersCard 
                 users={sortUsersByName(inactiveUsers)} 
                 isLoading={inactiveUsersLoading}
-                title="Tous les utilisateurs inactifs"
+                title="Utilisateurs inactifs depuis 1 semaine"
               />
+              </div>
             </TabsContent>
           </Tabs>
         </div>
