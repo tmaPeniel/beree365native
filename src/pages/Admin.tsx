@@ -1,3 +1,4 @@
+
 /**
  * Page d'administration
  * Accessible uniquement aux utilisateurs avec le rôle admin
@@ -206,27 +207,30 @@ const Admin = () => {
 
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsList className="grid w-full grid-cols-3 sm:h-10 h-auto">
               <TabsTrigger 
                 value="overview" 
-                className="flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
+                className="sm:inline-flex sm:items-center sm:justify-center sm:whitespace-nowrap sm:px-3 sm:py-1.5 flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
               >
-                <span className="text-xs sm:text-sm">Vue</span>
-                <span className="text-xs sm:text-sm">d'ensemble</span>
+                <span className="sm:hidden text-xs">Vue</span>
+                <span className="sm:hidden text-xs">d'ensemble</span>
+                <span className="hidden sm:inline">Vue d'ensemble</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="all-users" 
-                className="flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
+                className="sm:inline-flex sm:items-center sm:justify-center sm:whitespace-nowrap sm:px-3 sm:py-1.5 flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
               >
-                <span className="text-xs sm:text-sm">Tous les</span>
-                <span className="text-xs sm:text-sm">utilisateurs</span>
+                <span className="sm:hidden text-xs">Tous les</span>
+                <span className="sm:hidden text-xs">utilisateurs</span>
+                <span className="hidden sm:inline">Tous les utilisateurs</span>
               </TabsTrigger>
               <TabsTrigger 
                 value="recent-users" 
-                className="flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
+                className="sm:inline-flex sm:items-center sm:justify-center sm:whitespace-nowrap sm:px-3 sm:py-1.5 flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
               >
-                <span className="text-xs sm:text-sm">Activités</span>
-                <span className="text-xs sm:text-sm">d'utilisateurs</span>
+                <span className="sm:hidden text-xs">Activités</span>
+                <span className="sm:hidden text-xs">d'utilisateurs</span>
+                <span className="hidden sm:inline">Activités d'utilisateurs</span>
               </TabsTrigger>
             </TabsList>
 
