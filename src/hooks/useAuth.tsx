@@ -11,9 +11,12 @@ import {
   refreshUserProfile, 
   cleanupAuthState 
 } from '@/services/auth';
+import { signOut } from '@/services/authService';
 import { Profile } from '@/types/supabase';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
+import { useInactivityTimer } from './useInactivityTimer';
+import InactivityWarning from '@/components/InactivityWarning';
 
 // Type pour le contexte d'authentification
 type AuthContextType = {
@@ -47,6 +50,63 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [progressUpdateCounter, setProgressUpdateCounter] = useState<number>(0);
   const navigate = useNavigate();
+
+  // Configuration du timer d'inactivité
+  const {
+    isWarningActive,
+    timeLeft,
+    extendSession,
+    forceLogout
+  } = useInactivityTimer({
+    timeout: 30 * 60 * 1000, // 30 minutes
+    warningTime: 2 * 60 * 1000, // 2 minutes d'avertissement
+    enabled: !!user, // Activer seulement si l'utilisateur est connecté
+    onWarning: () => {
+      console.log('⚠️ Avertissement de session - affichage du dialog');
+    },
+    onTimeout: async () => {
+      console.log('🚪 Déconnexion automatique due à l\'inactivité');
+      await handleAutoLogout();
+    }
+  });
+
+  /**
+   * Gère la déconnexion automatique
+   */
+  const handleAutoLogout = async () => {
+    try {
+      const result = await signOut();
+      if (result.success) {
+        toast.info("Vous avez été déconnecté(e) pour inactivité");
+        // La redirection sera gérée par l'événement SIGNED_OUT
+      }
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion automatique:", error);
+      // En cas d'erreur, forcer la déconnexion locale
+      cleanupAuthState();
+      setUser(null);
+      setProfile(null);
+      navigate('/login');
+    }
+  };
+
+  /**
+   * Gère l'extension de session depuis le dialog d'avertissement
+   */
+  const handleExtendSession = () => {
+    console.log('⏰ Extension de session depuis le dialog');
+    extendSession();
+    toast.success("Session prolongée");
+  };
+
+  /**
+   * Gère la déconnexion manuelle depuis le dialog d'avertissement
+   */
+  const handleManualLogout = async () => {
+    console.log('🚪 Déconnexion manuelle depuis le dialog');
+    forceLogout();
+    await handleAutoLogout();
+  };
 
   // Effet pour initialiser l'authentification
   useEffect(() => {
@@ -171,6 +231,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return (
     <AuthContext.Provider value={contextValue}>
       {children}
+      
+      {/* Dialog d'avertissement de déconnexion */}
+      <InactivityWarning
+        isOpen={isWarningActive}
+        timeLeft={timeLeft}
+        onExtendSession={handleExtendSession}
+        onLogout={handleManualLogout}
+      />
     </AuthContext.Provider>
   );
 };
