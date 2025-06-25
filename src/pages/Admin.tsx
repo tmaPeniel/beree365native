@@ -1,4 +1,3 @@
-
 /**
  * Page d'administration
  * Accessible uniquement aux utilisateurs avec le rôle admin
@@ -207,10 +206,28 @@ const Admin = () => {
 
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-              <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
-              <TabsTrigger value="recent-users">Activités d’utilisateurs</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 h-auto">
+              <TabsTrigger 
+                value="overview" 
+                className="flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
+              >
+                <span className="text-xs sm:text-sm">Vue</span>
+                <span className="text-xs sm:text-sm">d'ensemble</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="all-users" 
+                className="flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
+              >
+                <span className="text-xs sm:text-sm">Tous les</span>
+                <span className="text-xs sm:text-sm">utilisateurs</span>
+              </TabsTrigger>
+              <TabsTrigger 
+                value="recent-users" 
+                className="flex flex-col items-center justify-center py-3 px-2 h-auto text-center leading-tight"
+              >
+                <span className="text-xs sm:text-sm">Activités</span>
+                <span className="text-xs sm:text-sm">d'utilisateurs</span>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
