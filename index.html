@@ -3,19 +3,41 @@
 <html lang="fr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Bérée 365 - Lisez la Bible en un an</title>
     <meta name="description" content="Application de suivi de lecture de la Bible en un an" />
     <meta name="author" content="Bérée 365" />
 
+    <!-- Meta tags pour PWA -->
+    <meta name="theme-color" content="#34A853" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bérée 365" />
+
+    <!-- Meta tags Open Graph -->
     <meta property="og:title" content="Bérée 365 - Lisez la Bible en un an" />
     <meta property="og:description" content="Suivez votre plan de lecture de la Bible sur un an, jour après jour." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
 
+    <!-- Meta tags Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@beree365" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+
+    <!-- Style pour prévenir le zoom sur les inputs -->
+    <style>
+      @media (max-width: 768px) {
+        input[type="email"],
+        input[type="password"],
+        input[type="text"],
+        input[type="number"],
+        textarea,
+        select {
+          font-size: 16px !important;
+        }
+      }
+    </style>
   </head>
 
   <body>

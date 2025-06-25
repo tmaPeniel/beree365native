@@ -94,6 +94,34 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
+
+  /* Support pour les safe areas (notch, boutons home, etc.) */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-area-pl {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-area-pr {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Amélioration du scrolling sur mobile */
+  @media (max-width: 768px) {
+    body {
+      -webkit-overflow-scrolling: touch;
+    }
+    
+    .overflow-auto {
+      -webkit-overflow-scrolling: touch;
+    }
+  }
 }
 
 @layer components {
@@ -119,5 +147,42 @@
   
   .nav-item-active {
     @apply text-beree-500;
+  }
+
+  /* Styles responsive pour les tableaux */
+  @media (max-width: 768px) {
+    .responsive-table {
+      @apply text-sm;
+    }
+    
+    .responsive-table th,
+    .responsive-table td {
+      @apply px-2 py-1;
+    }
+  }
+
+  /* Amélioration des cartes sur mobile */
+  @media (max-width: 768px) {
+    .card-reading {
+      @apply p-3;
+    }
+  }
+}
+
+/* Animations personnalisées pour mobile */
+@media (max-width: 768px) {
+  .animate-enter {
+    animation: mobile-fade-in 0.4s ease-out;
+  }
+}
+
+@keyframes mobile-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }

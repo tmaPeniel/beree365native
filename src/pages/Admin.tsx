@@ -1,7 +1,7 @@
-
 /**
  * Page d'administration
  * Accessible uniquement aux utilisateurs avec le rôle admin
+ * Optimisée pour mobile et desktop
  */
 
 import React, { useState } from 'react';
@@ -18,9 +18,11 @@ import InactiveUsersCard from '@/components/admin/InactiveUsersCard';
 import { getUserStats, getRecentlyActiveUsers, getInactiveUsers, isCurrentUserAdmin } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
 import NavBar from '@/components/NavBar';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const isMobile = useIsMobile();
 
   // Vérification du statut admin pour déboguer
   const { 
@@ -143,7 +145,7 @@ const Admin = () => {
   if (allUsersIsError && !allUsersLoading) {
     return (
       <AdminRoute>
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-gray-50 p-3 md:p-6">
           <div className="max-w-7xl mx-auto">
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
@@ -186,17 +188,17 @@ const Admin = () => {
 
   return (
     <AdminRoute>
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-gray-50 pb-20">
+        <div className={`max-w-7xl mx-auto ${isMobile ? 'p-3' : 'p-6'}`}>
           {/* En-tête */}
-          <div className="flex justify-between items-center mb-6">
+          <div className={`flex ${isMobile ? 'flex-col space-y-3' : 'justify-between items-center'} mb-6`}>
             <div>
-              <h1 className="text-3xl font-bold">Administration</h1>
-              <p className="text-gray-600">
+              <h1 className={`font-bold ${isMobile ? 'text-xl' : 'text-3xl'}`}>Administration</h1>
+              <p className={`text-gray-600 ${isMobile ? 'text-sm' : ''}`}>
                 Gestion des utilisateurs et statistiques
               </p>
             </div>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
+            <Button onClick={handleRefresh} variant="outline" size={isMobile ? "sm" : "sm"}>
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualiser
             </Button>
@@ -207,17 +209,26 @@ const Admin = () => {
 
           {/* Onglets */}
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3">
-              <TabsTrigger value="overview">Vue d'ensemble</TabsTrigger>
-              <TabsTrigger value="all-users">Tous les utilisateurs</TabsTrigger>
-              <TabsTrigger value="recent-users">Activités d’utilisateurs</TabsTrigger>
+            <TabsList className={`grid w-full ${isMobile ? 'grid-cols-2' : 'grid-cols-4'}`}>
+              <TabsTrigger value="overview" className={isMobile ? 'text-xs' : ''}>
+                {isMobile ? 'Vue' : 'Vue d\'ensemble'}
+              </TabsTrigger>
+              <TabsTrigger value="all-users" className={isMobile ? 'text-xs' : ''}>
+                {isMobile ? 'Tous' : 'Tous les utilisateurs'}
+              </TabsTrigger>
+              <TabsTrigger value="recent-users" className={isMobile ? 'text-xs' : ''}>
+                {isMobile ? 'Activités' : 'Activités d\'utilisateurs'}
+              </TabsTrigger>
+              <TabsTrigger value="inactive-users" className={isMobile ? 'text-xs' : ''}>
+                {isMobile ? 'Inactifs' : 'Utilisateurs inactifs'}
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 lg:grid-cols-2 gap-6'}`}>
                 <Card>
                   <CardHeader>
-                    <CardTitle>Utilisateurs les plus actifs</CardTitle>
+                    <CardTitle className={isMobile ? 'text-lg' : ''}>Utilisateurs les plus actifs</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <UserStatsTable 
@@ -233,7 +244,7 @@ const Admin = () => {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle>Dernières connexions</CardTitle>
+                    <CardTitle className={isMobile ? 'text-lg' : ''}>Dernières connexions</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <UserStatsTable 
@@ -250,14 +261,15 @@ const Admin = () => {
                     />
                   </CardContent>
                 </Card>
-                
               </div>
             </TabsContent>
 
             <TabsContent value="all-users" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Tous les utilisateurs ({allUsers.length})</CardTitle>
+                  <CardTitle className={isMobile ? 'text-lg' : ''}>
+                    Tous les utilisateurs ({allUsers.length})
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <UserStatsTable users={sortUsersByName(allUsers)} isLoading={allUsersLoading} />
@@ -266,22 +278,33 @@ const Admin = () => {
             </TabsContent>
 
             <TabsContent value="recent-users" className="mt-6">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Utilisateurs connectés cette semaine ({recentUsers.length})</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
-                </CardContent>
-              </Card>
+              <div className={`grid ${isMobile ? 'grid-cols-1 gap-4' : 'grid-cols-1 lg:grid-cols-2 gap-6'}`}>
+                <Card>
+                  <CardHeader>
+                    <CardTitle className={isMobile ? 'text-lg' : ''}>
+                      Utilisateurs connectés cette semaine ({recentUsers.length})
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
+                  </CardContent>
+                </Card>
 
+                <InactiveUsersCard 
+                  users={sortUsersByName(inactiveUsers)} 
+                  isLoading={inactiveUsersLoading}
+                  title="Utilisateurs inactifs depuis 1 semaine"
+                />
+              </div>
+            </TabsContent>
+
+            <TabsContent value="inactive-users" className="mt-6">
               <InactiveUsersCard 
                 users={sortUsersByName(inactiveUsers)} 
                 isLoading={inactiveUsersLoading}
-                title="Utilisateurs inactifs depuis 1 semaine"
+                title={`Utilisateurs inactifs depuis 1 semaine (${inactiveUsers.length})`}
+                showFullList={true}
               />
-              </div>
             </TabsContent>
           </Tabs>
         </div>

@@ -2,6 +2,7 @@
 /**
  * Page de tableau de bord
  * VERSION SIMPLIFIÉE avec service de date centralisé
+ * Optimisée pour mobile et desktop
  */
 
 import React from 'react';
@@ -44,12 +45,16 @@ const Dashboard = () => {
   
   return (
     <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-white p-4 md:p-6 shadow-sm">
-        <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Le Tour de ma Bible en 365 jours</h1>
-        <p className="text-sm md:text-base text-gray-500">SISAP Editions Powered</p>
+      <div className={`bg-white shadow-sm ${isMobile ? 'p-3' : 'p-4 md:p-6'}`}>
+        <h1 className={`font-bold mb-1 md:mb-2 ${isMobile ? 'text-lg' : 'text-xl md:text-2xl'}`}>
+          Le Tour de ma Bible en 365 jours
+        </h1>
+        <p className={`text-gray-500 ${isMobile ? 'text-xs' : 'text-sm md:text-base'}`}>
+          SISAP Editions Powered
+        </p>
       </div>
 
-      <div className="p-4 md:p-6 space-y-4 md:space-y-6">
+      <div className={`space-y-4 md:space-y-6 ${isMobile ? 'p-3' : 'p-4 md:p-6'}`}>
         <TodayDisplay 
           dayNumber={currentDayNumber} 
           date={today} 
@@ -60,7 +65,7 @@ const Dashboard = () => {
         
         <ProgressStats />
 
-        <div className={`${isMobile ? '' : 'grid grid-cols-2 gap-6'}`}>
+        <div className={`${isMobile ? 'space-y-4' : 'grid grid-cols-1 lg:grid-cols-2 gap-6'}`}>
           <PlanDates
             startDate={startDate}
             endDate={endDate}
