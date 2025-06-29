@@ -80,6 +80,22 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
     return 'default';
   };
 
+  const calculateReadingPlanPercentage = (completedChapters: number) => {
+    // Supposons qu'il y a environ 365 chapitres dans le plan de lecture complet
+    // (1 an de lecture biblique)
+    const totalChaptersInPlan = 365;
+    const percentage = Math.round((completedChapters / totalChaptersInPlan) * 100);
+    return Math.min(percentage, 100); // Cap à 100%
+  };
+
+  const getPercentageBadgeColor = (percentage: number) => {
+    if (percentage === 0) return 'secondary';
+    if (percentage < 25) return 'destructive';
+    if (percentage < 50) return 'default';
+    if (percentage < 75) return 'default';
+    return 'default';
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -134,6 +150,9 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
               </SortableHeader>
             </TableHead>
             <TableHead>
+              Progression (%)
+            </TableHead>
+            <TableHead>
               <SortableHeader 
                 sortKey="total_days_completed" 
                 currentSort={sortConfig} 
@@ -167,41 +186,50 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
         <TableBody>
           {sortedData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
                 Aucun utilisateur trouvé
               </TableCell>
             </TableRow>
           ) : (
-            sortedData.map((user) => (
-              <TableRow key={user.user_id}>
-                <TableCell className="font-medium">
-                  {user.full_name || 'Nom non défini'}
-                </TableCell>
-                
-                <TableCell>
-                  {formatLastLogin(user.last_login_at)}
-                </TableCell>
-                <TableCell>
-                  <Badge variant={user.is_active ? 'default' : 'secondary'}>
-                    {user.is_active ? 'Actif' : 'Inactif'}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getProgressBadgeColor(user.completed_chapters_count)}>
-                    {user.completed_chapters_count}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge variant={getProgressBadgeColor(user.total_days_completed)}>
-                    {user.total_days_completed}/365
-                  </Badge>
-                </TableCell>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  {user.start_date ? new Date(user.start_date).toLocaleDateString('fr-FR') : 'Non définie'}
-                </TableCell>
-              </TableRow>
-            ))
+            sortedData.map((user) => {
+              const progressPercentage = calculateReadingPlanPercentage(user.completed_chapters_count);
+              
+              return (
+                <TableRow key={user.user_id}>
+                  <TableCell className="font-medium">
+                    {user.full_name || 'Nom non défini'}
+                  </TableCell>
+                  
+                  <TableCell>
+                    {formatLastLogin(user.last_login_at)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={user.is_active ? 'default' : 'secondary'}>
+                      {user.is_active ? 'Actif' : 'Inactif'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getProgressBadgeColor(user.completed_chapters_count)}>
+                      {user.completed_chapters_count}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getPercentageBadgeColor(progressPercentage)}>
+                      {progressPercentage}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={getProgressBadgeColor(user.total_days_completed)}>
+                      {user.total_days_completed}/365
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    {user.start_date ? new Date(user.start_date).toLocaleDateString('fr-FR') : 'Non définie'}
+                  </TableCell>
+                </TableRow>
+              );
+            })
           )}
         </TableBody>
       </Table>
