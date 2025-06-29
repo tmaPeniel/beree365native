@@ -60,6 +60,10 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({
 const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => {
   const { sortedData, sortConfig, requestSort } = useSortableTable(users, 'full_name');
 
+  // Calculer le nombre total de chapitres dans le plan de lecture (365 jours × ~3 chapitres par jour)
+  // On utilise une estimation de 1095 chapitres au total (365 × 3)
+  const TOTAL_CHAPTERS = 1095;
+
   const formatLastLogin = (lastLogin: string | null) => {
     if (!lastLogin) return 'Jamais connecté';
     
@@ -78,6 +82,10 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
     if (completed < 50) return 'destructive';
     if (completed < 150) return 'default';
     return 'default';
+  };
+
+  const calculateChaptersPercentage = (completedChapters: number) => {
+    return Math.round((completedChapters / TOTAL_CHAPTERS) * 100);
   };
 
   if (isLoading) {
@@ -102,8 +110,6 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
                 Utilisateur
               </SortableHeader>
             </TableHead>
-            
-            
             
             <TableHead>
               <SortableHeader 
@@ -187,14 +193,24 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getProgressBadgeColor(user.completed_chapters_count)}>
-                    {user.completed_chapters_count}
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant={getProgressBadgeColor(user.completed_chapters_count)}>
+                      {user.completed_chapters_count}
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {calculateChaptersPercentage(user.completed_chapters_count)}% du plan
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell>
-                  <Badge variant={getProgressBadgeColor(user.total_days_completed)}>
-                    {user.total_days_completed}/365
-                  </Badge>
+                  <div className="flex flex-col gap-1">
+                    <Badge variant={getProgressBadgeColor(user.total_days_completed)}>
+                      {user.total_days_completed}/365
+                    </Badge>
+                    <span className="text-xs text-muted-foreground">
+                      {Math.round((user.total_days_completed / 365) * 100)}%
+                    </span>
+                  </div>
                 </TableCell>
                 <TableCell>{user.email}</TableCell>
                 <TableCell>
