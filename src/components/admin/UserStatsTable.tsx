@@ -1,4 +1,3 @@
-
 /**
  * Tableau des statistiques utilisateurs pour l'administration
  */
@@ -81,18 +80,17 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
   };
 
   const calculateReadingPlanPercentage = (completedChapters: number) => {
-    // Supposons qu'il y a environ 365 chapitres dans le plan de lecture complet
-    // (1 an de lecture biblique)
-    const totalChaptersInPlan = 365;
+    // Nombre total de chapitres dans le plan de lecture biblique complet
+    const totalChaptersInPlan = 1133; // Nombre réel de chapitres dans la Bible
     const percentage = Math.round((completedChapters / totalChaptersInPlan) * 100);
     return Math.min(percentage, 100); // Cap à 100%
   };
 
   const getPercentageBadgeColor = (percentage: number) => {
     if (percentage === 0) return 'secondary';
-    if (percentage < 25) return 'destructive';
+    if (percentage < 10) return 'destructive';
+    if (percentage < 25) return 'default';
     if (percentage < 50) return 'default';
-    if (percentage < 75) return 'default';
     return 'default';
   };
 
