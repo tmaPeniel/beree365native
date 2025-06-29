@@ -52,12 +52,6 @@ const AdminStats: React.FC<AdminStatsProps> = ({ users, inactiveUsers = [] }) =>
       icon: UserX,
       description: "Inactifs depuis 1 semaine",
       color: "text-orange-500"
-    },
-    {
-      title: "Progression moyenne",
-      value: averageProgress,
-      icon: BookOpen,
-      description: "Chapitres complétés en moyenne"
     }
   ];
 
