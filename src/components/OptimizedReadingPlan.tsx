@@ -1,6 +1,7 @@
+
 /**
  * Composant principal pour afficher et gérer le plan de lecture du jour
- * VERSION AMÉLIORÉE - Avec suivi d'activité utilisateur intégré
+ * VERSION CORRIGÉE - Affichage réactif avec rafraîchissement automatique
  */
 
 import React, { useCallback, useMemo, useState, useEffect } from 'react';
@@ -28,7 +29,7 @@ interface OptimizedReadingPlanProps {
  */
 const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber }) => {
   // Hooks d'authentification et de gestion d'état
-  const { user, triggerProgressUpdate, forceActivityUpdate } = useOptimizedAuth();
+  const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const queryClient = useQueryClient();
@@ -84,7 +85,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     });
   }, [chaptersData, progressData]);
 
-  // Gestionnaire AMÉLIORÉ pour marquer/démarquer un passage avec mise à jour d'activité
+  // Gestionnaire CORRIGÉ pour marquer/démarquer un passage
   const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
     event.preventDefault();
     event.stopPropagation();
@@ -143,13 +144,9 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
         
         // Déclencher la mise à jour globale
         triggerProgressUpdate();
-        
-        // NOUVEAU : Forcer une mise à jour d'activité via le heartbeat
-        forceActivityUpdate();
-        
         setLastUpdateTime(new Date());
         
-        // Rafraîchissement automatique après succès
+        // AJOUT : Rafraîchissement automatique après succès
         setTimeout(() => {
           refetchProgress();
         }, 1000);
@@ -173,7 +170,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     } finally {
       setProcessingIds(prev => prev.filter(itemId => itemId !== id));
     }
-  }, [user, readingItems, dayNumber, queryClient, triggerProgressUpdate, chaptersData, refetchProgress, forceActivityUpdate]);
+  }, [user, readingItems, dayNumber, queryClient, triggerProgressUpdate, chaptersData, refetchProgress]);
 
   // Composant de ligne optimisé
   const ReadingItemRow = React.memo<{
