@@ -11,15 +11,16 @@ import { supabase } from "@/integrations/supabase/client";
  */
 export const updateUserActivity = async (userId: string): Promise<void> => {
   try {
-    const { error } = await supabase.rpc('update_user_activity', {
-      p_user_id: userId
-    });
+    const { error } = await supabase
+      .from('profiles')
+      .update({ last_login_at: new Date().toISOString() })
+      .eq('id', userId);
     
     if (error) {
       console.error("Erreur lors de la mise à jour de l'activité utilisateur:", error);
     }
   } catch (error) {
-    console.error("Erreur lors de l'appel de update_user_activity:", error);
+    console.error("Erreur lors de la mise à jour de l'activité:", error);
   }
 };
 
