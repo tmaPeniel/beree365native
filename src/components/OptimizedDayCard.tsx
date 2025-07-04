@@ -37,7 +37,7 @@ const OptimizedDayCard = React.memo<OptimizedDayCardProps>(({
   isToday = false
 }) => {
   // Récupération des données utilisateur et du compteur de progression
-  const { user, progressUpdateTrigger } = useOptimizedAuth();
+  const { user, progressUpdateCounter } = useOptimizedAuth();
   
   // Mémorisation de la date formatée pour éviter les recalculs
   const formattedDate = useMemo(() => 
@@ -49,7 +49,7 @@ const OptimizedDayCard = React.memo<OptimizedDayCardProps>(({
   
   // Requête optimisée pour récupérer le pourcentage de progression du jour
   const { data: progressPercentage = 0 } = useQuery({
-    queryKey: ['day-progress', user?.id, day, progressUpdateTrigger],
+    queryKey: ['day-progress', user?.id, day, progressUpdateCounter],
     queryFn: () => user ? getDayProgress(user.id, day) : 0,
     enabled: !!user, // Seulement si utilisateur connecté
     staleTime: 60 * 1000 // Cache valide pendant 1 minute

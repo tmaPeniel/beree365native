@@ -26,12 +26,12 @@ import { useQuery } from '@tanstack/react-query';
  */
 const OptimizedStatsCard = React.memo(() => {
   // Récupération des données d'authentification avec compteur de progression
-  const { user, progressUpdateTrigger } = useOptimizedAuth();
+  const { user, progressUpdateCounter } = useOptimizedAuth();
   
   // Requête optimisée pour les statistiques utilisateur
-  // Le cache se met à jour automatiquement quand progressUpdateTrigger change
+  // Le cache se met à jour automatiquement quand progressUpdateCounter change
   const { data: stats, isLoading: statsLoading } = useQuery({
-    queryKey: ['userStats', user?.id, progressUpdateTrigger],
+    queryKey: ['userStats', user?.id, progressUpdateCounter],
     queryFn: () => user ? getOverallProgress(user.id) : null,
     enabled: !!user, // Seulement si utilisateur connecté
     staleTime: 5 * 60 * 1000, // Cache valide pendant 5 minutes

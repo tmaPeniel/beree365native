@@ -8,19 +8,8 @@ import { User } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { ActivityHeartbeat } from '@/services/auth/activityService';
 
-interface UserProfile {
-  id: string;
-  full_name: string | null;
-  start_date: string | null;
-  current_day_number: number;
-  last_login_at: string | null;
-  is_active: boolean | null;
-  created_at: string | null;
-}
-
 export const useOptimizedAuth = () => {
   const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [progressUpdateTrigger, setProgressUpdateTrigger] = useState(0);
@@ -31,26 +20,6 @@ export const useOptimizedAuth = () => {
   // Fonction pour déclencher une mise à jour de la progression
   const triggerProgressUpdate = useCallback(() => {
     setProgressUpdateTrigger(prev => prev + 1);
-  }, []);
-
-  // Fonction pour charger le profil utilisateur
-  const loadUserProfile = useCallback(async (userId: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-      
-      if (error) {
-        console.error('Erreur lors du chargement du profil:', error);
-        return;
-      }
-      
-      setProfile(data);
-    } catch (error) {
-      console.error('Erreur lors du chargement du profil:', error);
-    }
   }, []);
 
   useEffect(() => {
@@ -68,15 +37,13 @@ export const useOptimizedAuth = () => {
         if (isMounted) {
           setUser(session?.user || null);
           setIsAuthenticated(!!session?.user);
-          
+          setIsLoading(false);
+
+          // Démarrer le système de heartbeat si l'utilisateur est connecté
           if (session?.user) {
-            await loadUserProfile(session.user.id);
-            // Démarrer le système de heartbeat
             heartbeatRef.current = ActivityHeartbeat.getInstance();
             heartbeatRef.current.start(session.user.id);
           }
-          
-          setIsLoading(false);
         }
       } catch (error) {
         console.error('Erreur lors de l\'initialisation de l\'authentification:', error);
@@ -97,12 +64,10 @@ export const useOptimizedAuth = () => {
         setIsAuthenticated(!!session?.user);
         
         if (event === 'SIGNED_IN' && session?.user) {
-          await loadUserProfile(session.user.id);
           // Démarrer le heartbeat pour le nouvel utilisateur connecté
           heartbeatRef.current = ActivityHeartbeat.getInstance();
           heartbeatRef.current.start(session.user.id);
         } else if (event === 'SIGNED_OUT') {
-          setProfile(null);
           // Arrêter le heartbeat lors de la déconnexion
           if (heartbeatRef.current) {
             heartbeatRef.current.stop();
@@ -124,7 +89,7 @@ export const useOptimizedAuth = () => {
         heartbeatRef.current = null;
       }
     };
-  }, [loadUserProfile]);
+  }, []);
 
   // Fonction pour forcer une mise à jour d'activité (utilisée lors d'actions importantes)
   const forceActivityUpdate = useCallback(() => {
@@ -135,7 +100,6 @@ export const useOptimizedAuth = () => {
 
   return {
     user,
-    profile,
     isLoading,
     isAuthenticated,
     progressUpdateTrigger,
