@@ -20,7 +20,7 @@ export const getCurrentDayNumber = (startDateStr: string): number => {
   
   const startDate = parseLocalDate(startDateStr);
   const today = new Date();
-  console.log(`📅 Calcul du jour courant: ${today}`);
+  //console.log(`📅 Calcul du jour courant: ${today}`);
   
   // Normaliser les dates à minuit pour éviter les problèmes d'heures
   const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(),0 ,0, 0);
@@ -36,7 +36,7 @@ export const getCurrentDayNumber = (startDateStr: string): number => {
   // Limiter entre 1 et 365
   const finalDay = Math.max(1, Math.min(currentDay, 365));
   
-  console.log(`📅 Jour calculé: ${finalDay} (diffDays: ${diffDays})`);
+  //console.log(`📅 Jour calculé: ${finalDay} (diffDays: ${diffDays})`);
   
   return finalDay;
 };

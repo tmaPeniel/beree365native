@@ -42,10 +42,8 @@ const ProgressStats = () => {
       
       setIsLoading(true);
       try {
-        console.log('Fetching progress stats for user:', user.id);
         const progress = await getOverallProgress(user.id);
         setStats(progress);
-        console.log('Progress stats loaded:', progress);
       } catch (error) {
         console.error("Erreur lors du chargement des statistiques:", error);
         toast.error("Impossible de charger les statistiques");

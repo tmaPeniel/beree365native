@@ -19,7 +19,6 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
     
     // Limiter aux jours 1-365 et utiliser un verset par défaut si hors limite
     if (dayNumber > 365 || dayNumber < 1) {
-      console.log(`Day ${dayNumber} is out of range (1-365), using default verse`);
       return await getDefaultVerse(dayNumber);
     }
     

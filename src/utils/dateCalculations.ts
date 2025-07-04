@@ -49,47 +49,47 @@ export const calculateDateForDay = (startDateStr: string, dayNumber: number): st
  * @returns Numéro du jour actuel (minimum 1)
  */
 export const calculateCurrentDayNumber = (startDateStr: string): number => {
-  console.log(`🔍 === CALCUL DU JOUR COURANT - DÉBUT ===`);
-  console.log(`🔍 Date de début reçue: ${startDateStr}`);
+  //console.log(`🔍 === CALCUL DU JOUR COURANT - DÉBUT ===`);
+  //console.log(`🔍 Date de début reçue: ${startDateStr}`);
   
   // Parser la date de début
   const startDate = parseLocalDate(startDateStr);
-  console.log(`📅 Date de début parsée: ${startDate.toDateString()} (${startDate.toISOString()})`);
+  //console.log(`📅 Date de début parsée: ${startDate.toDateString()} (${startDate.toISOString()})`);
   
   // Obtenir la date d'aujourd'hui et la normaliser à minuit
   const today = new Date();
   const todayNormalized = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-  console.log(`📅 Aujourd'hui: ${today.toDateString()} (${today.toISOString()})`);
-  console.log(`📅 Aujourd'hui normalisé: ${todayNormalized.toDateString()} (${todayNormalized.toISOString()})`);
+  //console.log(`📅 Aujourd'hui: ${today.toDateString()} (${today.toISOString()})`);
+  //console.log(`📅 Aujourd'hui normalisé: ${todayNormalized.toDateString()} (${todayNormalized.toISOString()})`);
   
   // Normaliser aussi la date de début à minuit
   const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  console.log(`📅 Date de début normalisée: ${startDateNormalized.toDateString()} (${startDateNormalized.toISOString()})`);
+  //console.log(`📅 Date de début normalisée: ${startDateNormalized.toDateString()} (${startDateNormalized.toISOString()})`);
   
   // CORRECTION PRINCIPALE: Calculer la différence correctement
   // Si aujourd'hui = date de début, c'est le jour 1 (pas le jour 0)
   const diffTime = todayNormalized.getTime() - startDateNormalized.getTime();
   const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
   
-  console.log(`⏰ Différence en millisecondes: ${diffTime}`);
-  console.log(`📊 Différence en jours: ${diffDays}`);
+  //console.log(`⏰ Différence en millisecondes: ${diffTime}`);
+  //console.log(`📊 Différence en jours: ${diffDays}`);
   
   // CORRECTION: Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
   const currentDay = diffDays + 1; // Corrigé de +2 à +1
-  console.log(`🎯 Jour calculé (diffDays + 1): ${currentDay}`);
+  //console.log(`🎯 Jour calculé (diffDays + 1): ${currentDay}`);
   
   // S'assurer que le jour est entre 1 et 365
   const finalDay = Math.max(1, Math.min(currentDay, 365));
-  console.log(`✅ Jour final (limité 1-365): ${finalDay}`);
+  //console.log(`✅ Jour final (limité 1-365): ${finalDay}`);
   
   // Test de vérification
   const calculatedDateForFinalDay = calculateDateForDay(startDateStr, finalDay);
   const todayFormatted = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-  console.log(`🧪 Vérification: Jour ${finalDay} → ${calculatedDateForFinalDay}`);
-  console.log(`🧪 Aujourd'hui formaté: ${todayFormatted}`);
-  console.log(`🧪 Match: ${calculatedDateForFinalDay === todayFormatted ? '✅' : '❌'}`);
+  //console.log(`🧪 Vérification: Jour ${finalDay} → ${calculatedDateForFinalDay}`);
+  //console.log(`🧪 Aujourd'hui formaté: ${todayFormatted}`);
+  //console.log(`🧪 Match: ${calculatedDateForFinalDay === todayFormatted ? '✅' : '❌'}`);
   
-  console.log(`🔍 === CALCUL DU JOUR COURANT - FIN ===`);
+  //console.log(`🔍 === CALCUL DU JOUR COURANT - FIN ===`);
   
   return finalDay;
 };

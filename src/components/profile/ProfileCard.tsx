@@ -53,7 +53,7 @@ const ProfileCard = ({ onEdit }: ProfileCardProps) => {
         await refreshProfile();
         
         // Ensuite invalider et refetcher tous les caches
-        console.log('🔄 Invalidating all caches after profile update...');
+        //console.log('🔄 Invalidating all caches after profile update...');
         
         // Invalider le cache global optimisé
         invalidateUserCacheSelective(user.id);
@@ -68,7 +68,7 @@ const ProfileCard = ({ onEdit }: ProfileCardProps) => {
           await queryClient.refetchQueries({ 
             queryKey: ['optimized-reading-plan-data', user.id] 
           });
-          console.log('✅ All caches cleared and data refetched');
+          //console.log('✅ All caches cleared and data refetched');
         }, 100);
         
         toast.success("Profil mis à jour avec succès");

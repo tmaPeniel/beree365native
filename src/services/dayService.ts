@@ -41,7 +41,7 @@ export const updateCurrentDay = async (userId: string, newDay: number): Promise<
     
     if (error) throw error;
     
-    console.log(`Jour courant mis à jour: ${clampedDay}`);
+    //console.log(`Jour courant mis à jour: ${clampedDay}`);
     return true;
   } catch (error) {
     console.error("Erreur lors de la mise à jour du jour courant:", error);

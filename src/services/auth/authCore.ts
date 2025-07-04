@@ -33,8 +33,8 @@ export const signUp = async (email: string, password: string, fullName: string, 
     if (signUpError) throw signUpError;
     
     if (authData.user) {
-      console.log("Utilisateur créé avec succès:", authData.user.id);
-      console.log("Les triggers vont automatiquement créer le profil et assigner le rôle");
+      //console.log("Utilisateur créé avec succès:", authData.user.id);
+      //console.log("Les triggers vont automatiquement créer le profil et assigner le rôle");
       
       return { success: true, user: authData.user };
     }
@@ -102,7 +102,7 @@ export const resetPassword = async (email: string) => {
       throw error;
     }
     
-    console.log("Email de réinitialisation envoyé avec succès");
+    //console.log("Email de réinitialisation envoyé avec succès");
     toast.success("Un email de réinitialisation a été envoyé à votre adresse");
     return { success: true };
   } catch (error: any) {
