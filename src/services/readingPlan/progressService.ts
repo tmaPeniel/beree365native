@@ -5,6 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { toast } from "sonner";
+import { updateUserActivity } from "@/services/auth/activityService";
 
 /**
  * Récupère la progression de l'utilisateur pour un jour donné
@@ -79,6 +80,7 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
 
 /**
  * Change le statut d'un chapitre entre 'pending' et 'completed'
+ * Met également à jour l'activité de l'utilisateur
  * @param {string} userId ID de l'utilisateur
  * @param {string} chapterId ID du chapitre
  * @param {ChapterStatus} currentStatus Statut actuel
@@ -159,6 +161,15 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
       
       console.log("Insert successful:", data);
       result = { success: true, data };
+    }
+    
+    // NOUVEAU : Mettre à jour l'activité de l'utilisateur après une action de lecture
+    try {
+      await updateUserActivity(userId);
+      console.log("Activité utilisateur mise à jour après progression");
+    } catch (activityError) {
+      console.error("Erreur lors de la mise à jour de l'activité:", activityError);
+      // Ne pas faire échouer l'opération principale si la mise à jour d'activité échoue
     }
     
     // Notifier l'utilisateur
