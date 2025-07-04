@@ -23,6 +23,7 @@ export const isCurrentUserAdmin = async (): Promise<boolean> => {
 
 /**
  * Récupère les statistiques de tous les utilisateurs (admin uniquement)
+ * Le statut d'activité est maintenant calculé dynamiquement côté base de données
  */
 export const getUserStats = async (): Promise<UserStats[]> => {
   try {
@@ -53,17 +54,14 @@ export const assignUserRole = async (userId: string, role: AppRole): Promise<voi
 
 /**
  * Récupère les utilisateurs connectés dans les N derniers jours
+ * Utilise maintenant la logique dynamique calculée par la base de données
  */
 export const getRecentlyActiveUsers = async (days: number = 7): Promise<UserStats[]> => {
   try {
     const allUsers = await getUserStats();
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
     
-    return allUsers.filter(user => {
-      if (!user.last_login_at) return false;
-      return new Date(user.last_login_at) >= cutoffDate;
-    });
+    // Filtrer les utilisateurs actifs (le statut is_active est maintenant calculé dynamiquement)
+    return allUsers.filter(user => user.is_active);
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs actifs:", error);
     throw error;
@@ -72,22 +70,14 @@ export const getRecentlyActiveUsers = async (days: number = 7): Promise<UserStat
 
 /**
  * Récupère les utilisateurs inactifs depuis N jours
+ * Utilise maintenant la logique dynamique calculée par la base de données
  */
 export const getInactiveUsers = async (days: number = 7): Promise<UserStats[]> => {
   try {
     const allUsers = await getUserStats();
-    const cutoffDate = new Date();
-    cutoffDate.setDate(cutoffDate.getDate() - days);
     
-    return allUsers.filter(user => {
-      // Utilisateur inactif si :
-      // - Jamais connecté (last_login_at null)
-      // - Dernière connexion antérieure à la date limite
-      // - Marqué comme inactif
-      if (!user.last_login_at) return true;
-      if (user.is_active === false) return true;
-      return new Date(user.last_login_at) < cutoffDate;
-    });
+    // Filtrer les utilisateurs inactifs (le statut is_active est maintenant calculé dynamiquement)
+    return allUsers.filter(user => !user.is_active);
   } catch (error) {
     console.error("Erreur lors de la récupération des utilisateurs inactifs:", error);
     throw error;

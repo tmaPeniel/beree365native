@@ -177,6 +177,10 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: boolean
       }
+      is_user_active: {
+        Args: { p_user_id: string; days_threshold?: number }
+        Returns: boolean
+      }
     }
     Enums: {
       app_role: "admin" | "user"
