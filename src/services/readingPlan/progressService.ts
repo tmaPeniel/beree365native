@@ -162,10 +162,8 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
       result = { success: true, data };
     }
     
-    // Mettre à jour l'activité utilisateur lors de la complétion d'un chapitre
-    if (newStatus === 'completed') {
-      await ActivityService.updateUserActivity(userId);
-    }
+    // Mettre à jour l'activité utilisateur pour toute action de toggle (cocher/décocher)
+    await ActivityService.updateUserActivity(userId);
     
     // Notifier l'utilisateur
     toast.success(newStatus === 'completed' ? 

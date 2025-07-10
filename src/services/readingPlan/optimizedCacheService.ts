@@ -321,12 +321,10 @@ export const optimizedToggleChapterStatus = async (
       result = { success: true, data };
     }
     
-    // Mettre à jour l'activité utilisateur lors de la complétion d'un chapitre
-    if (newStatus === 'completed') {
-      // Import dynamique pour éviter les dépendances circulaires
-      const { ActivityService } = await import('../auth/activityService');
-      await ActivityService.updateUserActivity(userId);
-    }
+    // Mettre à jour l'activité utilisateur pour toute action de toggle (cocher/décocher)
+    // Import dynamique pour éviter les dépendances circulaires
+    const { ActivityService } = await import('../auth/activityService');
+    await ActivityService.updateUserActivity(userId);
     
     // Invalidation CORRIGÉE - cache global seulement
     invalidateUserCacheSelective(userId, 'ultra-optimized-reading-plan');
