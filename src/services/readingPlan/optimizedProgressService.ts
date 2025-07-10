@@ -13,6 +13,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { invalidateUserCacheSelective, optimizedToggleChapterStatus as newOptimizedToggle } from "./optimizedCacheService";
+import { ActivityService } from '../auth/activityService';
 
 const DEBUG_MODE = true; // Activer les logs de debugging
 

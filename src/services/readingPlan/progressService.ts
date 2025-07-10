@@ -5,6 +5,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { toast } from "sonner";
+import { ActivityService } from '../auth/activityService';
 
 /**
  * Récupère la progression de l'utilisateur pour un jour donné
@@ -159,6 +160,11 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
       
       console.log("Insert successful:", data);
       result = { success: true, data };
+    }
+    
+    // Mettre à jour l'activité utilisateur lors de la complétion d'un chapitre
+    if (newStatus === 'completed') {
+      await ActivityService.updateUserActivity(userId);
     }
     
     // Notifier l'utilisateur
