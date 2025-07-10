@@ -4,8 +4,8 @@
  * Accessible uniquement aux utilisateurs avec le rôle admin
  */
 
-import React, { useState, useMemo } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -15,16 +15,14 @@ import AdminRoute from '@/components/admin/AdminRoute';
 import UserStatsTable from '@/components/admin/UserStatsTable';
 import AdminStats from '@/components/admin/AdminStats';
 import InactiveUsersCard from '@/components/admin/InactiveUsersCard';
-import { getUserStats, isCurrentUserAdmin } from '@/services/admin';
+import { getUserStats, getRecentlyActiveUsers, getInactiveUsers, isCurrentUserAdmin } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
 import NavBar from '@/components/NavBar';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('overview');
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const queryClient = useQueryClient();
 
-  // Vérification du statut admin
+  // Vérification du statut admin pour déboguer
   const { 
     data: isAdminStatus, 
     isLoading: adminCheckLoading 
@@ -34,7 +32,7 @@ const Admin = () => {
     staleTime: 60 * 1000, // 1 minute
   });
 
-  // Requête principale pour tous les utilisateurs
+  // Requête pour tous les utilisateurs
   const { 
     data: allUsers = [], 
     isLoading: allUsersLoading, 
@@ -44,31 +42,64 @@ const Admin = () => {
   } = useQuery({
     queryKey: ['admin-all-users'],
     queryFn: getUserStats,
-    staleTime: 2 * 1000, // 10 secondes
-    refetchOnWindowFocus: false,
-    enabled: isAdminStatus === true,
+    staleTime: 2 * 1000, // 0.2 secondes
+    enabled: isAdminStatus === true, // N'exécuter que si l'utilisateur est admin
     retry: (failureCount, error) => {
       console.error(`Tentative ${failureCount + 1} - Erreur getUserStats:`, error);
-      return failureCount < 2;
+      return failureCount < 2; // Réessayer jusqu'à 2 fois
     }
   });
 
-  // Calcul des utilisateurs récents et inactifs avec useMemo
-  const recentUsers = useMemo(() => {
-    return allUsers.filter(user => user.is_active);
-  }, [allUsers]);
+  // Requête pour les utilisateurs actifs cette semaine
+  const { 
+    data: recentUsers = [], 
+    isLoading: recentUsersLoading, 
+    refetch: refetchRecentUsers,
+    error: recentUsersError,
+    isError: recentUsersIsError
+  } = useQuery({
+    queryKey: ['admin-recent-users'],
+    queryFn: () => getRecentlyActiveUsers(7),
+    staleTime: 2 * 1000, // 0.2 secondes
+    enabled: isAdminStatus === true && allUsers.length > 0, // Dépend des données des utilisateurs
+  });
 
-  const inactiveUsers = useMemo(() => {
-    return allUsers.filter(user => !user.is_active);
-  }, [allUsers]);
+  // Requête pour les utilisateurs inactifs
+  const { 
+    data: inactiveUsers = [], 
+    isLoading: inactiveUsersLoading, 
+    refetch: refetchInactiveUsers,
+    error: inactiveUsersError,
+    isError: inactiveUsersIsError
+  } = useQuery({
+    queryKey: ['admin-inactive-users'],
+    queryFn: () => getInactiveUsers(7),
+    staleTime: 2 * 1000, // 0.2 secondes
+    enabled: isAdminStatus === true && allUsers.length > 0, // Dépend des données des utilisateurs
+  });
 
-  // Gestion des erreurs
+  // Gestion des erreurs avec plus de détails
   React.useEffect(() => {
     if (allUsersError) {
-      console.error('Erreur lors du chargement des utilisateurs:', allUsersError);
+      console.error('Erreur détaillée lors du chargement des utilisateurs:', {
+        error: allUsersError,
+        message: allUsersError.message,
+        stack: allUsersError.stack
+      });
       toast.error(`Erreur lors du chargement des données utilisateur: ${allUsersError.message}`);
     }
   }, [allUsersError]);
+
+  React.useEffect(() => {
+    if (recentUsersError) {
+      console.error('Erreur détaillée lors du chargement des utilisateurs récents:', {
+        error: recentUsersError,
+        message: recentUsersError.message,
+        stack: recentUsersError.stack
+      });
+      toast.error(`Erreur lors du chargement des utilisateurs actifs: ${recentUsersError.message}`);
+    }
+  }, [recentUsersError]);
 
   // Log des données pour débogage
   React.useEffect(() => {
@@ -79,25 +110,23 @@ const Admin = () => {
       recentUsersCount: recentUsers.length,
       inactiveUsersCount: inactiveUsers.length,
       allUsersLoading,
-      allUsersIsError
+      recentUsersLoading,
+      inactiveUsersLoading,
+      allUsersIsError,
+      recentUsersIsError,
+      inactiveUsersIsError
     });
-  }, [isAdminStatus, adminCheckLoading, allUsers, recentUsers, inactiveUsers, allUsersLoading, allUsersIsError]);
+  }, [isAdminStatus, adminCheckLoading, allUsers, recentUsers, inactiveUsers, allUsersLoading, recentUsersLoading, inactiveUsersLoading, allUsersIsError, recentUsersIsError, inactiveUsersIsError]);
 
   const handleRefresh = async () => {
-    setIsRefreshing(true);
     try {
       console.log('Actualisation des données admin...');
-      // Invalider le cache pour forcer une nouvelle requête
-      queryClient.invalidateQueries({ queryKey: ['admin-all-users'] });
-      // Refetch uniquement les données principales
-      await refetchAllUsers();
+      await Promise.all([refetchAllUsers(), refetchRecentUsers(), refetchInactiveUsers()]);
       toast.success('Données mises à jour');
       console.log('Actualisation terminée avec succès');
     } catch (error) {
       console.error('Erreur lors de l\'actualisation:', error);
       toast.error('Erreur lors de la mise à jour');
-    } finally {
-      setIsRefreshing(false);
     }
   };
 
@@ -167,14 +196,9 @@ const Admin = () => {
                 Gestion des utilisateurs et statistiques
               </p>
             </div>
-            <Button 
-              onClick={handleRefresh} 
-              variant="outline" 
-              size="sm"
-              disabled={isRefreshing || allUsersLoading}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              {isRefreshing ? 'Actualisation...' : 'Actualiser'}
+            <Button onClick={handleRefresh} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Actualiser
             </Button>
           </div>
 
@@ -269,13 +293,13 @@ const Admin = () => {
                   <CardTitle>Utilisateurs connectés cette semaine ({recentUsers.length})</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <UserStatsTable users={recentUsers} isLoading={allUsersLoading} />
+                  <UserStatsTable users={recentUsers} isLoading={recentUsersLoading} />
                 </CardContent>
               </Card>
 
               <InactiveUsersCard 
                 users={sortUsersByName(inactiveUsers)} 
-                isLoading={allUsersLoading}
+                isLoading={inactiveUsersLoading}
                 title="Utilisateurs inactifs depuis 1 semaine"
               />
               </div>
