@@ -53,33 +53,15 @@ export const assignUserRole = async (userId: string, role: AppRole): Promise<voi
 };
 
 /**
- * Récupère les utilisateurs connectés dans les N derniers jours
- * Utilise maintenant la logique dynamique calculée par la base de données
+ * Filtre les utilisateurs actifs à partir de données existantes
  */
-export const getRecentlyActiveUsers = async (days: number = 7): Promise<UserStats[]> => {
-  try {
-    const allUsers = await getUserStats();
-    
-    // Filtrer les utilisateurs actifs (le statut is_active est maintenant calculé dynamiquement)
-    return allUsers.filter(user => user.is_active);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des utilisateurs actifs:", error);
-    throw error;
-  }
+export const getRecentlyActiveUsers = (allUsers: UserStats[], days: number = 7): UserStats[] => {
+  return allUsers.filter(user => user.is_active);
 };
 
 /**
- * Récupère les utilisateurs inactifs depuis N jours
- * Utilise maintenant la logique dynamique calculée par la base de données
+ * Filtre les utilisateurs inactifs à partir de données existantes
  */
-export const getInactiveUsers = async (days: number = 7): Promise<UserStats[]> => {
-  try {
-    const allUsers = await getUserStats();
-    
-    // Filtrer les utilisateurs inactifs (le statut is_active est maintenant calculé dynamiquement)
-    return allUsers.filter(user => !user.is_active);
-  } catch (error) {
-    console.error("Erreur lors de la récupération des utilisateurs inactifs:", error);
-    throw error;
-  }
+export const getInactiveUsers = (allUsers: UserStats[], days: number = 7): UserStats[] => {
+  return allUsers.filter(user => !user.is_active);
 };
