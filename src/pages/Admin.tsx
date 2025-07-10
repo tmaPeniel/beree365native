@@ -42,7 +42,7 @@ const Admin = () => {
   } = useQuery({
     queryKey: ['admin-all-users'],
     queryFn: getUserStats,
-    staleTime: 30 * 1000, // 30 secondes
+    staleTime: 0.2 * 1000, // 0.2 secondes
     enabled: isAdminStatus === true, // N'exécuter que si l'utilisateur est admin
     retry: (failureCount, error) => {
       console.error(`Tentative ${failureCount + 1} - Erreur getUserStats:`, error);
@@ -60,7 +60,7 @@ const Admin = () => {
   } = useQuery({
     queryKey: ['admin-recent-users'],
     queryFn: () => getRecentlyActiveUsers(7),
-    staleTime: 30 * 1000, // 30 secondes
+    staleTime: 0.2 * 1000, // 0.2 secondes
     enabled: isAdminStatus === true && allUsers.length > 0, // Dépend des données des utilisateurs
   });
 
@@ -74,7 +74,7 @@ const Admin = () => {
   } = useQuery({
     queryKey: ['admin-inactive-users'],
     queryFn: () => getInactiveUsers(7),
-    staleTime: 30 * 1000, // 30 secondes
+    staleTime: 0.2 * 1000, // 0.2 secondes
     enabled: isAdminStatus === true && allUsers.length > 0, // Dépend des données des utilisateurs
   });
 
