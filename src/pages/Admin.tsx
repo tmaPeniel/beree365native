@@ -44,7 +44,7 @@ const Admin = () => {
   } = useQuery({
     queryKey: ['admin-all-users'],
     queryFn: getUserStats,
-    staleTime: 10 * 1000, // 10 secondes
+    staleTime: 2 * 1000, // 10 secondes
     refetchOnWindowFocus: false,
     enabled: isAdminStatus === true,
     retry: (failureCount, error) => {
