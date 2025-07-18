@@ -4,7 +4,7 @@
  * Accessible uniquement aux utilisateurs avec le rôle admin
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,12 +15,14 @@ import AdminRoute from '@/components/admin/AdminRoute';
 import UserStatsTable from '@/components/admin/UserStatsTable';
 import AdminStats from '@/components/admin/AdminStats';
 import InactiveUsersCard from '@/components/admin/InactiveUsersCard';
+import SearchBar from '@/components/SearchBar';
 import { getUserStats, getRecentlyActiveUsers, getInactiveUsers, isCurrentUserAdmin } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
 import NavBar from '@/components/NavBar';
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('overview');
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Vérification du statut admin pour déboguer
   const { 
@@ -138,6 +140,19 @@ const Admin = () => {
       return nameA.localeCompare(nameB);
     });
   };
+
+  // Filtrer les utilisateurs selon la recherche
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery.trim()) return allUsers;
+    
+    return allUsers.filter(user => {
+      const searchLower = searchQuery.toLowerCase();
+      const fullName = (user.full_name || '').toLowerCase();
+      const email = (user.email || '').toLowerCase();
+      
+      return fullName.includes(searchLower) || email.includes(searchLower);
+    });
+  }, [allUsers, searchQuery]);
 
   // Affichage d'erreur si problème de chargement critique
   if (allUsersIsError && !allUsersLoading) {
@@ -278,10 +293,25 @@ const Admin = () => {
             <TabsContent value="all-users" className="mt-6">
               <Card>
                 <CardHeader>
-                  <CardTitle>Tous les utilisateurs ({allUsers.length})</CardTitle>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <CardTitle>Tous les utilisateurs ({allUsers.length})</CardTitle>
+                    <div className="w-full sm:w-80">
+                      <SearchBar
+                        value={searchQuery}
+                        onChange={setSearchQuery}
+                        placeholder="Rechercher par nom ou email..."
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                  {searchQuery && (
+                    <p className="text-sm text-muted-foreground mt-2">
+                      {filteredUsers.length} utilisateur{filteredUsers.length !== 1 ? 's' : ''} trouvé{filteredUsers.length !== 1 ? 's' : ''} pour "{searchQuery}"
+                    </p>
+                  )}
                 </CardHeader>
                 <CardContent>
-                  <UserStatsTable users={sortUsersByName(allUsers)} isLoading={allUsersLoading} />
+                  <UserStatsTable users={sortUsersByName(filteredUsers)} isLoading={allUsersLoading} />
                 </CardContent>
               </Card>
             </TabsContent>

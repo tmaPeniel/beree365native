@@ -15,10 +15,11 @@
  * - Interface responsive
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import NavBar from '@/components/NavBar';
 import ExpandedDayCard from '@/components/ExpandedDayCard';
 import DayNavigationControls from '@/components/DayNavigationControls';
+import SearchBar from '@/components/SearchBar';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useDateService } from '@/hooks/useDateService';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
@@ -39,6 +40,7 @@ const Reading = React.memo(() => {
   // Références et état local pour la navigation
   const currentDayRef = useRef<HTMLDivElement>(null);
   const [hasScrolledToDay, setHasScrolledToDay] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
 
@@ -106,6 +108,18 @@ const Reading = React.memo(() => {
   useEffect(() => {
     setHasScrolledToDay(false);
   }, [currentDayNumber]);
+
+  // Filtrer les données selon la recherche
+  const filteredData = useMemo(() => {
+    if (!searchQuery.trim()) return optimizedData;
+    
+    return optimizedData.filter(dayData => {
+      // Rechercher dans les références des chapitres
+      return dayData.chapters.some(chapter => 
+        chapter.reference.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [optimizedData, searchQuery]);
 
   // États de chargement avec interfaces claires
   if (authLoading || dayLoading) {
@@ -175,6 +189,16 @@ const Reading = React.memo(() => {
           Suivez votre progression au fil des jours
         </p>
         
+        {/* Barre de recherche */}
+        <div className="mt-4 max-w-md mx-auto">
+          <SearchBar
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
+            className="w-full"
+          />
+        </div>
+        
         {/* Contrôles de navigation centrés */}
         <div className="mt-4 flex justify-center">
           <DayNavigationControls 
@@ -186,6 +210,14 @@ const Reading = React.memo(() => {
       
       {/* Contenu principal - grille des jours */}
       <div className="container mx-auto px-4 pb-16">
+        {searchQuery && (
+          <div className="mb-4 text-center">
+            <p className="text-muted-foreground">
+              {filteredData.length} résultat{filteredData.length !== 1 ? 's' : ''} trouvé{filteredData.length !== 1 ? 's' : ''} pour "{searchQuery}"
+            </p>
+          </div>
+        )}
+        
         {optimizedData.length === 0 ? (
           /* État vide avec option de rechargement */
           <div className="text-center py-12">
@@ -197,10 +229,16 @@ const Reading = React.memo(() => {
               Recharger
             </button>
           </div>
+        ) : filteredData.length === 0 && searchQuery ? (
+          /* État de recherche sans résultats */
+          <div className="text-center py-12">
+            <p className="text-gray-600">Aucun passage trouvé pour "{searchQuery}"</p>
+            <p className="text-gray-500 text-sm mt-2">Essayez de rechercher par nom de livre (ex: Jean, Psaumes, Genèse...)</p>
+          </div>
         ) : (
           /* Grille responsive des jours */
           <div className={`grid gap-3 md:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-            {optimizedData.map(dayData => (
+            {filteredData.map(dayData => (
               <div
                 key={dayData.day}
                 ref={dayData.day === currentDayNumber ? currentDayRef : null}
