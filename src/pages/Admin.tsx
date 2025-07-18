@@ -211,10 +211,10 @@ const Admin = () => {
                 Gestion des utilisateurs et statistiques
               </p>
             </div>
-            <Button onClick={handleRefresh} variant="outline" size="sm">
+            {/* <Button onClick={handleRefresh} variant="outline" size="sm">
               <RefreshCw className="h-4 w-4 mr-2" />
               Actualiser
-            </Button>
+            </Button>*/}
           </div>
 
           {/* Statistiques générales */}
