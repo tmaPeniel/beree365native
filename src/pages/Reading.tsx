@@ -20,6 +20,8 @@ import NavBar from '@/components/NavBar';
 import ExpandedDayCard from '@/components/ExpandedDayCard';
 import DayNavigationControls from '@/components/DayNavigationControls';
 import SearchBar from '@/components/SearchBar';
+import { Button } from '@/components/ui/button';
+import { ChevronUp } from 'lucide-react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useDateService } from '@/hooks/useDateService';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
@@ -41,6 +43,7 @@ const Reading = React.memo(() => {
   const currentDayRef = useRef<HTMLDivElement>(null);
   const [hasScrolledToDay, setHasScrolledToDay] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
 
@@ -120,6 +123,25 @@ const Reading = React.memo(() => {
       );
     });
   }, [optimizedData, searchQuery]);
+
+  // Gestion du bouton scroll to top
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollToTop(scrollTop > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Fonction pour scroller vers le haut
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   // États de chargement avec interfaces claires
   if (authLoading || dayLoading) {
@@ -257,6 +279,18 @@ const Reading = React.memo(() => {
           </div>
         )}
       </div>
+      
+      {/* Bouton flottant pour revenir en haut */}
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToTop}
+          className="fixed bottom-24 right-4 z-50 h-12 w-12 rounded-full shadow-lg animate-fade-in hover-scale"
+          size="icon"
+          variant="default"
+        >
+          <ChevronUp className="h-5 w-5" />
+        </Button>
+      )}
       
       {/* Barre de navigation en bas */}
       <NavBar />
