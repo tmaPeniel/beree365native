@@ -13,6 +13,8 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { AlertCircle } from 'lucide-react';
+import { cn } from "@/lib/utils";
 
 // Types pour les propriétés du composant
 interface AuthFormProps {
@@ -69,11 +71,19 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <FormField
             control={form.control}
             name="email"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className={cn(fieldState.error && "text-destructive")}>
+                  Email
+                  {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
+                </FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="votre@email.com" {...field} />
+                  <Input 
+                    type="email" 
+                    placeholder="votre@email.com" 
+                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -83,11 +93,19 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <FormField
             control={form.control}
             name="password"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel>Mot de passe</FormLabel>
+                <FormLabel className={cn(fieldState.error && "text-destructive")}>
+                  Mot de passe
+                  {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
+                </FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -140,11 +158,18 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <FormField
             control={form.control}
             name="name"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel>Nom complet</FormLabel>
+                <FormLabel className={cn(fieldState.error && "text-destructive")}>
+                  Nom complet
+                  {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
+                </FormLabel>
                 <FormControl>
-                  <Input placeholder="Nom complet" {...field} />
+                  <Input 
+                    placeholder="Nom complet" 
+                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -154,11 +179,19 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <FormField
             control={form.control}
             name="email"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className={cn(fieldState.error && "text-destructive")}>
+                  Email
+                  {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
+                </FormLabel>
                 <FormControl>
-                  <Input type="email" placeholder="votre@email.com" {...field} />
+                  <Input 
+                    type="email" 
+                    placeholder="votre@email.com" 
+                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -168,11 +201,19 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <FormField
             control={form.control}
             name="password"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel>Mot de passe</FormLabel>
+                <FormLabel className={cn(fieldState.error && "text-destructive")}>
+                  Mot de passe
+                  {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
+                </FormLabel>
                 <FormControl>
-                  <Input type="password" placeholder="••••••••" {...field} />
+                  <Input 
+                    type="password" 
+                    placeholder="••••••••" 
+                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
+                    {...field} 
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -182,12 +223,16 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <FormField
             control={form.control}
             name="startDate"
-            render={({ field }) => (
+            render={({ field, fieldState }) => (
               <FormItem>
-                <FormLabel>Date de début du plan de lecture</FormLabel>
+                <FormLabel className={cn(fieldState.error && "text-destructive")}>
+                  Date de début du plan de lecture
+                  {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
+                </FormLabel>
                 <FormControl>
                   <Input 
                     type="date" 
+                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
                     onChange={(e) => {
                       const date = e.target.value ? new Date(e.target.value) : new Date();
                       field.onChange(date);
