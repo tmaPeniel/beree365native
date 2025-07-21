@@ -64,8 +64,22 @@ export const signIn = async (email: string, password: string) => {
     
     return { success: true, user: data.user };
   } catch (error: any) {
-    toast.error(`Erreur de connexion: ${error.message}`);
-    return { success: false, error: error.message };
+    // Messages d'erreur plus clairs et en français
+    let friendlyMessage = "";
+    
+    if (error.message === "Invalid login credentials") {
+      friendlyMessage = "Email ou mot de passe incorrect";
+    } else if (error.message.includes("Email not confirmed")) {
+      friendlyMessage = "Veuillez confirmer votre email avant de vous connecter";
+    } else if (error.message.includes("Invalid email")) {
+      friendlyMessage = "Adresse email invalide";
+    } else if (error.message.includes("Password")) {
+      friendlyMessage = "Mot de passe invalide";
+    } else {
+      friendlyMessage = "Erreur de connexion. Vérifiez vos identifiants";
+    }
+    
+    return { success: false, error: friendlyMessage };
   }
 };
 

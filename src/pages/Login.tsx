@@ -50,9 +50,13 @@ const Login = () => {
       if (result.success) {
         toast.success("Connexion réussie");
         navigate('/dashboard');
+      } else if (result.error) {
+        // Afficher l'erreur directement dans le formulaire
+        toast.error(result.error);
       }
     } catch (error) {
       console.error("Erreur de connexion:", error);
+      toast.error("Une erreur inattendue s'est produite");
     }
   };
   
