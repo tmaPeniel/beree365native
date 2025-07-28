@@ -11,6 +11,7 @@ import ProfileCard from '@/components/profile/ProfileCard';
 import StatsCard from '@/components/profile/StatsCard';
 import ProfileActions from '@/components/profile/ProfileActions';
 import ProfileHeader from '@/components/profile/ProfileHeader';
+import BadgesSection from '@/components/profile/BadgesSection';
 
 /**
  * Page de profil utilisateur
@@ -38,6 +39,9 @@ const Profile = () => {
         
         {/* Carte de statistiques */}
         <StatsCard />
+        
+        {/* Section badges et récompenses */}
+        <BadgesSection />
         
         {/* Boutons d'action */}
         <ProfileActions onEditProfile={() => {

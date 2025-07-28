@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { invalidateUserCacheSelective, optimizedToggleChapterStatus as newOptimizedToggle } from "./optimizedCacheService";
 import { ActivityService } from '../auth/activityService';
+import { calculateUserBadges } from '../badgeService';
 
 const DEBUG_MODE = true; // Activer les logs de debugging
 
@@ -90,7 +91,29 @@ export const invalidateProgressCache = (userId: string, dayNumber?: number) => {
 };
 
 /**
- * Fonction de toggle optimisée - Réexportation du service unifié
- * Cette fonction utilise le service de cache optimisé
+ * Fonction de toggle optimisée avec calcul automatique des badges
  */
-export const optimizedToggleChapterStatus = newOptimizedToggle;
+export const optimizedToggleChapterStatus = async (
+  userId: string,
+  chapterId: string,
+  newStatus: 'completed' | 'pending',
+  dayNumber?: number
+) => {
+  try {
+    // Appeler la fonction originale
+    const result = await newOptimizedToggle(userId, chapterId, newStatus, dayNumber);
+    
+    // Si le toggle a réussi et qu'un chapitre a été complété, calculer les badges
+    if (result?.success && newStatus === 'completed') {
+      // Calcul des badges en arrière-plan (ne pas attendre)
+      calculateUserBadges(userId).catch(error => {
+        console.error('Erreur lors du calcul des badges:', error);
+      });
+    }
+    
+    return result;
+  } catch (error) {
+    console.error('Erreur dans optimizedToggleChapterStatus avec badges:', error);
+    return { success: false, error: 'Erreur lors de la mise à jour' };
+  }
+};
