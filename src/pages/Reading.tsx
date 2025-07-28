@@ -17,7 +17,7 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import NavBar from '@/components/NavBar';
-import ExpandedDayCard from '@/components/ExpandedDayCard';
+import MonthlyReadingPlan from '@/components/MonthlyReadingPlan';
 import DayNavigationControls from '@/components/DayNavigationControls';
 import SearchBar from '@/components/SearchBar';
 import { Button } from '@/components/ui/button';
@@ -258,25 +258,13 @@ const Reading = React.memo(() => {
             <p className="text-gray-500 text-sm mt-2">Essayez de rechercher par nom de livre (ex: Jean, Psaumes, Genèse...)</p>
           </div>
         ) : (
-          /* Grille responsive des jours */
-          <div className={`grid gap-3 md:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-            {filteredData.map(dayData => (
-              <div
-                key={dayData.day}
-                ref={dayData.day === currentDayNumber ? currentDayRef : null}
-                className="transition-all duration-300"
-              >
-                <ExpandedDayCard 
-                  day={dayData.day} 
-                  date={dayData.date} 
-                  isToday={dayData.day === currentDayNumber} 
-                  chapters={dayData.chapters} 
-                  progressPercentage={dayData.progressPercentage} 
-                  isMobile={isMobile} 
-                />
-              </div>
-            ))}
-          </div>
+          /* Organisation mensuelle du plan de lecture */
+          <MonthlyReadingPlan
+            readingData={filteredData}
+            currentDayNumber={currentDayNumber}
+            currentDayRef={currentDayRef}
+            isMobile={isMobile}
+          />
         )}
       </div>
       
