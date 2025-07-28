@@ -25,7 +25,7 @@ interface GlobalCacheEntry {
 
 const globalCache = new Map<string, GlobalCacheEntry>();
 const CACHE_DURATION = 2 * 60 * 1000; // RÉDUIT : 2 minutes au lieu de 5
-const DEBUG_MODE = true; // Activer les logs de debugging
+const DEBUG_MODE = false; // Activer les logs de debugging
 
 /**
  * Génère une clé de cache

@@ -122,9 +122,6 @@ const MonthlyReadingPlan: React.FC<MonthlyReadingPlanProps> = ({
           <h2 className="text-lg font-semibold text-gray-800 capitalize">
             {currentMonth.monthName} {currentMonth.year}
           </h2>
-          <p className="text-sm text-gray-500">
-            Page {currentPage + 1} sur {monthlyData.length}
-          </p>
           {currentPage !== currentMonthIndex && (
             <Button
               variant="link"
@@ -151,14 +148,6 @@ const MonthlyReadingPlan: React.FC<MonthlyReadingPlanProps> = ({
 
       {/* Affichage du mois courant */}
       <Card className="bg-white shadow-sm">
-        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 border-b">
-          <CardTitle className="text-xl md:text-2xl font-bold text-blue-800 capitalize text-center">
-            {currentMonth.monthName} {currentMonth.year}
-          </CardTitle>
-          <p className="text-center text-sm text-blue-600">
-            {currentMonth.days.length} jour{currentMonth.days.length > 1 ? 's' : ''}
-          </p>
-        </CardHeader>
         
         <CardContent className="p-4 md:p-6">
           {/* Grille des jours du mois */}

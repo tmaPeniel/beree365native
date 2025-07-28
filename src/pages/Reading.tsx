@@ -45,8 +45,6 @@ const Reading = React.memo(() => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showScrollToTop, setShowScrollToTop] = useState(false);
 
-  console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
-
   /**
    * Fonction pour faire défiler vers le jour courant
    * Inclut une animation et un feedback visuel
