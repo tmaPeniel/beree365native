@@ -1,16 +1,21 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
 import { signOut } from '@/services/authService';
+import { supabase } from '@/integrations/supabase/client';
+import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 
 /**
  * Boutons d'action pour le profil utilisateur
  */
 const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
   const navigate = useNavigate();
+  const { user } = useOptimizedAuth();
+  const [isResetting, setIsResetting] = useState(false);
   
   /**
    * Gère la déconnexion de l'utilisateur
@@ -38,6 +43,51 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
     }
   };
 
+  /**
+   * Réinitialise le plan de lecture de l'utilisateur
+   */
+  const handleResetPlan = async () => {
+    if (!user?.id) return;
+    
+    setIsResetting(true);
+    try {
+      // Supprimer toute la progression de l'utilisateur
+      const { error: progressError } = await supabase
+        .from('user_progress')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (progressError) throw progressError;
+
+      // Supprimer tous les badges de l'utilisateur
+      const { error: badgesError } = await supabase
+        .from('user_badges')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (badgesError) throw badgesError;
+
+      // Remettre le jour courant à 1 et la date de début à aujourd'hui
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({ 
+          current_day_number: 1,
+          start_date: new Date().toISOString().split('T')[0]
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      toast.success("Votre plan de lecture a été réinitialisé !");
+      navigate('/dashboard');
+    } catch (error) {
+      console.error("Erreur lors de la réinitialisation:", error);
+      toast.error("Erreur lors de la réinitialisation du plan");
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <Button 
@@ -47,6 +97,39 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
       >
         Modifier le profil
       </Button>
+      
+      <Separator />
+      
+      <AlertDialog>
+        <AlertDialogTrigger asChild>
+          <Button 
+            variant="outline" 
+            className="w-full h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50"
+            disabled={isResetting}
+          >
+            {isResetting ? "Réinitialisation..." : "Réinitialiser mon plan"}
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirmer la réinitialisation</AlertDialogTitle>
+            <AlertDialogDescription>
+              Êtes-vous sûr de vouloir réinitialiser votre plan de lecture ? 
+              Cette action supprimera définitivement toute votre progression et vos badges. 
+              Vous recommencerez au jour 1.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleResetPlan}
+              className="bg-red-500 hover:bg-red-600"
+            >
+              Réinitialiser
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       
       <Separator />
       
