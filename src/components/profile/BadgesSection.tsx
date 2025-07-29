@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Trophy, Award, Star, Lock } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { getAllBadges, getUserBadges, calculateUserBadges, getBadgeStats } from '@/services/badgeService';
+import { getAllBadges, getUserBadges, calculateUserBadges, getBadgeStats, getBadgeProgress } from '@/services/badgeService';
 import type { Badge as BadgeType, UserBadge } from '@/services/badgeService';
 import { toast } from 'sonner';
 
@@ -58,10 +58,63 @@ const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlocked
   );
 };
 
+interface BadgeProgressDisplayProps {
+  badge: BadgeType;
+  progress: number;
+  current: number;
+  required: number;
+}
+
+const BadgeProgressDisplay: React.FC<BadgeProgressDisplayProps> = ({ badge, progress, current, required }) => {
+  return (
+    <div className="relative p-4 rounded-lg border-2 border-gray-200 bg-gray-50 transition-all duration-300">
+      {/* Badge icon */}
+      <div className="text-4xl mb-2 text-center grayscale">
+        {badge.icon}
+      </div>
+      
+      {/* Badge info */}
+      <div className="text-center">
+        <h3 className="font-semibold text-sm text-gray-500">
+          {badge.name}
+        </h3>
+        <p className="text-xs mt-1 text-gray-400">
+          {badge.description}
+        </p>
+        
+        {/* Progression */}
+        <div className="mt-3">
+          <div className="flex justify-between text-xs text-gray-600 mb-1">
+            <span>{current}</span>
+            <span>{required}</span>
+          </div>
+          <div className="w-full bg-gray-200 rounded-full h-2">
+            <div 
+              className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full transition-all duration-500"
+              style={{ width: `${progress}%` }}
+            ></div>
+          </div>
+          <div className="mt-1">
+            <Badge variant="outline" className="text-xs text-blue-600 border-blue-300">
+              {progress}%
+            </Badge>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const BadgesSection: React.FC = () => {
   const { user } = useOptimizedAuth();
   const [allBadges, setAllBadges] = useState<BadgeType[]>([]);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
+  const [badgeProgress, setBadgeProgress] = useState<{
+    badge: BadgeType;
+    progress: number;
+    current: number;
+    required: number;
+  }[]>([]);
   const [badgeStats, setBadgeStats] = useState({
     totalBadges: 0,
     unlockedBadges: 0,
@@ -80,15 +133,17 @@ const BadgesSection: React.FC = () => {
       await calculateUserBadges(user.id);
       
       // Charger toutes les données
-      const [badges, userBadgesData, stats] = await Promise.all([
+      const [badges, userBadgesData, stats, progress] = await Promise.all([
         getAllBadges(),
         getUserBadges(user.id),
-        getBadgeStats(user.id)
+        getBadgeStats(user.id),
+        getBadgeProgress(user.id)
       ]);
 
       setAllBadges(badges);
       setUserBadges(userBadgesData);
       setBadgeStats(stats);
+      setBadgeProgress(progress);
     } catch (error) {
       console.error('Erreur lors du chargement des badges:', error);
       toast.error('Impossible de charger les badges');
@@ -169,6 +224,27 @@ const BadgesSection: React.FC = () => {
                   badge={userBadge.badge}
                   isUnlocked={true}
                   unlockedAt={userBadge.unlocked_at}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Badges à débloquer */}
+        {badgeProgress.length > 0 && (
+          <div className="mb-6">
+            <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
+              <Lock className="h-4 w-4 text-blue-500" />
+              Badges à débloquer
+            </h4>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+              {badgeProgress.slice(0, 6).map((badgeItem) => (
+                <BadgeProgressDisplay
+                  key={badgeItem.badge.id}
+                  badge={badgeItem.badge}
+                  progress={badgeItem.progress}
+                  current={badgeItem.current}
+                  required={badgeItem.required}
                 />
               ))}
             </div>

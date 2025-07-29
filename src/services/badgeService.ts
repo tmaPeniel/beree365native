@@ -115,6 +115,74 @@ export const unlockBadge = async (userId: string, badgeId: string): Promise<bool
 };
 
 /**
+ * Calculer le pourcentage de progression pour chaque badge non débloqué
+ */
+export const getBadgeProgress = async (userId: string): Promise<{
+  badge: Badge;
+  progress: number;
+  current: number;
+  required: number;
+}[]> => {
+  try {
+    // Récupérer tous les badges
+    const allBadges = await getAllBadges();
+    
+    // Récupérer les badges déjà débloqués
+    const userBadges = await getUserBadges(userId);
+    const unlockedBadgeIds = userBadges.map(ub => ub.badge_id);
+    
+    // Filtrer les badges non débloqués
+    const lockedBadges = allBadges.filter(badge => !unlockedBadgeIds.includes(badge.id));
+    
+    // Récupérer les statistiques utilisateur
+    const { data: progressData } = await supabase
+      .from('user_progress')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('status', 'completed');
+    
+    const completedChapters = progressData?.length || 0;
+    
+    // Calculer les jours complets
+    const { data: completedDaysData } = await supabase
+      .rpc('get_completed_days_count', { p_user_id: userId });
+    
+    const completedDays = completedDaysData || 0;
+    
+    // Calculer la progression pour chaque badge
+    const badgeProgress = lockedBadges.map(badge => {
+      const criteria = badge.criteria;
+      let current = 0;
+      let required = 0;
+      let progress = 0;
+      
+      if (criteria.type === 'chapters_read') {
+        current = completedChapters;
+        required = criteria.count;
+        progress = Math.min((current / required) * 100, 100);
+      } else if (criteria.type === 'days_completed' || criteria.type === 'milestone') {
+        current = completedDays;
+        required = criteria.count;
+        progress = Math.min((current / required) * 100, 100);
+      }
+      
+      return {
+        badge,
+        progress: Math.round(progress),
+        current,
+        required
+      };
+    });
+    
+    // Trier par progression décroissante
+    return badgeProgress.sort((a, b) => b.progress - a.progress);
+  } catch (error) {
+    console.error('Erreur lors du calcul de progression des badges:', error);
+    return [];
+  }
+};
+
+/**
  * Récupérer les statistiques de badges pour un utilisateur
  */
 export const getBadgeStats = async (userId: string) => {
