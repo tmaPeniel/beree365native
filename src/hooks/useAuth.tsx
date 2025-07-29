@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           try {
             console.log("Récupération du profil après connexion...");
             const userProfile = await refreshUserProfile(session.user.id);
-            console.log("Profil récupéré après connexion:", userProfile);
+            console.log("Profil récupéré après connexion:", userProfile.full_name);
             setProfile(userProfile);
           } catch (error) {
             console.error("Erreur lors de la récupération du profil après connexion:", error);
