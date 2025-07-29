@@ -17,28 +17,25 @@ interface BadgeDisplayProps {
 
 const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlockedAt }) => {
   return (
-    <div className={`relative p-4 rounded-lg border-2 transition-all duration-300 ${
+    <div className={`relative p-3 rounded-lg border-2 transition-all duration-300 min-w-[120px] flex-shrink-0 ${
       isUnlocked 
         ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg' 
         : 'border-gray-200 bg-gray-50 opacity-60'
     }`}>
       {/* Badge icon */}
-      <div className={`text-4xl mb-2 text-center ${isUnlocked ? '' : 'grayscale'}`}>
+      <div className={`text-3xl mb-2 text-center ${isUnlocked ? '' : 'grayscale'}`}>
         {badge.icon}
       </div>
       
       {/* Badge info */}
       <div className="text-center">
-        <h3 className={`font-semibold text-sm ${isUnlocked ? 'text-gray-800' : 'text-gray-500'}`}>
+        <h3 className={`font-semibold text-xs ${isUnlocked ? 'text-gray-800' : 'text-gray-500'} line-clamp-2 min-h-[2rem]`}>
           {badge.name}
         </h3>
-        <p className={`text-xs mt-1 ${isUnlocked ? 'text-gray-600' : 'text-gray-400'}`}>
-          {badge.description}
-        </p>
         
         {isUnlocked && unlockedAt && (
           <div className="mt-2">
-            <Badge variant="secondary" className="text-xs">
+            <Badge variant="secondary" className="text-xs px-1 py-0">
               <Award className="h-3 w-3 mr-1" />
               Débloqué
             </Badge>
@@ -47,7 +44,7 @@ const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlocked
         
         {!isUnlocked && (
           <div className="mt-2">
-            <Badge variant="outline" className="text-xs text-gray-500">
+            <Badge variant="outline" className="text-xs text-gray-500 px-1 py-0">
               <Lock className="h-3 w-3 mr-1" />
               Verrouillé
             </Badge>
@@ -67,35 +64,32 @@ interface BadgeProgressDisplayProps {
 
 const BadgeProgressDisplay: React.FC<BadgeProgressDisplayProps> = ({ badge, progress, current, required }) => {
   return (
-    <div className="relative p-4 rounded-lg border-2 border-gray-200 bg-gray-50 transition-all duration-300">
+    <div className="relative p-3 rounded-lg border-2 border-gray-200 bg-gray-50 transition-all duration-300 min-w-[140px] flex-shrink-0">
       {/* Badge icon */}
-      <div className="text-4xl mb-2 text-center grayscale">
+      <div className="text-3xl mb-2 text-center grayscale">
         {badge.icon}
       </div>
       
       {/* Badge info */}
       <div className="text-center">
-        <h3 className="font-semibold text-sm text-gray-500">
+        <h3 className="font-semibold text-xs text-gray-500 line-clamp-2 min-h-[2rem]">
           {badge.name}
         </h3>
-        <p className="text-xs mt-1 text-gray-400">
-          {badge.description}
-        </p>
         
         {/* Progression */}
-        <div className="mt-3">
+        <div className="mt-2">
           <div className="flex justify-between text-xs text-gray-600 mb-1">
             <span>{current}</span>
             <span>{required}</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div 
-              className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-blue-400 to-purple-500 h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
           <div className="mt-1">
-            <Badge variant="outline" className="text-xs text-blue-600 border-blue-300">
+            <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 px-1 py-0">
               {progress}%
             </Badge>
           </div>
@@ -217,7 +211,7 @@ const BadgesSection: React.FC = () => {
               <Star className="h-4 w-4 text-yellow-500" />
               Derniers badges débloqués
             </h4>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {badgeStats.latestBadges.map((userBadge: any) => (
                 <BadgeDisplay
                   key={userBadge.id}
@@ -237,8 +231,8 @@ const BadgesSection: React.FC = () => {
               <Lock className="h-4 w-4 text-blue-500" />
               Badges à débloquer
             </h4>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-              {badgeProgress.slice(0, 6).map((badgeItem) => (
+            <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
+              {badgeProgress.slice(0, 8).map((badgeItem) => (
                 <BadgeProgressDisplay
                   key={badgeItem.badge.id}
                   badge={badgeItem.badge}
