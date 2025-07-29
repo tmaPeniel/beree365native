@@ -232,7 +232,7 @@ const BadgesSection: React.FC = () => {
               Badges à débloquer
             </h4>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {badgeProgress.slice(0, 8).map((badgeItem) => (
+              {badgeProgress.map((badgeItem) => (
                 <BadgeProgressDisplay
                   key={badgeItem.badge.id}
                   badge={badgeItem.badge}
