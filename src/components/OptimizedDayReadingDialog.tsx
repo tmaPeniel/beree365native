@@ -1,5 +1,5 @@
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { getReadingPlanForDay } from '@/services/readingPlan';
@@ -7,6 +7,7 @@ import { getCachedUserProgressForDay, optimizedToggleChapterStatus } from '@/ser
 import { Check, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import CelebrationEffects from '@/components/animations/CelebrationEffects';
 
 interface ReadingItem {
   id: string;
@@ -29,6 +30,7 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
 }) => {
   const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
   const queryClient = useQueryClient();
   
   const formattedDate = useMemo(() => 
@@ -66,6 +68,21 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
       };
     });
   }, [chaptersData, progressData]);
+
+  // Vérifier si le jour est complètement terminé
+  const isDayComplete = useMemo(() => {
+    return readingItems.length > 0 && readingItems.every(item => item.completed);
+  }, [readingItems]);
+
+  // Déclencher l'animation de célébration quand le jour est complété
+  useEffect(() => {
+    if (isDayComplete && readingItems.length > 0) {
+      setShowCelebration(true);
+      toast.success(`🎉 Félicitations ! Jour ${day} terminé !`, {
+        duration: 3000,
+      });
+    }
+  }, [isDayComplete, readingItems.length, day]);
   
   const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
     // Empêcher la propagation et le comportement par défaut
@@ -174,26 +191,27 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
           ) : (
             <div className="space-y-3 max-h-[60vh] overflow-y-auto px-1">
               {readingItems.length > 0 ? (
-                readingItems.map((item) => (
+                readingItems.map((item, index) => (
                   <button
                     key={item.id}
                     type="button"
                     onClick={(event) => !processingIds.includes(item.id) && handleToggleRead(event, item.id)}
                     disabled={processingIds.includes(item.id)}
-                    className={`flex items-center w-full p-3 text-left rounded-md hover:bg-gray-100 transition-colors ${
-                      item.completed ? 'text-gray-400 bg-gray-50' : 'text-gray-800'
+                    className={`flex items-center w-full p-3 text-left rounded-md hover:bg-gray-100 transition-all duration-300 ${
+                      item.completed ? 'text-gray-400 bg-gray-50 animate-completion-burst' : 'text-gray-800 hover:scale-105'
                     } ${processingIds.includes(item.id) ? 'opacity-70' : ''}`}
+                    style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className={`h-6 w-6 rounded mr-3 flex items-center justify-center transition-colors ${
-                      item.completed ? 'bg-green-500' : 'border-2 border-green-300'
+                    <div className={`h-6 w-6 rounded mr-3 flex items-center justify-center transition-all duration-300 ${
+                      item.completed ? 'bg-green-500 animate-scale-in' : 'border-2 border-green-300 hover:border-green-500'
                     }`}>
                       {processingIds.includes(item.id) ? (
                         <Loader2 className="h-4 w-4 text-white animate-spin" />
                       ) : (
-                        item.completed && <Check className="h-4 w-4 text-white" />
+                        item.completed && <Check className="h-4 w-4 text-white animate-bounce-gentle" />
                       )}
                     </div>
-                    <span className={item.completed ? 'line-through' : ''}>
+                    <span className={`transition-all duration-300 ${item.completed ? 'line-through' : ''}`}>
                       {item.reference}
                     </span>
                   </button>
@@ -206,6 +224,13 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
             </div>
           )}
         </div>
+        
+        {/* Animation de célébration pour jour complété */}
+        <CelebrationEffects 
+          trigger={showCelebration}
+          type="day-complete"
+          onComplete={() => setShowCelebration(false)}
+        />
       </DialogContent>
     </Dialog>
   );

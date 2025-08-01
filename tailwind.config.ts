@@ -170,6 +170,63 @@ export default {
 					'28%': { transform: 'scale(1)' },
 					'42%': { transform: 'scale(1.1)' },
 					'70%': { transform: 'scale(1)' }
+				},
+				'confetti-pop': {
+					'0%': { 
+						transform: 'scale(0) rotate(0deg)',
+						opacity: '1'
+					},
+					'50%': { 
+						transform: 'scale(1.2) rotate(180deg)',
+						opacity: '1'
+					},
+					'100%': { 
+						transform: 'scale(0.8) rotate(360deg)',
+						opacity: '0.7'
+					}
+				},
+				'completion-burst': {
+					'0%': { 
+						transform: 'scale(1)',
+						boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)'
+					},
+					'70%': { 
+						transform: 'scale(1.05)',
+						boxShadow: '0 0 0 10px rgba(34, 197, 94, 0)'
+					},
+					'100%': { 
+						transform: 'scale(1)',
+						boxShadow: '0 0 0 0 rgba(34, 197, 94, 0)'
+					}
+				},
+				'progress-fill': {
+					'0%': { 
+						strokeDashoffset: '100%'
+					},
+					'100%': { 
+						strokeDashoffset: '0%'
+					}
+				},
+				'badge-unlock': {
+					'0%': { 
+						transform: 'scale(0) rotate(-180deg)',
+						opacity: '0'
+					},
+					'50%': { 
+						transform: 'scale(1.3) rotate(0deg)',
+						opacity: '1'
+					},
+					'100%': { 
+						transform: 'scale(1) rotate(0deg)',
+						opacity: '1'
+					}
+				},
+				'tada': {
+					'0%': { transform: 'scale3d(1, 1, 1)' },
+					'10%, 20%': { transform: 'scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, -3deg)' },
+					'30%, 50%, 70%, 90%': { transform: 'scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg)' },
+					'40%, 60%, 80%': { transform: 'scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg)' },
+					'100%': { transform: 'scale3d(1, 1, 1)' }
 				}
 			},
 			animation: {
@@ -184,6 +241,11 @@ export default {
 				'wiggle': 'wiggle 0.5s ease-in-out',
 				'heart-beat': 'heart-beat 1.5s ease-in-out infinite',
 				'enter': 'fade-in 0.3s ease-out, scale-in 0.2s ease-out',
+				'confetti-pop': 'confetti-pop 0.6s ease-out',
+				'completion-burst': 'completion-burst 0.8s ease-out',
+				'progress-fill': 'progress-fill 2s ease-out',
+				'badge-unlock': 'badge-unlock 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+				'tada': 'tada 1s ease-in-out',
 			}
 		}
 	},

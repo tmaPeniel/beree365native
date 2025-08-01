@@ -1,0 +1,45 @@
+import { useState, useEffect } from 'react';
+import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import { getDayProgress } from '@/services/readingPlan';
+import { useQuery } from '@tanstack/react-query';
+
+export const useDayCompletion = (dayNumber: number) => {
+  const { user, progressUpdateCounter } = useOptimizedAuth();
+  const [wasIncomplete, setWasIncomplete] = useState(false);
+  const [showCelebration, setShowCelebration] = useState(false);
+
+  // Surveiller le progrès du jour
+  const { data: progressPercentage = 0, isLoading } = useQuery({
+    queryKey: ['day-progress', user?.id, dayNumber, progressUpdateCounter],
+    queryFn: () => user ? getDayProgress(user.id, dayNumber) : 0,
+    enabled: !!user && !!dayNumber,
+    staleTime: 30 * 1000,
+    refetchInterval: 5000 // Vérifier toutes les 5 secondes
+  });
+
+  const isComplete = progressPercentage === 100;
+
+  useEffect(() => {
+    // Si le jour était incomplet et devient complet, déclencher la célébration
+    if (wasIncomplete && isComplete && !isLoading) {
+      setShowCelebration(true);
+      
+      // Réinitialiser après animation
+      setTimeout(() => {
+        setShowCelebration(false);
+      }, 3000);
+    }
+    
+    // Mettre à jour l'état de completion précédent
+    if (!isLoading) {
+      setWasIncomplete(!isComplete);
+    }
+  }, [isComplete, wasIncomplete, isLoading]);
+
+  return {
+    isComplete,
+    progressPercentage,
+    showCelebration,
+    isLoading
+  };
+};

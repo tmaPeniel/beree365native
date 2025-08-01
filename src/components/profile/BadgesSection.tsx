@@ -8,6 +8,7 @@ import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { getAllBadges, getUserBadges, calculateUserBadges, getBadgeStats, getBadgeProgress } from '@/services/badgeService';
 import type { Badge as BadgeType, UserBadge } from '@/services/badgeService';
 import { toast } from 'sonner';
+import CelebrationEffects from '@/components/animations/CelebrationEffects';
 
 interface BadgeDisplayProps {
   badge: BadgeType;
@@ -17,13 +18,15 @@ interface BadgeDisplayProps {
 
 const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlockedAt }) => {
   return (
-    <div className={`relative p-3 rounded-lg border-2 transition-all duration-300 min-w-[120px] flex-shrink-0 ${
+    <div className={`relative p-3 rounded-lg border-2 transition-all duration-300 min-w-[120px] flex-shrink-0 hover:scale-105 ${
       isUnlocked 
-        ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg' 
-        : 'border-gray-200 bg-gray-50 opacity-60'
+        ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg animate-badge-unlock' 
+        : 'border-gray-200 bg-gray-50 opacity-60 hover:opacity-80'
     }`}>
       {/* Badge icon */}
-      <div className={`text-3xl mb-2 text-center ${isUnlocked ? '' : 'grayscale'}`}>
+      <div className={`text-3xl mb-2 text-center transition-all duration-300 ${
+        isUnlocked ? 'animate-heart-beat' : 'grayscale hover:grayscale-0'
+      }`}>
         {badge.icon}
       </div>
       
@@ -103,6 +106,8 @@ const BadgesSection: React.FC = () => {
   const { user } = useOptimizedAuth();
   const [allBadges, setAllBadges] = useState<BadgeType[]>([]);
   const [userBadges, setUserBadges] = useState<UserBadge[]>([]);
+  const [previousBadgeCount, setPreviousBadgeCount] = useState(0);
+  const [showBadgeCelebration, setShowBadgeCelebration] = useState(false);
   const [badgeProgress, setBadgeProgress] = useState<{
     badge: BadgeType;
     progress: number;
@@ -135,7 +140,17 @@ const BadgesSection: React.FC = () => {
       ]);
 
       setAllBadges(badges);
+      
+      // Détecter les nouveaux badges
+      if (previousBadgeCount > 0 && userBadgesData.length > previousBadgeCount) {
+        setShowBadgeCelebration(true);
+        toast.success('🏆 Nouveau badge débloqué !', {
+          duration: 3000,
+        });
+      }
+      
       setUserBadges(userBadgesData);
+      setPreviousBadgeCount(userBadgesData.length);
       setBadgeStats(stats);
       setBadgeProgress(progress);
     } catch (error) {
@@ -179,12 +194,13 @@ const BadgesSection: React.FC = () => {
   }
 
   return (
-    <Card className="bg-white shadow-sm">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-5 w-5 text-yellow-500" />
-          Badges et Récompenses
-        </CardTitle>
+    <>
+      <Card className="bg-white shadow-sm animate-slide-up">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 animate-fade-in">
+            <Trophy className="h-5 w-5 text-yellow-500 animate-wiggle" />
+            Badges et Récompenses
+          </CardTitle>
         <div className="flex items-center justify-between mt-2">
           <div className="text-sm text-gray-600">
             {badgeStats.unlockedBadges} / {badgeStats.totalBadges} badges débloqués
@@ -287,7 +303,15 @@ const BadgesSection: React.FC = () => {
           </DialogContent>
         </Dialog>
       </CardContent>
+      
+      {/* Animation de célébration pour nouveau badge */}
+      <CelebrationEffects 
+        trigger={showBadgeCelebration}
+        type="badge-unlock"
+        onComplete={() => setShowBadgeCelebration(false)}
+      />
     </Card>
+    </>
   );
 };
 

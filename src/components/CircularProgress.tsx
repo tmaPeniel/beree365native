@@ -1,11 +1,14 @@
 
 import React from 'react';
+import { useProgressAnimation } from '@/hooks/useProgressAnimation';
 
 interface CircularProgressProps {
   progress: number; // 0-100
   size?: number;
   strokeWidth?: number;
   className?: string;
+  animate?: boolean;
+  animationDelay?: number;
 }
 
 const CircularProgress: React.FC<CircularProgressProps> = ({
@@ -13,10 +16,19 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   size = 160,
   strokeWidth = 12,
   className = "",
+  animate = true,
+  animationDelay = 500,
 }) => {
+  const { animatedProgress } = useProgressAnimation({
+    targetProgress: progress,
+    duration: 2000,
+    delay: animationDelay
+  });
+  
+  const displayProgress = animate ? animatedProgress : progress;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
-  const strokeDashoffset = circumference - (progress / 100) * circumference;
+  const strokeDashoffset = circumference - (displayProgress / 100) * circumference;
   
   return (
     <div className={`relative ${className} animate-scale-in`} style={{ width: size, height: size }}>
@@ -44,16 +56,12 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          className="transition-all duration-1000 ease-out"
-          style={{ 
-            animationDelay: '0.5s',
-            strokeDashoffset: progress === 0 ? circumference : strokeDashoffset
-          }}
+          className="transition-all duration-300 ease-out"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in" style={{ animationDelay: '0.8s' }}>
+      <div className="absolute inset-0 flex flex-col items-center justify-center animate-fade-in" style={{ animationDelay: `${animationDelay + 800}ms` }}>
         <span className="text-3xl font-semibold transition-all duration-500 hover:scale-110">
-          {Math.round(progress)}%
+          {Math.round(displayProgress)}%
         </span>
       </div>
     </div>

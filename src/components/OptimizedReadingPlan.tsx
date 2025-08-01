@@ -12,6 +12,8 @@ import { getReadingPlanForDay } from '@/services/readingPlan';
 import { getCachedUserProgressForDay, optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useDayCompletion } from '@/hooks/useDayCompletion';
+import CelebrationEffects from '@/components/animations/CelebrationEffects';
 
 // Types pour une meilleure lisibilité du code
 interface ReadingItem {
@@ -33,6 +35,9 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const queryClient = useQueryClient();
+  
+  // Hook pour la détection de completion du jour
+  const { showCelebration } = useDayCompletion(dayNumber);
 
   // Configuration React Query CORRIGÉE - plus réactive avec rafraîchissement automatique
   const { data: chaptersData = [] } = useQuery({
@@ -253,6 +258,12 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
           )}
         </div>
         
+        {/* Animation de célébration pour jour complété */}
+        <CelebrationEffects 
+          trigger={showCelebration}
+          type="day-complete"
+          onComplete={() => {}}
+        />
       </CardContent>
     </Card>
   );
