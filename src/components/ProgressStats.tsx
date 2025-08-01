@@ -69,10 +69,10 @@ const ProgressStats = () => {
   }
   
   return (
-    <Card className="bg-white border-none shadow-sm">
+    <Card className="bg-white border-none shadow-sm animate-slide-up">
       <CardContent className="p-4 md:p-6">
         {/* En-tête de la section */}
-        <h2 className="text-md md:text-lg font-semibold mb-4 text-center text-blue-600 bg-blue-50 py-2 rounded-md">
+        <h2 className="text-md md:text-lg font-semibold mb-4 text-center text-blue-600 bg-blue-50 py-2 rounded-md animate-slide-down">
           PROGRESSION GLOBALE
         </h2>
         
@@ -80,19 +80,19 @@ const ProgressStats = () => {
           {/* Partie gauche - Statistiques textuelles */}
           <div className="w-full md:w-3/5 space-y-2 md:space-y-3">
             {/* Total de passages à lire */}
-            <div className="grid grid-cols-2 items-center bg-purple-50 p-2 md:p-3 rounded-md">
+            <div className="grid grid-cols-2 items-center bg-purple-50 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-purple-100 hover:scale-105 animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages à lire</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.totalPassages}</span>
             </div>
             
             {/* Total de passages lus */}
-            <div className="grid grid-cols-2 items-center bg-orange-100 p-2 md:p-3 rounded-md">
+            <div className="grid grid-cols-2 items-center bg-orange-100 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-orange-200 hover:scale-105 animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages lus</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
             </div>
             
             {/* Total passages restants */}
-            <div className="grid grid-cols-2 items-center bg-gray-100 p-2 md:p-3 rounded-md border-r-2 border-gray-400">
+            <div className="grid grid-cols-2 items-center bg-gray-100 p-2 md:p-3 rounded-md border-r-2 border-gray-400 transition-all duration-300 hover:bg-gray-200 hover:scale-105 animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <span className="text-sm md:text-base text-gray-700 font-medium">Total Passages restants</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRemaining}</span>
             </div>
