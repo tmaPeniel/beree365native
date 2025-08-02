@@ -195,11 +195,17 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
                   <button
                     key={item.id}
                     type="button"
-                    onClick={(event) => !processingIds.includes(item.id) && handleToggleRead(event, item.id)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (!processingIds.includes(item.id)) {
+                        handleToggleRead(event, item.id);
+                      }
+                    }}
                     disabled={processingIds.includes(item.id)}
-                    className={`flex items-center w-full p-3 text-left rounded-md hover:bg-gray-100 transition-all duration-300 ${
-                      item.completed ? 'text-gray-400 bg-gray-50 animate-completion-burst' : 'text-gray-800 hover:scale-105'
-                    } ${processingIds.includes(item.id) ? 'opacity-70' : ''}`}
+                    className={`flex items-center w-full p-3 text-left rounded-md transition-all duration-300 ${
+                      item.completed ? 'text-gray-400 bg-gray-50 animate-completion-burst' : 'text-gray-800 hover:bg-gray-100 hover:scale-105'
+                    } ${processingIds.includes(item.id) ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className={`h-6 w-6 rounded mr-3 flex items-center justify-center transition-all duration-300 ${

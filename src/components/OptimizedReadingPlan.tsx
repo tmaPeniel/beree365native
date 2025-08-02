@@ -186,22 +186,26 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     <li className="flex items-center">
       <button
         type="button"
-        onClick={onToggle}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onToggle(e);
+        }}
         disabled={isProcessing}
-        className={`flex items-center w-full text-left transition-all ${
+        className={`flex items-center w-full text-left transition-all duration-200 ${
           item.completed ? 'text-gray-400' : 'text-gray-800'
-        } ${isProcessing ? 'opacity-70' : 'hover:bg-gray-50 rounded p-1'}`}
+        } ${isProcessing ? 'opacity-70 cursor-not-allowed' : 'hover:bg-gray-50 rounded p-2 cursor-pointer'}`}
       >
-        <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-colors ${
-          item.completed ? 'bg-green-500' : 'border-2 border-green-300 hover:border-green-400'
+        <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-all duration-200 ${
+          item.completed ? 'bg-green-500 scale-110' : 'border-2 border-green-300 hover:border-green-400 hover:scale-105'
         }`}>
           {isProcessing ? (
             <Loader2 className="h-3 w-3 text-white animate-spin" />
           ) : (
-            item.completed && <Check className="h-3 w-3 text-white" />
+            item.completed && <Check className="h-3 w-3 text-white animate-fade-in" />
           )}
         </div>
-        <span className={item.completed ? 'line-through' : ''}>
+        <span className={`transition-all duration-200 ${item.completed ? 'line-through' : ''}`}>
           {item.reference}
         </span>
       </button>

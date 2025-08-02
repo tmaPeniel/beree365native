@@ -49,14 +49,14 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
       setParticles(newParticles);
 
       // Phases d'animation
-      setTimeout(() => setPhase('confetti'), 400);
-      setTimeout(() => setPhase('fade'), 1600);
+      setTimeout(() => setPhase('confetti'), 300);
+      setTimeout(() => setPhase('fade'), 1200);
 
-      // Nettoyer après l'animation
+      // Nettoyer après l'animation (durée réduite)
       const timer = setTimeout(() => {
         setIsVisible(false);
         onComplete?.();
-      }, 3000);
+      }, 2000); // Réduit de 3000 à 2000ms
 
       return () => clearTimeout(timer);
     }

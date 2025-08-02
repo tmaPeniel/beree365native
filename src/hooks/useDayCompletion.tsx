@@ -24,10 +24,10 @@ export const useDayCompletion = (dayNumber: number) => {
     if (wasIncomplete && isComplete && !isLoading) {
       setShowCelebration(true);
       
-      // Réinitialiser après animation
+      // Réinitialiser après animation (durée réduite)
       setTimeout(() => {
         setShowCelebration(false);
-      }, 3000);
+      }, 2500); // Réduit de 3000 à 2500ms
     }
     
     // Mettre à jour l'état de completion précédent
