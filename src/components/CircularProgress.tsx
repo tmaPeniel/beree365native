@@ -9,6 +9,7 @@ interface CircularProgressProps {
   className?: string;
   animate?: boolean;
   animationDelay?: number;
+  isInitialLoad?: boolean;
 }
 
 const CircularProgress: React.FC<CircularProgressProps> = ({
@@ -18,11 +19,13 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
   className = "",
   animate = true,
   animationDelay = 500,
+  isInitialLoad = true,
 }) => {
   const { animatedProgress } = useProgressAnimation({
     targetProgress: progress,
     duration: 2000,
-    delay: animationDelay
+    delay: animationDelay,
+    isInitialLoad
   });
   
   const displayProgress = animate ? animatedProgress : progress;

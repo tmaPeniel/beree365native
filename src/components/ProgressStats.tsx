@@ -10,6 +10,7 @@ import CircularProgress from '@/components/CircularProgress';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { getOverallProgress } from '@/services/readingPlan';
+import { useInitialPageLoad } from '@/hooks/useInitialPageLoad';
 import { toast } from 'sonner';
 
 /**
@@ -25,6 +26,7 @@ interface ProgressStatsData {
 const ProgressStats = () => {
   const isMobile = useIsMobile();
   const { user, progressUpdateCounter } = useAuth();
+  const isInitialLoad = useInitialPageLoad(progressUpdateCounter);
   
   // État local pour les statistiques
   const [stats, setStats] = useState<ProgressStatsData>({
@@ -104,6 +106,7 @@ const ProgressStats = () => {
               progress={stats.progressPercentage} 
               size={isMobile ? 120 : 140}
               className="text-green-500"
+              isInitialLoad={isInitialLoad}
             />
           </div>
         </div>
