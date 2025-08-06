@@ -23,12 +23,12 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
 }) => {
   const { animatedProgress } = useProgressAnimation({
     targetProgress: progress,
-    duration: isInitialLoad ? 2000 : 0, // Animation seulement au chargement initial
-    delay: isInitialLoad ? animationDelay : 0, // Délai seulement au chargement initial
+    duration: 2000,
+    delay: animationDelay,
     isInitialLoad
   });
   
-  const displayProgress = (animate && isInitialLoad) ? animatedProgress : progress;
+  const displayProgress = animate ? animatedProgress : progress;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (displayProgress / 100) * circumference;

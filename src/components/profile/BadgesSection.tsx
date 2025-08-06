@@ -14,21 +14,19 @@ interface BadgeDisplayProps {
   badge: BadgeType;
   isUnlocked: boolean;
   unlockedAt?: string;
-  onClick?: () => void;
 }
 
-const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlockedAt, onClick }) => {
+const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlockedAt }) => {
   return (
-    <div 
-      className={`relative p-3 rounded-lg border-2 transition-all duration-300 min-w-[120px] flex-shrink-0 hover:scale-105 cursor-pointer ${
-        isUnlocked 
-          ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg animate-badge-unlock' 
-          : 'border-gray-200 bg-gray-50 opacity-60 hover:opacity-80'
-      }`}
-      onClick={onClick}
-    >
+    <div className={`relative p-3 rounded-lg border-2 transition-all duration-300 min-w-[120px] flex-shrink-0 hover:scale-105 ${
+      isUnlocked 
+        ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg animate-badge-unlock' 
+        : 'border-gray-200 bg-gray-50 opacity-60 hover:opacity-80'
+    }`}>
       {/* Badge icon */}
-      <div className={`text-3xl mb-2 text-center transition-all duration-300`}>
+      <div className={`text-3xl mb-2 text-center transition-all duration-300 ${
+        isUnlocked ? 'animate-heart-beat' : 'grayscale hover:grayscale-0'
+      }`}>
         {badge.icon}
       </div>
       
@@ -69,7 +67,7 @@ interface BadgeProgressDisplayProps {
 
 const BadgeProgressDisplay: React.FC<BadgeProgressDisplayProps> = ({ badge, progress, current, required }) => {
   return (
-    <div className="relative p-3 rounded-lg border-2 border-gray-200 bg-gray-50 transition-all duration-300 min-w-[140px] flex-shrink-0 cursor-pointer hover:scale-105">
+    <div className="relative p-3 rounded-lg border-2 border-gray-200 bg-gray-50 transition-all duration-300 min-w-[140px] flex-shrink-0">
       {/* Badge icon */}
       <div className="text-3xl mb-2 text-center grayscale">
         {badge.icon}
@@ -124,8 +122,6 @@ const BadgesSection: React.FC = () => {
   });
   const [isLoading, setIsLoading] = useState(true);
   const [showAllBadges, setShowAllBadges] = useState(false);
-  const [selectedBadge, setSelectedBadge] = useState<BadgeType | null>(null);
-  const [showBadgeDetail, setShowBadgeDetail] = useState(false);
 
   const loadBadgesData = async () => {
     if (!user?.id) return;
@@ -178,15 +174,6 @@ const BadgesSection: React.FC = () => {
     return userBadge?.unlocked_at;
   };
 
-  const getBadgeProgressForBadge = (badgeId: string) => {
-    return badgeProgress.find(bp => bp.badge.id === badgeId);
-  };
-
-  const handleBadgeClick = (badge: BadgeType) => {
-    setSelectedBadge(badge);
-    setShowBadgeDetail(true);
-  };
-
   if (isLoading) {
     return (
       <Card className="bg-white shadow-sm">
@@ -233,23 +220,20 @@ const BadgesSection: React.FC = () => {
       </CardHeader>
       
       <CardContent>
-        {/* Badges débloqués */}
-        {userBadges.length > 0 && (
+        {/* Derniers badges débloqués */}
+        {badgeStats.latestBadges.length > 0 && (
           <div className="mb-6">
             <h4 className="font-medium text-gray-800 mb-3 flex items-center gap-2">
               <Star className="h-4 w-4 text-yellow-500" />
-              Badges débloqués ({userBadges.length})
+              Derniers badges débloqués
             </h4>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-              {userBadges
-                .sort((a, b) => new Date(b.unlocked_at).getTime() - new Date(a.unlocked_at).getTime())
-                .map((userBadge: any) => (
+              {badgeStats.latestBadges.map((userBadge: any) => (
                 <BadgeDisplay
                   key={userBadge.id}
                   badge={userBadge.badge}
                   isUnlocked={true}
                   unlockedAt={userBadge.unlocked_at}
-                  onClick={() => handleBadgeClick(userBadge.badge)}
                 />
               ))}
             </div>
@@ -265,14 +249,13 @@ const BadgesSection: React.FC = () => {
             </h4>
             <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
               {badgeProgress.map((badgeItem) => (
-                <div key={badgeItem.badge.id} onClick={() => handleBadgeClick(badgeItem.badge)}>
-                  <BadgeProgressDisplay
-                    badge={badgeItem.badge}
-                    progress={badgeItem.progress}
-                    current={badgeItem.current}
-                    required={badgeItem.required}
-                  />
-                </div>
+                <BadgeProgressDisplay
+                  key={badgeItem.badge.id}
+                  badge={badgeItem.badge}
+                  progress={badgeItem.progress}
+                  current={badgeItem.current}
+                  required={badgeItem.required}
+                />
               ))}
             </div>
           </div>
@@ -288,7 +271,6 @@ const BadgesSection: React.FC = () => {
                 badge={badge}
                 isUnlocked={isUnlocked(badge.id)}
                 unlockedAt={getUnlockedDate(badge.id)}
-                onClick={() => handleBadgeClick(badge)}
               />
             ))}
           </div>
@@ -315,7 +297,6 @@ const BadgesSection: React.FC = () => {
                   badge={badge}
                   isUnlocked={isUnlocked(badge.id)}
                   unlockedAt={getUnlockedDate(badge.id)}
-                  onClick={() => handleBadgeClick(badge)}
                 />
               ))}
             </div>
@@ -330,81 +311,6 @@ const BadgesSection: React.FC = () => {
         onComplete={() => setShowBadgeCelebration(false)}
       />
     </Card>
-
-    {/* Dialog détail du badge */}
-    <Dialog open={showBadgeDetail} onOpenChange={setShowBadgeDetail}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="text-4xl">{selectedBadge?.icon}</div>
-            <div>
-              <h3 className="text-lg font-semibold">{selectedBadge?.name}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                {isUnlocked(selectedBadge?.id || '') ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    <Award className="h-3 w-3 mr-1" />
-                    Débloqué
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-gray-500">
-                    <Lock className="h-3 w-3 mr-1" />
-                    Verrouillé
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
-        
-        <div className="space-y-4">
-          {/* Description */}
-          <div>
-            <h4 className="font-medium text-gray-700 mb-2">Description</h4>
-            <p className="text-gray-600 text-sm">{selectedBadge?.description}</p>
-          </div>
-
-          {/* Date de déblocage ou progression */}
-          {isUnlocked(selectedBadge?.id || '') ? (
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Débloqué le</h4>
-              <p className="text-gray-600 text-sm">
-                {getUnlockedDate(selectedBadge?.id || '') && 
-                  new Date(getUnlockedDate(selectedBadge?.id || '')!).toLocaleDateString('fr-FR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })
-                }
-              </p>
-            </div>
-          ) : (
-            selectedBadge && getBadgeProgressForBadge(selectedBadge.id) && (
-              <div>
-                <h4 className="font-medium text-gray-700 mb-2">Progression</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>{getBadgeProgressForBadge(selectedBadge.id)?.current}</span>
-                    <span>{getBadgeProgressForBadge(selectedBadge.id)?.required}</span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${getBadgeProgressForBadge(selectedBadge.id)?.progress}%` }}
-                    ></div>
-                  </div>
-                  <div className="text-center">
-                    <Badge variant="outline" className="text-blue-600 border-blue-300">
-                      {getBadgeProgressForBadge(selectedBadge.id)?.progress}% complété
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            )
-          )}
-          
-        </div>
-      </DialogContent>
-    </Dialog>
     </>
   );
 };
