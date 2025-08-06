@@ -331,77 +331,142 @@ const BadgesSection: React.FC = () => {
       />
     </Card>
 
-    {/* Dialog détail du badge */}
+    {/* Dialog détail du badge modernisé */}
     <Dialog open={showBadgeDetail} onOpenChange={setShowBadgeDetail}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-3">
-            <div className="text-4xl">{selectedBadge?.icon}</div>
-            <div>
-              <h3 className="text-lg font-semibold">{selectedBadge?.name}</h3>
-              <div className="flex items-center gap-2 mt-1">
-                {isUnlocked(selectedBadge?.id || '') ? (
-                  <Badge variant="secondary" className="bg-green-100 text-green-800">
-                    <Award className="h-3 w-3 mr-1" />
-                    Débloqué
-                  </Badge>
-                ) : (
-                  <Badge variant="outline" className="text-gray-500">
-                    <Lock className="h-3 w-3 mr-1" />
-                    Verrouillé
-                  </Badge>
-                )}
-              </div>
-            </div>
-          </DialogTitle>
-        </DialogHeader>
+      <DialogContent className="max-w-lg border-0 bg-gradient-to-br from-background via-background to-secondary/5 shadow-2xl animate-scale-fade-in">
+        {/* Header avec icône badge en grand */}
+        <div className="relative text-center pt-6 pb-4">
+          {/* Badge icon avec effet glow */}
+          <div className={`inline-flex items-center justify-center w-20 h-20 rounded-full mb-4 transition-all duration-500 ${
+            isUnlocked(selectedBadge?.id || '') 
+              ? 'bg-gradient-to-br from-primary/20 to-accent/20 shadow-lg shadow-primary/25 animate-float' 
+              : 'bg-muted/50 grayscale'
+          }`}>
+            <span className="text-4xl animate-scale-fade-in">{selectedBadge?.icon}</span>
+          </div>
+          
+          {/* Titre du badge */}
+          <DialogHeader className="space-y-0">
+            <DialogTitle className="text-xl font-bold text-center bg-gradient-to-r from-foreground to-muted-foreground bg-clip-text text-transparent">
+              {selectedBadge?.name}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {/* Status badge avec animation */}
+          <div className="flex justify-center mt-3">
+            {isUnlocked(selectedBadge?.id || '') ? (
+              <Badge className="bg-gradient-to-r from-emerald-500 to-green-600 text-white border-0 shadow-lg animate-success-pulse">
+                <Award className="h-4 w-4 mr-2" />
+                Badge débloqué
+              </Badge>
+            ) : (
+              <Badge variant="outline" className="border-muted-foreground/30 text-muted-foreground">
+                <Lock className="h-4 w-4 mr-2" />
+                Non débloqué
+              </Badge>
+            )}
+          </div>
+        </div>
         
-        <div className="space-y-4">
-          {/* Description */}
-          <div>
-            <h4 className="font-medium text-gray-700 mb-2">Description</h4>
-            <p className="text-gray-600 text-sm">{selectedBadge?.description}</p>
+        <div className="space-y-6 px-2">
+          {/* Description avec style moderne */}
+          <div className="bg-gradient-to-r from-card via-card to-secondary/10 rounded-xl p-4 border border-border/50">
+            <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+              Description
+            </h4>
+            <p className="text-muted-foreground text-sm leading-relaxed">{selectedBadge?.description}</p>
           </div>
 
-          {/* Date de déblocage ou progression */}
+          {/* Section conditionnelle : Date ou Progression */}
           {isUnlocked(selectedBadge?.id || '') ? (
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Débloqué le</h4>
-              <p className="text-gray-600 text-sm">
-                {getUnlockedDate(selectedBadge?.id || '') && 
-                  new Date(getUnlockedDate(selectedBadge?.id || '')!).toLocaleDateString('fr-FR', {
-                    year: 'numeric',
-                    month: 'long',
-                    day: 'numeric'
-                  })
-                }
-              </p>
+            /* Date de déblocage avec design célébratoire */
+            <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-xl p-4 border border-emerald-200/50 dark:border-emerald-800/30">
+              <h4 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-3 flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-emerald-600" />
+                Débloqué le
+              </h4>
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
+                  <Award className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                    {getUnlockedDate(selectedBadge?.id || '') && 
+                      new Date(getUnlockedDate(selectedBadge?.id || '')!).toLocaleDateString('fr-FR', {
+                        weekday: 'long',
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })
+                    }
+                  </p>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">Félicitations ! 🎉</p>
+                </div>
+              </div>
             </div>
           ) : (
+            /* Progression avec design moderne */
             selectedBadge && getBadgeProgressForBadge(selectedBadge.id) && (
-              <div>
-                <h4 className="font-medium text-gray-700 mb-2">Progression</h4>
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm text-gray-600">
-                    <span>{getBadgeProgressForBadge(selectedBadge.id)?.current}</span>
-                    <span>{getBadgeProgressForBadge(selectedBadge.id)?.required}</span>
+              <div className="bg-gradient-to-r from-card via-card to-primary/5 rounded-xl p-4 border border-border/50">
+                <h4 className="font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+                  Progression vers le badge
+                </h4>
+                
+                <div className="space-y-4">
+                  {/* Stats de progression */}
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Actuel</span>
+                    <span className="font-semibold text-foreground">
+                      {getBadgeProgressForBadge(selectedBadge.id)?.current} / {getBadgeProgressForBadge(selectedBadge.id)?.required}
+                    </span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className="bg-gradient-to-r from-blue-400 to-purple-500 h-2 rounded-full transition-all duration-500"
-                      style={{ width: `${getBadgeProgressForBadge(selectedBadge.id)?.progress}%` }}
-                    ></div>
+                  
+                  {/* Barre de progression moderne */}
+                  <div className="relative">
+                    <div className="w-full h-3 bg-muted rounded-full overflow-hidden">
+                      <div 
+                        className="h-full bg-gradient-to-r from-primary via-primary to-accent rounded-full transition-all duration-700 ease-out shadow-lg shadow-primary/25"
+                        style={{ width: `${getBadgeProgressForBadge(selectedBadge.id)?.progress}%` }}
+                      >
+                        <div className="w-full h-full bg-gradient-to-r from-white/20 to-transparent rounded-full"></div>
+                      </div>
+                    </div>
+                    {/* Indicateur de progression */}
+                    <div className="absolute -top-8 left-1/2 transform -translate-x-1/2">
+                      <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20 text-xs font-medium">
+                        {getBadgeProgressForBadge(selectedBadge.id)?.progress}%
+                      </Badge>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <Badge variant="outline" className="text-blue-600 border-blue-300">
-                      {getBadgeProgressForBadge(selectedBadge.id)?.progress}% complété
-                    </Badge>
+                  
+                  {/* Message motivationnel */}
+                  <div className="text-center pt-2">
+                    <p className="text-xs text-muted-foreground">
+                      {getBadgeProgressForBadge(selectedBadge.id)?.progress === 100 
+                        ? "Badge prêt à être débloqué ! 🎉" 
+                        : `Plus que ${getBadgeProgressForBadge(selectedBadge.id)?.required - getBadgeProgressForBadge(selectedBadge.id)?.current} pour débloquer ce badge`
+                      }
+                    </p>
                   </div>
                 </div>
               </div>
             )
           )}
-          
+        </div>
+        
+        {/* Footer décoratif */}
+        <div className="flex justify-center pt-4 pb-2">
+          <div className="flex gap-1">
+            {[...Array(3)].map((_, i) => (
+              <div 
+                key={i} 
+                className="w-1.5 h-1.5 rounded-full bg-primary/30 animate-pulse"
+                style={{ animationDelay: `${i * 0.2}s` }}
+              ></div>
+            ))}
+          </div>
         </div>
       </DialogContent>
     </Dialog>
