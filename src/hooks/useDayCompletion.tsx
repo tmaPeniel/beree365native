@@ -14,14 +14,14 @@ export const useDayCompletion = (dayNumber: number) => {
     queryFn: () => user ? getDayProgress(user.id, dayNumber) : 0,
     enabled: !!user && !!dayNumber,
     staleTime: 30 * 1000,
-    refetchInterval: 5000 // Vérifier toutes les 5 secondes
+    refetchInterval: false // Désactiver le polling automatique
   });
 
   const isComplete = progressPercentage === 100;
 
   useEffect(() => {
     // Si le jour était incomplet et devient complet, déclencher la célébration
-    if (wasIncomplete && isComplete && !isLoading) {
+    if (wasIncomplete && isComplete && !isLoading && progressPercentage === 100) {
       setShowCelebration(true);
       
       // Réinitialiser après animation (durée réduite)
@@ -30,11 +30,11 @@ export const useDayCompletion = (dayNumber: number) => {
       }, 2500); // Réduit de 3000 à 2500ms
     }
     
-    // Mettre à jour l'état de completion précédent
-    if (!isLoading) {
+    // Mettre à jour l'état de completion précédent seulement si pas en cours de chargement
+    if (!isLoading && progressPercentage !== undefined) {
       setWasIncomplete(!isComplete);
     }
-  }, [isComplete, wasIncomplete, isLoading]);
+  }, [isComplete, wasIncomplete, isLoading, progressPercentage]);
 
   return {
     isComplete,

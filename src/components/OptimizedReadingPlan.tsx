@@ -262,12 +262,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
           )}
         </div>
         
-        {/* Animation de célébration pour jour complété */}
-        <CelebrationEffects 
-          trigger={showCelebration}
-          type="day-complete"
-          onComplete={() => {}}
-        />
+        {/* Animation de célébration désactivée - gérée globalement */}
       </CardContent>
     </Card>
   );

@@ -76,13 +76,18 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
 
   // Déclencher l'animation de célébration quand le jour est complété
   useEffect(() => {
-    if (isDayComplete && readingItems.length > 0) {
+    if (isDayComplete && readingItems.length > 0 && !showCelebration) {
       setShowCelebration(true);
       toast.success(`🎉 Félicitations ! Jour ${day} terminé !`, {
         duration: 3000,
       });
+      
+      // Réinitialiser l'animation après 3 secondes
+      setTimeout(() => {
+        setShowCelebration(false);
+      }, 3000);
     }
-  }, [isDayComplete, readingItems.length, day]);
+  }, [isDayComplete, readingItems.length, day, showCelebration]);
   
   const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
     // Empêcher la propagation et le comportement par défaut

@@ -27,7 +27,7 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
   const [phase, setPhase] = useState<'burst' | 'confetti' | 'fade'>('burst');
 
   useEffect(() => {
-    if (trigger) {
+    if (trigger && !isVisible) { // Éviter les déclenchements multiples
       setIsVisible(true);
       setPhase('burst');
       
@@ -60,7 +60,7 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
 
       return () => clearTimeout(timer);
     }
-  }, [trigger, onComplete, type]);
+  }, [trigger, onComplete, type, isVisible]);
 
   if (!isVisible) return null;
 
