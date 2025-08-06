@@ -26,7 +26,7 @@ interface ProgressStatsData {
 const ProgressStats = () => {
   const isMobile = useIsMobile();
   const { user, progressUpdateCounter } = useAuth();
-  const isInitialLoad = useInitialPageLoad(progressUpdateCounter);
+  const isInitialLoad = useInitialPageLoad(user?.id); // Utiliser l'ID utilisateur comme dépendance
   
   // État local pour les statistiques
   const [stats, setStats] = useState<ProgressStatsData>({
