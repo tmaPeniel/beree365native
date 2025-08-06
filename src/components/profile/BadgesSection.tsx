@@ -22,25 +22,25 @@ const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlocked
     <div 
       className={`relative p-3 rounded-lg border-2 transition-colors duration-200 min-w-[120px] flex-shrink-0 cursor-pointer ${
         isUnlocked 
-          ? 'border-emerald-200 bg-emerald-50 shadow-sm' 
+          ? 'border-yellow-200 bg-yellow-50 shadow-sm' 
           : 'border-border bg-muted/50 opacity-60 hover:opacity-80'
       }`}
       onClick={onClick}
     >
       {/* Badge icon */}
-      <div className={`text-3xl mb-2 text-center ${isUnlocked ? 'text-emerald-600' : 'text-muted-foreground grayscale'}`}>
+      <div className={`text-3xl mb-2 text-center ${isUnlocked ? 'text-yellow-600' : 'text-muted-foreground grayscale'}`}>
         {badge.icon}
       </div>
       
       {/* Badge info */}
       <div className="text-center">
-        <h3 className={`font-semibold text-xs ${isUnlocked ? 'text-emerald-800' : 'text-muted-foreground'} line-clamp-2 min-h-[2rem]`}>
+        <h3 className={`font-semibold text-xs ${isUnlocked ? 'text-yellow-800' : 'text-muted-foreground'} line-clamp-2 min-h-[2rem]`}>
           {badge.name}
         </h3>
         
         {isUnlocked && unlockedAt && (
           <div className="mt-2">
-            <Badge className="text-xs px-1 py-0 bg-emerald-100 text-emerald-700 border-emerald-200">
+            <Badge className="text-xs px-1 py-0 bg-yellow-100 text-yellow-700 border-yellow-200">
               <Award className="h-3 w-3 mr-1" />
               Débloqué
             </Badge>
@@ -355,7 +355,7 @@ const BadgesSection: React.FC = () => {
           {/* Status badge avec animation */}
           <div className="flex justify-center mt-3">
             {isUnlocked(selectedBadge?.id || '') ? (
-              <Badge className="bg-gradient-to-r from-emerald-500 to-green-600 text-white border-0 shadow-lg animate-success-pulse">
+              <Badge className="bg-gradient-to-r from-yellow-500 to-amber-600 text-white border-0 shadow-lg animate-success-pulse">
                 <Award className="h-4 w-4 mr-2" />
                 Badge débloqué
               </Badge>
@@ -381,17 +381,17 @@ const BadgesSection: React.FC = () => {
           {/* Section conditionnelle : Date ou Progression */}
           {isUnlocked(selectedBadge?.id || '') ? (
             /* Date de déblocage avec design célébratoire */
-            <div className="bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-950/20 dark:to-green-950/20 rounded-xl p-4 border border-emerald-200/50 dark:border-emerald-800/30">
-              <h4 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-3 flex items-center gap-2">
-                <Trophy className="h-4 w-4 text-emerald-600" />
+            <div className="bg-gradient-to-r from-yellow-50 to-amber-50 dark:from-yellow-950/20 dark:to-amber-950/20 rounded-xl p-4 border border-yellow-200/50 dark:border-yellow-800/30">
+              <h4 className="font-semibold text-yellow-800 dark:text-yellow-200 mb-3 flex items-center gap-2">
+                <Trophy className="h-4 w-4 text-yellow-600" />
                 Débloqué le
               </h4>
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500 to-green-600 flex items-center justify-center shadow-lg">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-yellow-500 to-amber-600 flex items-center justify-center shadow-lg">
                   <Award className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <p className="font-medium text-emerald-800 dark:text-emerald-200">
+                  <p className="font-medium text-yellow-800 dark:text-yellow-200">
                     {getUnlockedDate(selectedBadge?.id || '') && 
                       new Date(getUnlockedDate(selectedBadge?.id || '')!).toLocaleDateString('fr-FR', {
                         weekday: 'long',
@@ -401,7 +401,7 @@ const BadgesSection: React.FC = () => {
                       })
                     }
                   </p>
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400">Félicitations ! 🎉</p>
+                  <p className="text-sm text-yellow-600 dark:text-yellow-400">Félicitations ! 🎉</p>
                 </div>
               </div>
             </div>
