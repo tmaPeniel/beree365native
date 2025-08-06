@@ -401,21 +401,7 @@ const BadgesSection: React.FC = () => {
               </div>
             )
           )}
-
-          {/* Critères */}
-          {selectedBadge?.criteria && (
-            <div>
-              <h4 className="font-medium text-gray-700 mb-2">Critères d'obtention</h4>
-              <div className="text-sm text-gray-600 space-y-1">
-                {Object.entries(selectedBadge.criteria).map(([key, value]) => (
-                  <div key={key} className="flex justify-between">
-                    <span className="capitalize">{key.replace('_', ' ')}</span>
-                    <span className="font-medium">{String(value)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          
         </div>
       </DialogContent>
     </Dialog>
