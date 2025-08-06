@@ -3,7 +3,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedCacheService';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, CheckSquare, Square } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Chapter {
@@ -32,6 +32,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
 }) => {
   const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const [isBulkProcessing, setIsBulkProcessing] = useState(false);
   const queryClient = useQueryClient();
   
   // Mémoriser la date formatée
@@ -114,6 +115,106 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     }
   }, [user, chapters, day, queryClient, triggerProgressUpdate]);
 
+  // Handler pour tout cocher
+  const handleCheckAll = useCallback(async () => {
+    if (!user || isBulkProcessing) return;
+    
+    const uncompletedChapters = chapters.filter(ch => !ch.completed);
+    if (uncompletedChapters.length === 0) return;
+    
+    setIsBulkProcessing(true);
+    try {
+      // Traiter tous les chapitres non complétés
+      const promises = uncompletedChapters.map(chapter => 
+        optimizedToggleChapterStatus(user.id, chapter.id, 'completed', day)
+      );
+      
+      await Promise.all(promises);
+      
+      // Mise à jour optimiste du cache
+      queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((dayData: any) => {
+          if (dayData.day !== day) return dayData;
+          
+          const updatedChapters = dayData.chapters.map((ch: Chapter) => ({
+            ...ch,
+            completed: true
+          }));
+          
+          return {
+            ...dayData,
+            chapters: updatedChapters,
+            progressPercentage: 100,
+            completed: true
+          };
+        });
+      });
+      
+      triggerProgressUpdate();
+      toast.success(`Tous les passages du jour ${day} ont été cochés`);
+    } catch (error) {
+      console.error('Error checking all chapters:', error);
+      toast.error("Une erreur est survenue lors de la mise à jour");
+      queryClient.invalidateQueries({ 
+        queryKey: ['optimized-reading-plan-data', user.id] 
+      });
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  }, [user, chapters, day, queryClient, triggerProgressUpdate, isBulkProcessing]);
+
+  // Handler pour tout décocher
+  const handleUncheckAll = useCallback(async () => {
+    if (!user || isBulkProcessing) return;
+    
+    const completedChapters = chapters.filter(ch => ch.completed);
+    if (completedChapters.length === 0) return;
+    
+    setIsBulkProcessing(true);
+    try {
+      // Traiter tous les chapitres complétés
+      const promises = completedChapters.map(chapter => 
+        optimizedToggleChapterStatus(user.id, chapter.id, 'pending', day)
+      );
+      
+      await Promise.all(promises);
+      
+      // Mise à jour optimiste du cache
+      queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((dayData: any) => {
+          if (dayData.day !== day) return dayData;
+          
+          const updatedChapters = dayData.chapters.map((ch: Chapter) => ({
+            ...ch,
+            completed: false
+          }));
+          
+          return {
+            ...dayData,
+            chapters: updatedChapters,
+            progressPercentage: 0,
+            completed: false
+          };
+        });
+      });
+      
+      triggerProgressUpdate();
+      toast.success(`Tous les passages du jour ${day} ont été décochés`);
+    } catch (error) {
+      console.error('Error unchecking all chapters:', error);
+      toast.error("Une erreur est survenue lors de la mise à jour");
+      queryClient.invalidateQueries({ 
+        queryKey: ['optimized-reading-plan-data', user.id] 
+      });
+    } finally {
+      setIsBulkProcessing(false);
+    }
+  }, [user, chapters, day, queryClient, triggerProgressUpdate, isBulkProcessing]);
+
   // Classes CSS mémorisées avec optimisation mobile
   const cardClasses = useMemo(() => 
     `relative w-full rounded-xl border transition-all ${
@@ -139,6 +240,45 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
             {formattedDate}
           </span>
         </div>
+        
+        {/* Boutons d'action en bloc */}
+        {chapters && chapters.length > 0 && (
+          <div className="flex gap-1">
+            <button
+              onClick={handleCheckAll}
+              disabled={isBulkProcessing || chapters.every(ch => ch.completed)}
+              className={`${isMobile ? 'p-1' : 'p-1.5'} rounded transition-colors ${
+                chapters.every(ch => ch.completed) 
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-green-600 hover:bg-green-50 active:animate-press'
+              }`}
+              title="Tout cocher"
+            >
+              {isBulkProcessing ? (
+                <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-gentle-spin`} />
+              ) : (
+                <CheckSquare className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+              )}
+            </button>
+            
+            <button
+              onClick={handleUncheckAll}
+              disabled={isBulkProcessing || chapters.every(ch => !ch.completed)}
+              className={`${isMobile ? 'p-1' : 'p-1.5'} rounded transition-colors ${
+                chapters.every(ch => !ch.completed) 
+                  ? 'text-gray-300 cursor-not-allowed' 
+                  : 'text-gray-600 hover:bg-gray-50 active:animate-press'
+              }`}
+              title="Tout décocher"
+            >
+              {isBulkProcessing ? (
+                <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-gentle-spin`} />
+              ) : (
+                <Square className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+              )}
+            </button>
+          </div>
+        )}
       </div>
       
       {/* Liste des passages optimisée pour mobile */}
