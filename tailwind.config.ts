@@ -83,203 +83,130 @@ export default {
 				sm: 'calc(var(--radius) - 4px)'
 			},
 			keyframes: {
+				// 1. Animations d'accordéon (garde les existantes)
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
 				},
+				
+				// 2. Entrées douces (Fade-in/Slide révélation)
 				'fade-in': {
-					'0%': {
-						opacity: '0',
-						transform: 'translateY(10px)'
-					},
-					'100%': {
-						opacity: '1',
-						transform: 'translateY(0)'
-					}
-				},
-				'scale-in': {
-					'0%': {
-						transform: 'scale(0.95)',
-						opacity: '0'
-					},
-					'100%': {
-						transform: 'scale(1)',
-						opacity: '1'
-					}
+					'0%': { opacity: '0', transform: 'translateY(8px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
 				'slide-up': {
-					'0%': {
-						transform: 'translateY(20px)',
-						opacity: '0'
-					},
-					'100%': {
-						transform: 'translateY(0)',
-						opacity: '1'
-					}
+					'0%': { opacity: '0', transform: 'translateY(16px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
-				'slide-down': {
-					'0%': {
-						transform: 'translateY(-10px)',
-						opacity: '0'
-					},
-					'100%': {
-						transform: 'translateY(0)',
-						opacity: '1'
-					}
+				'scale-fade-in': {
+					'0%': { opacity: '0', transform: 'scale(0.96)' },
+					'100%': { opacity: '1', transform: 'scale(1)' }
 				},
-				'bounce-gentle': {
-					'0%, 100%': {
-						transform: 'translateY(0)',
-						opacity: '1'
-					},
-					'50%': {
-						transform: 'translateY(-5px)',
-						opacity: '0.8'
-					}
+				
+				// 3. Effets de hover (élévation douce)
+				'lift': {
+					'0%': { transform: 'translateY(0) scale(1)' },
+					'100%': { transform: 'translateY(-2px) scale(1.02)' }
 				},
-				'pulse-gentle': {
-					'0%, 100%': {
-						transform: 'scale(1)',
-						opacity: '1'
-					},
-					'50%': {
-						transform: 'scale(1.02)',
-						opacity: '0.9'
-					}
-				},
-				'wiggle': {
-					'0%, 100%': { transform: 'rotate(0deg)' },
-					'25%': { transform: 'rotate(-1deg)' },
-					'75%': { transform: 'rotate(1deg)' }
-				},
-				'heart-beat': {
+				
+				// 4. Animations de clic (feedback tactile)
+				'press': {
 					'0%': { transform: 'scale(1)' },
-					'14%': { transform: 'scale(1.1)' },
-					'28%': { transform: 'scale(1)' },
-					'42%': { transform: 'scale(1.1)' },
-					'70%': { transform: 'scale(1)' }
+					'50%': { transform: 'scale(0.95)' },
+					'100%': { transform: 'scale(1)' }
 				},
-				'confetti-pop': {
-					'0%': { 
-						transform: 'scale(0) rotate(0deg) translateY(0px)',
-						opacity: '1'
-					},
-					'25%': {
-						transform: 'scale(1.5) rotate(90deg) translateY(-20px)',
-						opacity: '1'
-					},
-					'50%': { 
-						transform: 'scale(1.2) rotate(180deg) translateY(-40px)',
-						opacity: '0.9'
-					},
-					'75%': {
-						transform: 'scale(0.9) rotate(270deg) translateY(-60px)',
-						opacity: '0.6'
-					},
-					'100%': { 
-						transform: 'scale(0.3) rotate(360deg) translateY(-80px)',
-						opacity: '0'
-					}
+				'ripple': {
+					'0%': { transform: 'scale(0)', opacity: '0.6' },
+					'100%': { transform: 'scale(1)', opacity: '0' }
 				},
-				'firework': {
-					'0%': { 
-						transform: 'scale(0)',
-						opacity: '1'
-					},
-					'20%': { 
-						transform: 'scale(1)',
-						opacity: '1'
-					},
-					'100%': { 
-						transform: 'scale(2)',
-						opacity: '0'
-					}
+				
+				// 5. Animations de chargement douces
+				'gentle-spin': {
+					'0%': { transform: 'rotate(0deg)' },
+					'100%': { transform: 'rotate(360deg)' }
 				},
-				'sparkle': {
-					'0%, 100%': { 
-						transform: 'scale(0) rotate(0deg)',
-						opacity: '0'
-					},
-					'50%': { 
-						transform: 'scale(1) rotate(180deg)',
-						opacity: '1'
-					}
+				'pulse-soft': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.6' }
 				},
-				'completion-burst': {
-					'0%': { 
-						transform: 'scale(1)',
-						boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)'
-					},
-					'70%': { 
-						transform: 'scale(1.05)',
-						boxShadow: '0 0 0 10px rgba(34, 197, 94, 0)'
-					},
-					'100%': { 
-						transform: 'scale(1)',
-						boxShadow: '0 0 0 0 rgba(34, 197, 94, 0)'
-					}
+				
+				// 6. Animations de récompense (badges, success)
+				'success-bounce': {
+					'0%': { transform: 'scale(0.8)' },
+					'50%': { transform: 'scale(1.1)' },
+					'100%': { transform: 'scale(1)' }
 				},
-				'progress-fill': {
-					'0%': { 
-						strokeDashoffset: '100%'
-					},
-					'100%': { 
-						strokeDashoffset: '0%'
-					}
+				'badge-glow': {
+					'0%, 100%': { boxShadow: '0 0 5px rgba(52, 168, 83, 0.3)' },
+					'50%': { boxShadow: '0 0 20px rgba(52, 168, 83, 0.6)' }
 				},
-				'badge-unlock': {
-					'0%': { 
-						transform: 'scale(0) rotate(-180deg)',
-						opacity: '0'
-					},
-					'50%': { 
-						transform: 'scale(1.3) rotate(0deg)',
-						opacity: '1'
-					},
-					'100%': { 
-						transform: 'scale(1) rotate(0deg)',
-						opacity: '1'
-					}
+				
+				// 7. Animation de texte (révélation progressive)
+				'text-reveal': {
+					'0%': { opacity: '0', transform: 'translateY(4px)' },
+					'100%': { opacity: '1', transform: 'translateY(0)' }
 				},
-				'tada': {
-					'0%': { transform: 'scale3d(1, 1, 1)' },
-					'10%, 20%': { transform: 'scale3d(0.9, 0.9, 0.9) rotate3d(0, 0, 1, -3deg)' },
-					'30%, 50%, 70%, 90%': { transform: 'scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, 3deg)' },
-					'40%, 60%, 80%': { transform: 'scale3d(1.1, 1.1, 1.1) rotate3d(0, 0, 1, -3deg)' },
-					'100%': { transform: 'scale3d(1, 1, 1)' }
+				
+				// 8. Micro-animation pour icônes
+				'icon-bounce': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-2px)' }
+				},
+				'float': {
+					'0%, 100%': { transform: 'translateY(0)' },
+					'50%': { transform: 'translateY(-4px)' }
+				},
+				
+				// 9. Transitions pour formulaires
+				'border-glow': {
+					'0%': { borderColor: 'hsl(var(--border))' },
+					'100%': { borderColor: 'hsl(var(--primary))' }
+				},
+				'check-mark': {
+					'0%': { transform: 'scale(0) rotate(0deg)' },
+					'50%': { transform: 'scale(1.2) rotate(180deg)' },
+					'100%': { transform: 'scale(1) rotate(360deg)' }
 				}
 			},
 			animation: {
+				// Animations de base
 				'accordion-down': 'accordion-down 0.2s ease-out',
 				'accordion-up': 'accordion-up 0.2s ease-out',
-				'fade-in': 'fade-in 0.3s ease-out',
-				'scale-in': 'scale-in 0.2s ease-out',
-				'slide-up': 'slide-up 0.4s ease-out',
-				'slide-down': 'slide-down 0.3s ease-out',
-				'bounce-gentle': 'bounce-gentle 1s ease-in-out',
-				'pulse-gentle': 'pulse-gentle 2s ease-in-out infinite',
-				'wiggle': 'wiggle 0.5s ease-in-out',
-				'heart-beat': 'heart-beat 1.5s ease-in-out infinite',
-				'enter': 'fade-in 0.3s ease-out, scale-in 0.2s ease-out',
-				'confetti-pop': 'confetti-pop 1.2s ease-out',
-				'firework': 'firework 0.8s ease-out',
-				'sparkle': 'sparkle 1.5s ease-in-out infinite',
-				'completion-burst': 'completion-burst 0.8s ease-out',
-				'progress-fill': 'progress-fill 2s ease-out',
-				'badge-unlock': 'badge-unlock 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
-				'tada': 'tada 1s ease-in-out',
+				
+				// Entrées douces 
+				'fade-in': 'fade-in 0.4s ease-out',
+				'slide-up': 'slide-up 0.5s ease-out',
+				'scale-fade-in': 'scale-fade-in 0.3s ease-out',
+				
+				// Effets hover
+				'lift': 'lift 0.2s ease-out forwards',
+				
+				// Animations de clic
+				'press': 'press 0.1s ease-out',
+				'ripple': 'ripple 0.3s ease-out',
+				
+				// Chargement doux
+				'gentle-spin': 'gentle-spin 1s linear infinite',
+				'pulse-soft': 'pulse-soft 2s ease-in-out infinite',
+				
+				// Récompenses
+				'success-bounce': 'success-bounce 0.4s ease-out',
+				'badge-glow': 'badge-glow 2s ease-in-out infinite',
+				
+				// Texte
+				'text-reveal': 'text-reveal 0.3s ease-out',
+				
+				// Icônes
+				'icon-bounce': 'icon-bounce 0.5s ease-in-out',
+				'float': 'float 3s ease-in-out infinite',
+				
+				// Formulaires
+				'border-glow': 'border-glow 0.2s ease-out',
+				'check-mark': 'check-mark 0.4s ease-out'
 			}
 		}
 	},

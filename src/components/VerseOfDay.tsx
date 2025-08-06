@@ -44,7 +44,7 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
     return (
       <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
         <CardContent className="p-6 text-center">
-          <div className="animate-pulse">
+          <div className="animate-pulse-soft">
             <div className="h-4 bg-green-200 rounded w-3/4 mx-auto mb-2"></div>
             <div className="h-3 bg-green-200 rounded w-1/2 mx-auto"></div>
           </div>

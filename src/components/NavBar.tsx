@@ -44,7 +44,7 @@ const NavBar = () => {
   const visibleItems = navItems.filter(item => item.show);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 animate-slide-up">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-border shadow-lg z-50 animate-slide-up">
       <div className="flex justify-around items-center h-16 px-4">
         {visibleItems.map((item, index) => {
           const Icon = item.icon;
@@ -54,14 +54,14 @@ const NavBar = () => {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center justify-center p-2 rounded-lg transition-all duration-300 transform hover:scale-110 active:scale-95 ${
-                isActive
-                  ? 'text-green-600 bg-green-50 animate-bounce-gentle'
-                  : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
-              }`}
+              className={`nav-item px-4 py-2 rounded-lg transition-all duration-200 ${
+                isActive 
+                  ? 'text-primary bg-primary/10' 
+                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+              } active:animate-press`}
               style={{ animationDelay: `${index * 0.1}s` }}
             >
-              <Icon size={20} className={isActive ? 'animate-heart-beat' : ''} />
+              <Icon size={20} className={isActive ? 'animate-icon-bounce' : 'hover:animate-float'} />
               <span className="text-xs mt-1">{item.label}</span>
             </button>
           );

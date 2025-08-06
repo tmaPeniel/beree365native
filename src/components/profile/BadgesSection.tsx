@@ -20,10 +20,10 @@ interface BadgeDisplayProps {
 const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlockedAt, onClick }) => {
   return (
     <div 
-      className={`relative p-3 rounded-lg border-2 transition-all duration-300 min-w-[120px] flex-shrink-0 hover:scale-105 cursor-pointer ${
+      className={`relative p-3 rounded-lg border-2 transition-all duration-300 min-w-[120px] flex-shrink-0 hover:animate-lift cursor-pointer active:animate-press ${
         isUnlocked 
-          ? 'border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50 shadow-lg animate-badge-unlock' 
-          : 'border-gray-200 bg-gray-50 opacity-60 hover:opacity-80'
+          ? 'border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 shadow-lg animate-badge-glow' 
+          : 'border-border bg-muted/50 opacity-60 hover:opacity-80'
       }`}
       onClick={onClick}
     >
@@ -69,7 +69,7 @@ interface BadgeProgressDisplayProps {
 
 const BadgeProgressDisplay: React.FC<BadgeProgressDisplayProps> = ({ badge, progress, current, required }) => {
   return (
-    <div className="relative p-3 rounded-lg border-2 border-gray-200 bg-gray-50 transition-all duration-300 min-w-[140px] flex-shrink-0 cursor-pointer hover:scale-105">
+    <div className="relative p-3 rounded-lg border-2 border-border bg-muted/50 transition-all duration-300 min-w-[140px] flex-shrink-0 cursor-pointer hover:animate-lift active:animate-press">
       {/* Badge icon */}
       <div className="text-3xl mb-2 text-center grayscale">
         {badge.icon}
@@ -89,12 +89,12 @@ const BadgeProgressDisplay: React.FC<BadgeProgressDisplayProps> = ({ badge, prog
           </div>
           <div className="w-full bg-gray-200 rounded-full h-1.5">
             <div 
-              className="bg-gradient-to-r from-blue-400 to-purple-500 h-1.5 rounded-full transition-all duration-500"
+              className="bg-gradient-to-r from-primary to-accent h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
             ></div>
           </div>
           <div className="mt-1">
-            <Badge variant="outline" className="text-xs text-blue-600 border-blue-300 px-1 py-0">
+            <Badge variant="outline" className="text-xs text-primary border-primary/30 px-1 py-0">
               {progress}%
             </Badge>
           </div>
@@ -208,7 +208,7 @@ const BadgesSection: React.FC = () => {
 
   return (
     <>
-      <Card className="bg-white shadow-sm animate-slide-up">
+      <Card className="bg-card shadow-sm animate-scale-fade-in">
         <CardHeader>
           <CardTitle className="flex items-center gap-2 animate-fade-in">
             <Trophy className="h-5 w-5 text-yellow-500 animate-wiggle" />

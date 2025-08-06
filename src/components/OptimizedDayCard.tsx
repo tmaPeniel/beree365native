@@ -57,9 +57,9 @@ const OptimizedDayCard = React.memo<OptimizedDayCardProps>(({
   
   // Mémorisation des classes CSS pour éviter les recalculs à chaque render
   const buttonClasses = useMemo(() => 
-    `w-full aspect-square rounded-xl flex flex-col items-center justify-center p-2 transition-all duration-300 relative transform hover:scale-105 active:scale-95 animate-fade-in ${
+    `w-full aspect-square rounded-xl flex flex-col items-center justify-center p-2 transition-all duration-300 relative transform hover:animate-lift active:animate-press animate-fade-in ${
       isToday 
-        ? 'bg-green-600 text-white shadow-md border-2 border-green-700 animate-pulse-gentle' // Style pour le jour actuel avec animation
+        ? 'bg-primary text-primary-foreground shadow-lg border-2 border-primary/50 animate-badge-glow' // Style pour le jour actuel avec animation
         : completed 
           ? 'bg-green-400 text-white shadow-sm hover:bg-green-600 hover:shadow-lg' // Style pour jour complété
           : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md' // Style par défaut

@@ -200,9 +200,9 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
           item.completed ? 'bg-green-500 scale-110' : 'border-2 border-green-300 hover:border-green-400 hover:scale-105'
         }`}>
           {isProcessing ? (
-            <Loader2 className="h-3 w-3 text-white animate-spin" />
+            <Loader2 className="h-3 w-3 text-white animate-gentle-spin" />
           ) : (
-            item.completed && <Check className="h-3 w-3 text-white animate-fade-in" />
+            item.completed && <Check className="h-3 w-3 text-white animate-success-bounce" />
           )}
         </div>
         <span className={`transition-all duration-200 ${item.completed ? 'line-through' : ''}`}>
@@ -220,7 +220,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
       <Card className="bg-white border-none shadow-sm">
         <CardContent className="p-6">
           <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+            <div className="animate-gentle-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
           </div>
         </CardContent>
       </Card>

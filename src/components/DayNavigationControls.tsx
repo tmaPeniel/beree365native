@@ -41,9 +41,9 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
   };
   if (isLoading) {
     return <div className={`flex items-center gap-2 ${className}`}>
-        <div className="animate-pulse bg-gray-200 h-8 w-8 rounded"></div>
-        <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
-        <div className="animate-pulse bg-gray-200 h-8 w-8 rounded"></div>
+        <div className="animate-pulse-soft bg-muted h-8 w-8 rounded"></div>
+        <div className="animate-pulse-soft bg-muted h-4 w-16 rounded"></div>
+        <div className="animate-pulse-soft bg-muted h-8 w-8 rounded"></div>
       </div>;
   }
   return <div className={`flex items-center gap-2 ${className}`}>

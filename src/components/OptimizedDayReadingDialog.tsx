@@ -191,7 +191,7 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
           
           {isLoading ? (
             <div className="flex justify-center items-center h-24">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+              <div className="animate-gentle-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : (
             <div className="space-y-3 max-h-[60vh] overflow-y-auto px-1">
@@ -209,17 +209,17 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
                     }}
                     disabled={processingIds.includes(item.id)}
                     className={`flex items-center w-full p-3 text-left rounded-md transition-all duration-300 ${
-                      item.completed ? 'text-gray-400 bg-gray-50 animate-completion-burst' : 'text-gray-800 hover:bg-gray-100 hover:scale-105'
+                      item.completed ? 'text-muted-foreground bg-muted animate-success-bounce' : 'text-foreground hover:bg-muted/50 hover:animate-lift'
                     } ${processingIds.includes(item.id) ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
                     style={{ animationDelay: `${index * 0.1}s` }}
                   >
                     <div className={`h-6 w-6 rounded mr-3 flex items-center justify-center transition-all duration-300 ${
-                      item.completed ? 'bg-green-500 animate-scale-in' : 'border-2 border-green-300 hover:border-green-500'
+                      item.completed ? 'bg-primary animate-scale-fade-in' : 'border-2 border-primary/30 hover:border-primary'
                     }`}>
                       {processingIds.includes(item.id) ? (
-                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                        <Loader2 className="h-4 w-4 text-white animate-gentle-spin" />
                       ) : (
-                        item.completed && <Check className="h-4 w-4 text-white animate-bounce-gentle" />
+                        item.completed && <Check className="h-4 w-4 text-white animate-success-bounce" />
                       )}
                     </div>
                     <span className={`transition-all duration-300 ${item.completed ? 'line-through' : ''}`}>
