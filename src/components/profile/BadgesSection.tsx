@@ -22,25 +22,25 @@ const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlocked
     <div 
       className={`relative p-3 rounded-lg border-2 transition-colors duration-200 min-w-[120px] flex-shrink-0 cursor-pointer ${
         isUnlocked 
-          ? 'border-emerald-200 bg-emerald-50 shadow-sm' 
+          ? 'border-amber-200 bg-gradient-to-br from-amber-50 to-yellow-50 shadow-sm' 
           : 'border-border bg-muted/50 opacity-60 hover:opacity-80'
       }`}
       onClick={onClick}
     >
       {/* Badge icon */}
-      <div className={`text-3xl mb-2 text-center ${isUnlocked ? 'text-emerald-600' : 'text-muted-foreground grayscale'}`}>
+      <div className={`text-3xl mb-2 text-center ${isUnlocked ? 'text-amber-600' : 'text-muted-foreground grayscale'}`}>
         {badge.icon}
       </div>
       
       {/* Badge info */}
       <div className="text-center">
-        <h3 className={`font-semibold text-xs ${isUnlocked ? 'text-emerald-800' : 'text-muted-foreground'} line-clamp-2 min-h-[2rem]`}>
+        <h3 className={`font-semibold text-xs ${isUnlocked ? 'text-amber-800' : 'text-muted-foreground'} line-clamp-2 min-h-[2rem]`}>
           {badge.name}
         </h3>
         
         {isUnlocked && unlockedAt && (
           <div className="mt-2">
-            <Badge className="text-xs px-1 py-0 bg-emerald-100 text-emerald-700 border-emerald-200">
+            <Badge className="text-xs px-1 py-0 bg-amber-100 text-amber-700 border-amber-200">
               <Award className="h-3 w-3 mr-1" />
               Débloqué
             </Badge>

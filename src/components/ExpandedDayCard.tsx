@@ -3,7 +3,7 @@ import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedCacheService';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2, CheckSquare, Square } from 'lucide-react';
+import { Check, Loader2, CheckSquare, Square, RotateCcw } from 'lucide-react';
 import { toast } from 'sonner';
 
 interface Chapter {
@@ -215,6 +215,41 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     }
   }, [user, chapters, day, queryClient, triggerProgressUpdate, isBulkProcessing]);
 
+  // Bouton intelligent unique pour cocher/décocher tout
+  const handleToggleAll = useCallback(async () => {
+    if (!user || isBulkProcessing) return;
+    
+    const allCompleted = chapters.every(ch => ch.completed);
+    
+    if (allCompleted) {
+      // Si tout est coché, on décoche tout
+      await handleUncheckAll();
+    } else {
+      // Sinon, on coche tout
+      await handleCheckAll();
+    }
+  }, [user, chapters, handleCheckAll, handleUncheckAll, isBulkProcessing]);
+
+  // Mémoriser l'état et l'icône du bouton
+  const buttonState = useMemo(() => {
+    const allCompleted = chapters.every(ch => ch.completed);
+    const noneCompleted = chapters.every(ch => !ch.completed);
+    
+    if (allCompleted) {
+      return {
+        icon: RotateCcw,
+        title: 'Tout décocher',
+        color: 'text-gray-600 hover:bg-gray-50'
+      };
+    } else {
+      return {
+        icon: CheckSquare,
+        title: 'Tout cocher',
+        color: 'text-green-600 hover:bg-green-50'
+      };
+    }
+  }, [chapters]);
+
   // Classes CSS mémorisées avec optimisation mobile
   const cardClasses = useMemo(() => 
     `relative w-full rounded-xl border transition-all ${
@@ -241,43 +276,20 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
           </span>
         </div>
         
-        {/* Boutons d'action en bloc */}
+        {/* Bouton d'action unique intelligent */}
         {chapters && chapters.length > 0 && (
-          <div className="flex gap-1">
-            <button
-              onClick={handleCheckAll}
-              disabled={isBulkProcessing || chapters.every(ch => ch.completed)}
-              className={`${isMobile ? 'p-1' : 'p-1.5'} rounded transition-colors ${
-                chapters.every(ch => ch.completed) 
-                  ? 'text-gray-300 cursor-not-allowed' 
-                  : 'text-green-600 hover:bg-green-50 active:animate-press'
-              }`}
-              title="Tout cocher"
-            >
-              {isBulkProcessing ? (
-                <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-gentle-spin`} />
-              ) : (
-                <CheckSquare className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              )}
-            </button>
-            
-            <button
-              onClick={handleUncheckAll}
-              disabled={isBulkProcessing || chapters.every(ch => !ch.completed)}
-              className={`${isMobile ? 'p-1' : 'p-1.5'} rounded transition-colors ${
-                chapters.every(ch => !ch.completed) 
-                  ? 'text-gray-300 cursor-not-allowed' 
-                  : 'text-gray-600 hover:bg-gray-50 active:animate-press'
-              }`}
-              title="Tout décocher"
-            >
-              {isBulkProcessing ? (
-                <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-gentle-spin`} />
-              ) : (
-                <Square className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
-              )}
-            </button>
-          </div>
+          <button
+            onClick={handleToggleAll}
+            disabled={isBulkProcessing}
+            className={`${isMobile ? 'p-1' : 'p-1.5'} rounded transition-colors ${buttonState.color} active:animate-press`}
+            title={buttonState.title}
+          >
+            {isBulkProcessing ? (
+              <Loader2 className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'} animate-gentle-spin`} />
+            ) : (
+              <buttonState.icon className={`${isMobile ? 'h-3 w-3' : 'h-4 w-4'}`} />
+            )}
+          </button>
         )}
       </div>
       
