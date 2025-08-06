@@ -24,9 +24,7 @@ const BadgeDisplay: React.FC<BadgeDisplayProps> = ({ badge, isUnlocked, unlocked
         : 'border-gray-200 bg-gray-50 opacity-60 hover:opacity-80'
     }`}>
       {/* Badge icon */}
-      <div className={`text-3xl mb-2 text-center transition-all duration-300 ${
-        isUnlocked ? 'animate-heart-beat' : 'grayscale hover:grayscale-0'
-      }`}>
+      <div className={`text-3xl mb-2 text-center transition-all duration-300`}>
         {badge.icon}
       </div>
       
