@@ -42,7 +42,7 @@ const ProgressStats = () => {
     const fetchStats = async () => {
       if (!user) return;
       
-      setIsLoading(true);
+      setIsLoading(false);
       try {
         const progress = await getOverallProgress(user.id);
         setStats(progress);
