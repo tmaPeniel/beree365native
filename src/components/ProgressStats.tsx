@@ -108,7 +108,7 @@ const ProgressStats = () => {
               progress={stats.progressPercentage} 
               size={isMobile ? 120 : 140}
               className="text-green-500"
-              isInitialLoad={isInitialLoad}
+              animate={false}
             />
           </div>
         </div>
