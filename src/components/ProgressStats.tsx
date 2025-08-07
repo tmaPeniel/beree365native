@@ -42,7 +42,7 @@ const ProgressStats = () => {
     const fetchStats = async () => {
       if (!user) return;
       
-      setIsLoading(false);
+      setIsLoading(true);
       try {
         const progress = await getOverallProgress(user.id);
         setStats(progress);
@@ -71,11 +71,11 @@ const ProgressStats = () => {
   }
   
   return (
-    <Card className="bg-card border-border shadow-sm">
+    <Card className="bg-card border-border shadow-sm animate-scale-fade-in">
       <CardContent className="p-4 md:p-6">
         {/* En-tête de la section */}
         <div className="text-center mb-4">
-          <h2 className="text-md md:text-lg font-semibold mb-4 text-center text-primary bg-primary/5 py-2 rounded-md">
+          <h2 className="text-md md:text-lg font-semibold mb-4 text-center text-primary bg-primary/5 py-2 rounded-md animate-text-reveal">
             PROGRESSION GLOBALE
           </h2>
         </div>
