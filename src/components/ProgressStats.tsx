@@ -26,7 +26,7 @@ interface ProgressStatsData {
 const ProgressStats = () => {
   const isMobile = useIsMobile();
   const { user, progressUpdateCounter } = useAuth();
-  const isInitialLoad = useInitialPageLoad(); // Plus de dépendance pour éviter les animations répétées
+  const isInitialLoad = useInitialPageLoad(user?.id); // Utiliser l'ID utilisateur comme dépendance
   
   // État local pour les statistiques
   const [stats, setStats] = useState<ProgressStatsData>({
@@ -42,7 +42,7 @@ const ProgressStats = () => {
     const fetchStats = async () => {
       if (!user) return;
       
-      setIsLoading(false);
+      setIsLoading(true);
       try {
         const progress = await getOverallProgress(user.id);
         setStats(progress);
@@ -84,19 +84,19 @@ const ProgressStats = () => {
           {/* Partie gauche - Statistiques textuelles */}
           <div className="w-full md:w-3/5 space-y-2 md:space-y-3">
             {/* Total de passages à lire */}
-            <div className="grid grid-cols-2 items-center bg-secondary/50 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-secondary">
+            <div className="grid grid-cols-2 items-center bg-secondary/50 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-secondary hover:animate-lift animate-fade-in" style={{ animationDelay: '0.1s' }}>
               <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages à lire</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.totalPassages}</span>
             </div>
             
             {/* Total de passages lus */}
-            <div className="grid grid-cols-2 items-center bg-accent/10 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-accent/20">
+            <div className="grid grid-cols-2 items-center bg-accent/10 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-accent/20 hover:animate-lift animate-fade-in" style={{ animationDelay: '0.2s' }}>
               <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages lus</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
             </div>
             
             {/* Total passages restants */}
-            <div className="grid grid-cols-2 items-center bg-muted p-2 md:p-3 rounded-md border-r-2 border-muted-foreground/20 transition-all duration-300 hover:bg-muted/80">
+            <div className="grid grid-cols-2 items-center bg-muted p-2 md:p-3 rounded-md border-r-2 border-muted-foreground/20 transition-all duration-300 hover:bg-muted/80 hover:animate-lift animate-fade-in" style={{ animationDelay: '0.3s' }}>
               <span className="text-sm md:text-base text-gray-700 font-medium">Total Passages restants</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRemaining}</span>
             </div>
@@ -108,7 +108,7 @@ const ProgressStats = () => {
               progress={stats.progressPercentage} 
               size={isMobile ? 120 : 140}
               className="text-green-500"
-              animate={false}
+              isInitialLoad={isInitialLoad}
             />
           </div>
         </div>

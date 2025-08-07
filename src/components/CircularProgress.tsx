@@ -23,18 +23,18 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
 }) => {
   const { animatedProgress } = useProgressAnimation({
     targetProgress: progress,
-    duration: isInitialLoad ? 2000 : 0,
-    delay: isInitialLoad ? animationDelay : 0,
+    duration: isInitialLoad ? 2000 : 0, // Animation seulement au chargement initial
+    delay: isInitialLoad ? animationDelay : 0, // Délai seulement au chargement initial
     isInitialLoad
   });
   
-  const displayProgress = progress;
+  const displayProgress = (animate && isInitialLoad) ? animatedProgress : progress;
   const radius = (size - strokeWidth) / 2;
   const circumference = 2 * Math.PI * radius;
   const strokeDashoffset = circumference - (displayProgress / 100) * circumference;
   
   return (
-    <div className={`relative ${className}`} style={{ width: size, height: size }}>
+    <div className={`relative ${className} animate-scale-fade-in`} style={{ width: size, height: size }}>
       <svg
         width={size}
         height={size}
@@ -59,11 +59,11 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
           strokeLinecap="round"
-          className=""
+          className="transition-all duration-300 ease-out"
         />
       </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-3xl font-semibold">
+      <div className="absolute inset-0 flex flex-col items-center justify-center animate-text-reveal" style={{ animationDelay: `${animationDelay + 800}ms` }}>
+        <span className="text-3xl font-semibold transition-all duration-500 hover:scale-110">
           {Math.round(displayProgress)}%
         </span>
       </div>

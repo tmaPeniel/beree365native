@@ -20,8 +20,8 @@ export const useProgressAnimation = ({
   const previousProgressRef = useRef(0);
 
   useEffect(() => {
-    // Si ce n'est pas un chargement initial, mettre à jour directement sans animation
-    if (!isInitialLoad) {
+    // Si ce n'est pas un chargement initial et que la durée est 0, mettre à jour directement
+    if (!isInitialLoad && duration === 0) {
       setAnimatedProgress(targetProgress);
       previousProgressRef.current = targetProgress;
       return;

@@ -1,21 +1,14 @@
 import { useRef, useEffect } from 'react';
 
-export const useInitialPageLoad = () => {
+export const useInitialPageLoad = (dependency?: any) => {
   const isInitialLoadRef = useRef(true);
-  const hasInitializedRef = useRef(false);
 
   useEffect(() => {
-    // Ne s'exécute qu'une seule fois au premier mount
-    if (!hasInitializedRef.current) {
-      hasInitializedRef.current = true;
-      // Marquer comme non-initial après un court délai pour permettre l'animation initiale
-      const timer = setTimeout(() => {
-        isInitialLoadRef.current = false;
-      }, 100);
-      
-      return () => clearTimeout(timer);
+    // Après le premier rendu, tous les changements suivants ne sont plus des chargements initiaux
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
     }
-  }, []);
+  }, [dependency]);
 
   return isInitialLoadRef.current;
 };
