@@ -23,8 +23,8 @@ const CircularProgress: React.FC<CircularProgressProps> = ({
 }) => {
   const { animatedProgress } = useProgressAnimation({
     targetProgress: progress,
-    duration: isInitialLoad ? 2000 : 0, // Animation seulement au chargement initial
-    delay: isInitialLoad ? animationDelay : 0, // Délai seulement au chargement initial
+    duration: isInitialLoad ? 2000 : 0,
+    delay: isInitialLoad ? animationDelay : 0,
     isInitialLoad
   });
   
