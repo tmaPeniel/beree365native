@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.3 (519615d)"
@@ -227,20 +227,20 @@ export type Database = {
       get_user_stats: {
         Args: Record<PropertyKey, never>
         Returns: {
-          user_id: string
-          full_name: string
-          email: string
-          start_date: string
-          last_login_at: string
-          is_active: boolean
           completed_chapters_count: number
+          email: string
+          full_name: string
+          is_active: boolean
+          last_login_at: string
+          start_date: string
           total_days_completed: number
+          user_id: string
         }[]
       }
       has_role: {
         Args: {
-          _user_id: string
           _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
         }
         Returns: boolean
       }
@@ -249,7 +249,7 @@ export type Database = {
         Returns: boolean
       }
       is_user_active: {
-        Args: { p_user_id: string; days_threshold?: number }
+        Args: { days_threshold?: number; p_user_id: string }
         Returns: boolean
       }
       update_user_activity: {
