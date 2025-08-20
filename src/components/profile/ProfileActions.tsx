@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { signOut } from '@/services/authService';
 import { supabase } from '@/integrations/supabase/client';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 /**
  * Boutons d'action pour le profil utilisateur
@@ -16,6 +17,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
   const navigate = useNavigate();
   const { user } = useOptimizedAuth();
   const [isResetting, setIsResetting] = useState(false);
+  const isMobile = useIsMobile();
   
   /**
    * Gère la déconnexion de l'utilisateur
@@ -89,10 +91,10 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
   };
 
   return (
-    <div className="space-y-4">
+    <div className={isMobile ? "space-y-3" : "flex flex-col items-center justify-center gap-4 min-h-[200px]"}>
       <Button 
         variant="outline" 
-        className="w-full h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50"
+        className={`h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50 ${isMobile ? "w-full" : "w-64"}`}
         onClick={handleEditProfile}
       >
         Modifier le profil
@@ -102,7 +104,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
         <AlertDialogTrigger asChild>
           <Button 
             variant="outline" 
-            className="h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50"
+            className={`h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50 ${isMobile ? "w-full" : "w-64"}`}
             disabled={isResetting}
           >
             {isResetting ? "Réinitialisation..." : "Réinitialiser mon plan"}
@@ -131,7 +133,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
 
       <Button 
         variant="outline" 
-        className="h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100"
+        className={`h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100 ${isMobile ? "w-full" : "w-64"}`}
         onClick={handleLogout}
       >
         Déconnexion
