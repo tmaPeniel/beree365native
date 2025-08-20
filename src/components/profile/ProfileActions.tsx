@@ -104,7 +104,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
         <AlertDialogTrigger asChild>
           <Button 
             variant="outline" 
-            className="w-full h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50"
+            className="h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50"
             disabled={isResetting}
           >
             {isResetting ? "Réinitialisation..." : "Réinitialiser mon plan"}
@@ -135,7 +135,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
       
       <Button 
         variant="outline" 
-        className="w-full h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100"
+        className="h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100"
         onClick={handleLogout}
       >
         Déconnexion
