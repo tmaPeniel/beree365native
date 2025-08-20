@@ -91,10 +91,10 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
   };
 
   return (
-    <div className={isMobile ? "space-y-3" : "flex flex-col items-center justify-center gap-4 min-h-[200px]"}>
+    <div className={isMobile ? "space-y-3" : "flex items-center justify-center gap-4"}>
       <Button 
         variant="outline" 
-        className={`h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50 ${isMobile ? "w-full" : "w-64"}`}
+        className={`h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50 ${isMobile ? "w-full" : "w-48"}`}
         onClick={handleEditProfile}
       >
         Modifier le profil
@@ -104,7 +104,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
         <AlertDialogTrigger asChild>
           <Button 
             variant="outline" 
-            className={`h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50 ${isMobile ? "w-full" : "w-64"}`}
+            className={`h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50 ${isMobile ? "w-full" : "w-48"}`}
             disabled={isResetting}
           >
             {isResetting ? "Réinitialisation..." : "Réinitialiser mon plan"}
@@ -133,7 +133,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
 
       <Button 
         variant="outline" 
-        className={`h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100 ${isMobile ? "w-full" : "w-64"}`}
+        className={`h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100 ${isMobile ? "w-full" : "w-48"}`}
         onClick={handleLogout}
       >
         Déconnexion
