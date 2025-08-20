@@ -295,12 +295,13 @@ const BadgesSection: React.FC = () => {
         </div>
 
         {/* Bouton pour voir tous les badges */}
-        <Dialog open={showAllBadges} onOpenChange={setShowAllBadges}>
-          <DialogTrigger asChild>
-            <Button variant="outline" className="">
-              Voir tous les badges ({allBadges.length})
-            </Button>
-          </DialogTrigger>
+        <div className="flex justify-center">
+          <Dialog open={showAllBadges} onOpenChange={setShowAllBadges}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="">
+                Voir tous les badges ({allBadges.length})
+              </Button>
+            </DialogTrigger>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
@@ -320,7 +321,8 @@ const BadgesSection: React.FC = () => {
               ))}
             </div>
           </DialogContent>
-        </Dialog>
+          </Dialog>
+        </div>
       </CardContent>
       
       {/* Animation de célébration pour nouveau badge */}
