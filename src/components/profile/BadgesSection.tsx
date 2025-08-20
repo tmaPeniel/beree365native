@@ -297,7 +297,7 @@ const BadgesSection: React.FC = () => {
         {/* Bouton pour voir tous les badges */}
         <Dialog open={showAllBadges} onOpenChange={setShowAllBadges}>
           <DialogTrigger asChild>
-            <Button variant="outline" className="w-full">
+            <Button variant="outline" className="">
               Voir tous les badges ({allBadges.length})
             </Button>
           </DialogTrigger>
