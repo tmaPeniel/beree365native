@@ -92,12 +92,12 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
     <div className="space-y-4">
       <Button 
         variant="outline" 
-        className="h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50"
+        className="w-full h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50"
         onClick={handleEditProfile}
       >
         Modifier le profil
       </Button>
-            
+
       <AlertDialog>
         <AlertDialogTrigger asChild>
           <Button 
@@ -128,7 +128,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
+
       <Button 
         variant="outline" 
         className="h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100"
