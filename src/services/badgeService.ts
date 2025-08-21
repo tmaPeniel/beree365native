@@ -219,7 +219,8 @@ export const getBadgeProgress = async (userId: string): Promise<{
     // D) Encouragements utilisés (si la table existe)
     let encouragementsUsed = 0;
     try {
-      const { count } = await supabase
+      // Use any to bypass TypeScript table validation since this table might not exist
+      const { count } = await (supabase as any)
         .from('encouragement_events')
         .select('*', { count: 'exact', head: true })
         .eq('user_id', userId);
@@ -242,7 +243,7 @@ export const getBadgeProgress = async (userId: string): Promise<{
     let chaptersByBook: Record<string, string[]> = {};
     if (booksNeeded.length > 0) {
       const orFilter = booksNeeded
-        .map(book => `reference.ilike.${book.replaceAll('.', '\\.')}%`)
+        .map(book => `reference.ilike.${book.replace(/\./g, '\\.')}%`)
         .join(',');
       const { data: bookChapters } = await supabase
         .from('reading_plan_chapters')
