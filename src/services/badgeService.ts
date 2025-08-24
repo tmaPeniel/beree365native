@@ -209,6 +209,43 @@ export const getBadgeProgress = async (userId: string): Promise<{
       maxSameHourStreak = Math.max(maxSameHourStreak, sameHourRun);
       prev = di;
     }
+    // Current consecutive-day streak (resets to 0 if a day is missed)
+    let currentStreak = 0;
+    if (days.length > 0) {
+      currentStreak = 1;
+      for (let i = days.length - 1; i > 0; i--) {
+        if (diffDays(days[i].dateKey, days[i - 1].dateKey) === 1) {
+          currentStreak += 1;
+        } else {
+          break;
+        }
+      }
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const gapToToday = diffDays(todayKey, days[days.length - 1].dateKey);
+      if (gapToToday > 1) {
+        currentStreak = 0;
+      }
+    }
+
+    // Current fixed-time streak (same hour across consecutive days, resets if day missed)
+    let currentSameHourStreak = 0;
+    if (days.length > 0) {
+      currentSameHourStreak = 1;
+      for (let i = days.length - 1; i > 0; i--) {
+        const a = days[i];
+        const b = days[i - 1];
+        if (a.firstHour === b.firstHour && diffDays(a.dateKey, b.dateKey) === 1) {
+          currentSameHourStreak += 1;
+        } else {
+          break;
+        }
+      }
+      const todayKey = new Date().toISOString().slice(0, 10);
+      const gapToToday = diffDays(todayKey, days[days.length - 1].dateKey);
+      if (gapToToday > 1) {
+        currentSameHourStreak = 0;
+      }
+    }
 
     // Array of gaps in days between consecutive reading days
     const gaps: number[] = [];
@@ -284,11 +321,11 @@ export const getBadgeProgress = async (userId: string): Promise<{
         progress = required > 0 ? Math.min((current / required) * 100, 100) : 0;
 
       } else if (type === 'streak_days') {
-        current = maxStreak;
+        current = currentStreak;
         progress = required > 0 ? Math.min((current / required) * 100, 100) : (current > 0 ? 100 : 0);
 
       } else if (type === 'fixed_time_streak') {
-        current = maxSameHourStreak;
+        current = currentSameHourStreak;
         progress = required > 0 ? Math.min((current / required) * 100, 100) : (current > 0 ? 100 : 0);
 
       } else if (type === 'time_of_day') {
