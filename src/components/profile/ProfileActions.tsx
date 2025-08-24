@@ -9,6 +9,7 @@ import { signOut } from '@/services/authService';
 import { supabase } from '@/integrations/supabase/client';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import EditProfileDialog from './EditProfileDialog';
 
 /**
  * Boutons d'action pour le profil utilisateur
@@ -92,13 +93,14 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
 
   return (
     <div className={isMobile ? "space-y-3" : "flex items-center justify-center gap-4"}>
-      <Button 
-        variant="outline" 
-        className={`h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50 ${isMobile ? "w-full" : "w-48"}`}
-        onClick={handleEditProfile}
-      >
-        Modifier le profil
-      </Button>
+      <EditProfileDialog>
+        <Button 
+          variant="outline" 
+          className={`h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50 ${isMobile ? "w-full" : "w-48"}`}
+        >
+          Modifier le profil
+        </Button>
+      </EditProfileDialog>
 
       <AlertDialog>
         <AlertDialogTrigger asChild>
