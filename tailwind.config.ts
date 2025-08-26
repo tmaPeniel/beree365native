@@ -170,6 +170,18 @@ export default {
 					'0%': { transform: 'scale(0) rotate(0deg)' },
 					'50%': { transform: 'scale(1.2) rotate(180deg)' },
 					'100%': { transform: 'scale(1) rotate(360deg)' }
+				},
+				
+				// Splash screen animations
+				'splash-logo': {
+					'0%': { opacity: '0', transform: 'scale(0.8) translateY(20px)' },
+					'60%': { opacity: '1', transform: 'scale(1.05) translateY(-5px)' },
+					'100%': { opacity: '1', transform: 'scale(1) translateY(0)' }
+				},
+				'splash-progress': {
+					'0%': { width: '0%' },
+					'70%': { width: '70%' },
+					'100%': { width: '100%' }
 				}
 			},
 			animation: {
@@ -206,7 +218,12 @@ export default {
 				
 				// Formulaires
 				'border-glow': 'border-glow 0.2s ease-out',
-				'check-mark': 'check-mark 0.4s ease-out'
+				'check-mark': 'check-mark 0.4s ease-out',
+				
+				// Splash screen
+				'splash-logo': 'splash-logo 1s ease-out',
+				'splash-progress': 'splash-progress 2.5s ease-out',
+				'fade-in-delayed': 'fade-in 0.5s ease-out 1s both'
 			}
 		}
 	},
