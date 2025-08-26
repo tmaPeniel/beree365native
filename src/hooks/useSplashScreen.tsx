@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-const SPLASH_DURATION = 2000; // 2 seconds
+const SPLASH_DURATION = 3000; // 2 seconds
 
 export const useSplashScreen = () => {
   const [isVisible, setIsVisible] = useState(true);
