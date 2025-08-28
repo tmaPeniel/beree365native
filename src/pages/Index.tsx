@@ -34,11 +34,11 @@ const Index = () => {
         <Logo size="large" className="mb-6" />
         
         <h1 className="text-3xl font-bold mb-4 text-gray-800">
-          Lisez la Bible en un an
+          Parcourez la Bible en un an
         </h1>
         
         <p className="text-gray-600 mb-8">
-          Suivez votre lecture quotidienne, établissez une routine spirituelle et progressez pas à pas.
+          Suivez votre lecture quotidienne, établissez une routine de lecture et progressez pas à pas.
         </p>
         
         <div className="space-y-4">
