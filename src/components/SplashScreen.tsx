@@ -23,7 +23,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ isVisible, onComplete }) =>
       
       {/* Loading Text */}
       <p className="mt-6 text-muted-foreground text-sm font-medium animate-fade-in-delayed">
-        Parcours la Bible en un an
+        Parcours la Bible en un an...
       </p>
     </div>
   );
