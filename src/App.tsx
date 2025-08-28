@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
 import SplashScreen from "./components/SplashScreen";
 import { useSplashScreen } from "./hooks/useSplashScreen";
+import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -28,6 +29,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <PWAUpdateNotification />
         
         {/* Splash Screen */}
         <SplashScreen isVisible={splashVisible} />
