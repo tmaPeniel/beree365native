@@ -37,8 +37,6 @@ export default defineConfig(({ mode }) => ({
         name: 'Bérée 365 - Lisez la Bible en un an',
         short_name: 'Bérée 365',
         description: 'Application de suivi de lecture de la Bible en un an',
-        theme_color: '#D4AF37',
-        background_color: '#0F172A',
         display: 'standalone',
         orientation: 'portrait',
         scope: '/',
