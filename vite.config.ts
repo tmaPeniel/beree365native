@@ -38,7 +38,7 @@ export default defineConfig(({ mode, command }) => ({
         short_name: 'Bérée 365',
         description: 'Application de suivi de lecture de la Bible en un an',
         display: 'standalone',
-        orientation: 'portrait',
+        orientation: 'any',
         scope: '/',
         start_url: '/',
         categories: ['education', 'lifestyle', 'books'],
