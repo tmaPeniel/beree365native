@@ -4,7 +4,7 @@
  * Gère à la fois la connexion et l'inscription des utilisateurs
  */
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from "@/lib/utils";
 
 // Types pour les propriétés du composant
@@ -49,6 +49,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
    * Formulaire pour la connexion
    */
   const LoginForm = () => {
+    const [showPassword, setShowPassword] = useState(false);
     const form = useForm<LoginFormValues>({
       resolver: zodResolver(loginSchema),
       defaultValues: {
@@ -100,12 +101,27 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
                   {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
                 </FormLabel>
                 <FormControl>
-                  <Input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="••••••••" 
+                      className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive", "pr-10")}
+                      {...field} 
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -133,6 +149,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
    * Formulaire pour l'inscription
    */
   const SignupForm = () => {
+    const [showPassword, setShowPassword] = useState(false);
     const form = useForm<SignupFormValues>({
       resolver: zodResolver(signupSchema),
       defaultValues: {
@@ -208,12 +225,27 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
                   {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
                 </FormLabel>
                 <FormControl>
-                  <Input 
-                    type="password" 
-                    placeholder="••••••••" 
-                    className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
-                    {...field} 
-                  />
+                  <div className="relative">
+                    <Input 
+                      type={showPassword ? "text" : "password"} 
+                      placeholder="••••••••" 
+                      className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive", "pr-10")}
+                      {...field} 
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-0 top-0 h-full px-3 py-2 hover:bg-transparent"
+                      onClick={() => setShowPassword(!showPassword)}
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-4 w-4 text-muted-foreground" />
+                      ) : (
+                        <Eye className="h-4 w-4 text-muted-foreground" />
+                      )}
+                    </Button>
+                  </div>
                 </FormControl>
                 <FormMessage />
               </FormItem>
