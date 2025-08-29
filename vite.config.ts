@@ -32,7 +32,7 @@ export default defineConfig(({ mode, command }) => ({
           },
         ],
       },
-      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'pwa-192x192.png'],
+      includeAssets: ['favicon.ico', 'beree-512x512.png', 'beree-192x192.png'],
       manifest: {
         name: 'Bérée 365 - Lisez la Bible en un an',
         short_name: 'Bérée 365',
@@ -44,12 +44,12 @@ export default defineConfig(({ mode, command }) => ({
         categories: ['education', 'lifestyle', 'books'],
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'beree-192x192.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'beree-512x512.png',
             sizes: '512x512',
             type: 'image/png'
           }
@@ -60,14 +60,14 @@ export default defineConfig(({ mode, command }) => ({
             short_name: "Aujourd'hui",
             description: "Accéder à la lecture du jour",
             url: "/reading",
-            icons: [{ src: "pwa-192x192.png", sizes: "192x192" }]
+            icons: [{ src: "beree-192x192.png", sizes: "192x192" }]
           },
           {
             name: "Tableau de bord",
             short_name: "Dashboard",
             description: "Voir mes statistiques de lecture",
             url: "/dashboard",
-            icons: [{ src: "pwa-192x192.png", sizes: "192x192" }]
+            icons: [{ src: "beree-192x192.png", sizes: "192x192" }]
           }
         ]
       }
