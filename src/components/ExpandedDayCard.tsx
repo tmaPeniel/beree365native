@@ -203,30 +203,13 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
         </div>
       </div>
       
-      {/* En-tête des passages avec bouton "Tout cocher" */}
+      
+      {/* En-tête des passages */}
       {chapters && chapters.length > 0 && (
         <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>
             Passages du jour
           </span>
-          
-          {/* Bouton "Tout cocher" */}
-          {chapters.some(ch => !ch.completed) && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleMarkAllRead}
-              disabled={isMarkingAll}
-              className={`${isMobile ? 'h-6 px-2 text-xs' : 'h-7 px-3 text-xs'} border-green-200 hover:border-green-300 hover:bg-green-50`}
-            >
-              {isMarkingAll ? (
-                <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin mr-1`} />
-              ) : (
-                <CheckCheck className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
-              )}
-              Tout cocher
-            </Button>
-          )}
         </div>
       )}
       
@@ -267,6 +250,26 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
           </p>
         )}
       </div>
+      
+      {/* Bouton "Tout cocher" en bas */}
+      {chapters && chapters.length > 0 && chapters.some(ch => !ch.completed) && (
+        <div className={`flex justify-center ${isMobile ? 'mb-2' : 'mb-3'}`}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMarkAllRead}
+            disabled={isMarkingAll}
+            className={`${isMobile ? 'h-6 px-2 text-xs' : 'h-7 px-3 text-xs'} border-green-200 hover:border-green-300 hover:bg-green-50`}
+          >
+            {isMarkingAll ? (
+              <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin mr-1`} />
+            ) : (
+              <CheckCheck className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+            )}
+            Tout cocher
+          </Button>
+        </div>
+      )}
       
       {/* Pourcentage positionné en bas de la carte */}
       <div className="absolute bottom-2 right-2">
