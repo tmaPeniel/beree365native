@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedCacheService';
+import { optimizedToggleChapterStatus, markAllChaptersAsRead } from '@/services/readingPlan/optimizedCacheService';
 import { useQueryClient } from '@tanstack/react-query';
 import { Check, Loader2, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -129,36 +129,41 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     setIsMarkingAll(true);
     
     try {
-      // Marquer tous les chapitres non complétés
-      const promises = uncompletedChapters.map(chapter => 
-        optimizedToggleChapterStatus(user.id, chapter.id, 'pending', day)
+      // Utiliser la fonction optimisée pour marquer tous les chapitres d'un coup
+      const result = await markAllChaptersAsRead(
+        user.id, 
+        uncompletedChapters.map(ch => ch.id), 
+        day
       );
       
-      await Promise.all(promises);
-      
-      // Mise à jour optimiste du cache
-      queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
-        if (!oldData) return oldData;
-        
-        return oldData.map((dayData: any) => {
-          if (dayData.day !== day) return dayData;
+      if (result.success) {
+        // Mise à jour optimiste du cache
+        queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
+          if (!oldData) return oldData;
           
-          const updatedChapters = dayData.chapters.map((ch: Chapter) => ({
-            ...ch,
-            completed: true
-          }));
-          
-          return {
-            ...dayData,
-            chapters: updatedChapters,
-            progressPercentage: 100,
-            completed: true
-          };
+          return oldData.map((dayData: any) => {
+            if (dayData.day !== day) return dayData;
+            
+            const updatedChapters = dayData.chapters.map((ch: Chapter) => ({
+              ...ch,
+              completed: true
+            }));
+            
+            return {
+              ...dayData,
+              chapters: updatedChapters,
+              progressPercentage: 100,
+              completed: true
+            };
+          });
         });
-      });
-      
-      triggerProgressUpdate();
-      toast.success(`${uncompletedChapters.length} passage${uncompletedChapters.length > 1 ? 's' : ''} marqué${uncompletedChapters.length > 1 ? 's' : ''} comme lu${uncompletedChapters.length > 1 ? 's' : ''} !`);
+        
+        triggerProgressUpdate();
+        // Notification unique globale
+        toast.success(`${uncompletedChapters.length} passage${uncompletedChapters.length > 1 ? 's' : ''} marqué${uncompletedChapters.length > 1 ? 's' : ''} comme lu${uncompletedChapters.length > 1 ? 's' : ''} !`);
+      } else {
+        throw new Error(result.error || 'Erreur inconnue');
+      }
       
     } catch (error) {
       console.error('Error marking all chapters as read:', error);

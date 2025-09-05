@@ -258,7 +258,8 @@ export const optimizedToggleChapterStatus = async (
   userId: string, 
   chapterId: string, 
   currentStatus: 'pending' | 'completed',
-  dayNumber: number
+  dayNumber: number,
+  silent: boolean = false
 ) => {
   if (DEBUG_MODE) {
     console.log(`🔄 [TOGGLE] Chapter toggle - User: ${userId}, Chapter: ${chapterId}, Status: ${currentStatus} -> ${currentStatus === 'pending' ? 'completed' : 'pending'}`);
@@ -267,7 +268,9 @@ export const optimizedToggleChapterStatus = async (
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
     console.error('❌ [ERROR] User not authenticated');
-    toast.error("Vous devez être connecté pour modifier le statut de lecture");
+    if (!silent) {
+      toast.error("Vous devez être connecté pour modifier le statut de lecture");
+    }
     return { success: false, error: "User not authenticated" };
   }
   
@@ -333,15 +336,98 @@ export const optimizedToggleChapterStatus = async (
       console.log(`✅ [SUCCESS] Chapter toggle completed successfully`);
     }
     
-    toast.success(newStatus === 'completed' ? 
-      "Passage marqué comme lu" : 
-      "Passage marqué comme non lu"
-    );
+    if (!silent) {
+      toast.success(newStatus === 'completed' ? 
+        "Passage marqué comme lu" : 
+        "Passage marqué comme non lu"
+      );
+    }
     
     return result;
   } catch (error: any) {
     console.error("❌ [ERROR] Error toggling chapter status:", error);
-    toast.error(`Une erreur est survenue: ${error.message}`);
+    if (!silent) {
+      toast.error(`Une erreur est survenue: ${error.message}`);
+    }
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Marque tous les chapitres d'une liste comme lus en une seule opération
+ */
+export const markAllChaptersAsRead = async (
+  userId: string,
+  chapterIds: string[],
+  dayNumber: number
+) => {
+  if (DEBUG_MODE) {
+    console.log(`🔄 [BULK TOGGLE] Marking ${chapterIds.length} chapters as read for user ${userId}`);
+  }
+
+  const { data: sessionData } = await supabase.auth.getSession();
+  if (!sessionData.session) {
+    console.error('❌ [ERROR] User not authenticated');
+    return { success: false, error: "User not authenticated" };
+  }
+
+  const completedAt = new Date().toISOString();
+
+  try {
+    // Récupérer les entrées existantes
+    const { data: existingEntries } = await supabase
+      .from('user_progress')
+      .select('id, chapter_id')
+      .eq('user_id', userId)
+      .in('chapter_id', chapterIds);
+
+    const existingChapterIds = existingEntries?.map(entry => entry.chapter_id) || [];
+    const newChapterIds = chapterIds.filter(id => !existingChapterIds.includes(id));
+
+    // Mettre à jour les entrées existantes
+    if (existingChapterIds.length > 0) {
+      const { error: updateError } = await supabase
+        .from('user_progress')
+        .update({ 
+          status: 'completed',
+          completed_at: completedAt
+        })
+        .eq('user_id', userId)
+        .in('chapter_id', existingChapterIds);
+
+      if (updateError) throw updateError;
+    }
+
+    // Créer de nouvelles entrées
+    if (newChapterIds.length > 0) {
+      const newEntries = newChapterIds.map(chapterId => ({
+        user_id: userId,
+        chapter_id: chapterId,
+        status: 'completed' as const,
+        completed_at: completedAt
+      }));
+
+      const { error: insertError } = await supabase
+        .from('user_progress')
+        .insert(newEntries);
+
+      if (insertError) throw insertError;
+    }
+
+    // Mettre à jour l'activité utilisateur
+    const { ActivityService } = await import('../auth/activityService');
+    await ActivityService.updateUserActivity(userId);
+
+    // Invalidation du cache
+    invalidateUserCacheSelective(userId, 'ultra-optimized-reading-plan');
+
+    if (DEBUG_MODE) {
+      console.log(`✅ [SUCCESS] Bulk chapter marking completed successfully`);
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("❌ [ERROR] Error marking chapters as read:", error);
     return { success: false, error: error.message };
   }
 };
