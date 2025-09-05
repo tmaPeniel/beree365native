@@ -4,7 +4,7 @@
  * Gère à la fois la connexion et l'inscription des utilisateurs
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,12 +15,15 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { AlertCircle, Eye, EyeOff } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import PlanSelector from "@/components/ui/PlanSelector";
+import { ReadingPlan } from '@/types/supabase';
+import { getAvailablePlans } from '@/services/readingPlan/planService';
 
 // Types pour les propriétés du composant
 interface AuthFormProps {
   isLogin: boolean;
   toggleForm: () => void;
-  onSubmit: (data: { email: string; password: string; name?: string; startDate?: Date }) => void;
+  onSubmit: (data: { email: string; password: string; name?: string; startDate?: Date; planId?: string }) => void;
 }
 
 // Schéma pour le formulaire de connexion
@@ -34,7 +37,8 @@ const signupSchema = z.object({
   email: z.string().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
-  startDate: z.date({ required_error: "La date de début est requise" })
+  startDate: z.date({ required_error: "La date de début est requise" }),
+  planId: z.string().min(1, { message: "Veuillez sélectionner un plan de lecture" })
 });
 
 // Types basés sur les schémas
@@ -150,22 +154,37 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
    */
   const SignupForm = () => {
     const [showPassword, setShowPassword] = useState(false);
+    const [plans, setPlans] = useState<ReadingPlan[]>([]);
     const form = useForm<SignupFormValues>({
       resolver: zodResolver(signupSchema),
       defaultValues: {
         email: "",
         password: "",
         name: "",
-        startDate: new Date()
+        startDate: new Date(),
+        planId: ""
       },
     });
+
+    useEffect(() => {
+      const loadPlans = async () => {
+        const availablePlans = await getAvailablePlans();
+        setPlans(availablePlans);
+        // Sélectionner automatiquement le premier plan
+        if (availablePlans.length > 0 && !form.getValues("planId")) {
+          form.setValue("planId", availablePlans[0].id);
+        }
+      };
+      loadPlans();
+    }, [form]);
     
     const handleSubmit = (values: SignupFormValues) => {
       onSubmit({
         email: values.email,
         password: values.password,
         name: values.name,
-        startDate: values.startDate
+        startDate: values.startDate,
+        planId: values.planId
       });
     };
     
@@ -270,6 +289,26 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
                       field.onChange(date);
                     }}
                     value={field.value instanceof Date ? field.value.toISOString().split('T')[0] : ''}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          
+          <FormField
+            control={form.control}
+            name="planId"
+            render={({ field, fieldState }) => (
+              <FormItem>
+                <FormLabel className={cn(fieldState.error && "text-destructive")}>
+                  Plan de lecture
+                  {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
+                </FormLabel>
+                <FormControl>
+                  <PlanSelector
+                    selectedPlanId={field.value}
+                    onPlanSelect={(planId) => field.onChange(planId)}
                   />
                 </FormControl>
                 <FormMessage />

@@ -13,6 +13,17 @@ export type Profile = {
   created_at: string;
   last_login_at?: string | null;
   is_active?: boolean | null;
+  selected_plan_id: string; // Nouveau champ
+};
+
+// Type pour les plans de lecture
+export type ReadingPlan = {
+  id: string;
+  name: string;
+  description: string | null;
+  duration_days: number;
+  is_active: boolean;
+  created_at: string;
 };
 
 // Type pour les chapitres du plan de lecture
@@ -21,6 +32,7 @@ export type ReadingPlanChapter = {
   day_number: number;
   reference: string;
   description: string | null;
+  plan_id: string; // Nouveau champ
 };
 
 // Type pour le statut d'un chapitre

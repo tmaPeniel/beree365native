@@ -11,10 +11,11 @@ import { toast } from "sonner";
  * @param {string} email Email de l'utilisateur
  * @param {string} password Mot de passe de l'utilisateur
  * @param {string} fullName Nom complet de l'utilisateur
- * @param {Date} startDate Date de début du plan de lecture
+ * @param {string} startDate Date de début du plan de lecture (string format)
+ * @param {string} planId ID du plan de lecture sélectionné
  * @returns {Promise<{success: boolean, user?: any, error?: string}>}
  */
-export const signUp = async (email: string, password: string, fullName: string, startDate: Date) => {
+export const signUp = async (email: string, password: string, fullName: string, startDate: string, planId: string) => {
   try {
     console.log("Démarrage de l'inscription avec:", { email, fullName, startDate });
     
@@ -25,7 +26,8 @@ export const signUp = async (email: string, password: string, fullName: string, 
       options: {
         data: {
           full_name: fullName,
-          start_date: startDate.toISOString().split('T')[0]
+          start_date: startDate,
+          plan_id: planId
         }
       }
     });

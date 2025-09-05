@@ -44,10 +44,22 @@ const Signup = () => {
    * Gère la soumission du formulaire d'inscription
    * @param {Object} data Données du formulaire
    */
-  const handleSubmit = async (data: { email: string; password: string; name?: string; startDate?: Date }) => {
+  const handleSubmit = async (data: { 
+    email: string; 
+    password: string; 
+    name?: string; 
+    startDate?: Date; 
+    planId?: string;
+  }) => {
     try {
-      if (data.name && data.startDate) {
-        const result = await signUp(data.email, data.password, data.name, data.startDate);
+      if (data.name && data.startDate && data.planId) {
+        const result = await signUp(
+          data.email, 
+          data.password, 
+          data.name, 
+          data.startDate.toISOString().split('T')[0],
+          data.planId
+        );
         if (result.success) {
           toast.success("Inscription réussie ! Bienvenue !");
           navigate('/dashboard');
