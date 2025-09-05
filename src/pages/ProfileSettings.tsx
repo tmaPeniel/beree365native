@@ -4,11 +4,13 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
+import { useTheme } from '@/providers/ThemeProvider';
 
 /**
  * Page des paramètres utilisateur
  */
 const ProfileSettings = () => {
+  const { theme, setTheme } = useTheme();
   const settingsGroups = [
     {
       title: 'Profil',
@@ -49,7 +51,7 @@ const ProfileSettings = () => {
           description: 'Activer le thème sombre',
           icon: Moon,
           action: 'toggle',
-          defaultValue: false
+          defaultValue: theme === 'dark'
         }
       ]
     },
@@ -114,7 +116,14 @@ const ProfileSettings = () => {
                       </div>
                     </div>
                     {option.action === 'toggle' && (
-                      <Switch defaultChecked={option.defaultValue} />
+                      <Switch 
+                        checked={option.label === 'Mode sombre' ? theme === 'dark' : option.defaultValue}
+                        onCheckedChange={(checked) => {
+                          if (option.label === 'Mode sombre') {
+                            setTheme(checked ? 'dark' : 'light');
+                          }
+                        }}
+                      />
                     )}
                     {option.action === 'navigate' && (
                       <Link to={option.to || '#'}>

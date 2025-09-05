@@ -16,6 +16,7 @@ import ProfileStatistics from "./pages/ProfileStatistics";
 import ProfileBadges from "./pages/ProfileBadges";
 import ProfileSettings from "./pages/ProfileSettings";
 import ProfileAbout from "./pages/ProfileAbout";
+import ProfileEdit from "./pages/ProfileEdit";
 import ReadingPlanManagement from "./pages/ReadingPlanManagement";
 import VerseList from "./pages/VerseList";
 import Reading from "./pages/Reading";
@@ -103,6 +104,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <ProfileSettings />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/edit" 
+                  element={
+                    <ProtectedRoute>
+                      <ProfileEdit />
                     </ProtectedRoute>
                   } 
                 />
