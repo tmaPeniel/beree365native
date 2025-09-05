@@ -8,16 +8,31 @@ import { ReadingPlanChapter } from "@/types/supabase";
 
 /**
  * Récupère les chapitres du plan de lecture pour un jour donné
- * @param {number} dayNumber Numéro du jour
- * @returns {Promise<ReadingPlanChapter[]>}
+ * Filtre automatiquement par le plan sélectionné de l'utilisateur
+ * @param {number} dayNumber Numéro du jour (1-365)
+ * @param {string} userId ID de l'utilisateur pour filtrer par son plan
+ * @returns {Promise<ReadingPlanChapter[]>} Liste des chapitres pour ce jour
  */
-export const getReadingPlanForDay = async (dayNumber: number) => {
+export const getReadingPlanForDay = async (dayNumber: number, userId: string): Promise<ReadingPlanChapter[]> => {
   try {
-    console.log(`Fetching reading plan for day ${dayNumber}...`);
+    console.log(`Fetching reading plan for day ${dayNumber} and user ${userId}...`);
+    
+    // D'abord récupérer le plan sélectionné de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('selected_plan_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) throw profileError;
+
+    // Ensuite récupérer les chapitres pour ce jour et ce plan
     const { data, error } = await supabase
       .from('reading_plan_chapters')
       .select('*')
-      .eq('day_number', dayNumber);
+      .eq('day_number', dayNumber)
+      .eq('plan_id', profile.selected_plan_id)
+      .order('id');
     
     if (error) {
       console.error(`Error fetching reading plan for day ${dayNumber}:`, error);

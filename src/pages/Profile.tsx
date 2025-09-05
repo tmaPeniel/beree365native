@@ -12,6 +12,7 @@ import StatsCard from '@/components/profile/StatsCard';
 import ProfileActions from '@/components/profile/ProfileActions';
 import ProfileHeader from '@/components/profile/ProfileHeader';
 import BadgesSection from '@/components/profile/BadgesSection';
+import PlanCard from '@/components/profile/PlanCard';
 
 /**
  * Page de profil utilisateur
@@ -36,6 +37,9 @@ const Profile = () => {
       <div className="p-6 space-y-6">
         {/* Carte de profil */}
         <ProfileCard />
+        
+        {/* Carte du plan de lecture */}
+        <PlanCard />
         
         {/* Carte de statistiques */}
         <StatsCard />

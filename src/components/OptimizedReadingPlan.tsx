@@ -42,12 +42,12 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   // Configuration React Query CORRIGÉE - plus réactive avec rafraîchissement automatique
   const { data: chaptersData = [] } = useQuery({
     queryKey: ['reading-plan-chapters', dayNumber],
-    queryFn: () => getReadingPlanForDay(dayNumber),
+    queryFn: () => user ? getReadingPlanForDay(dayNumber, user.id) : [],
     staleTime: 30 * 1000, // 30 secondes
     gcTime: 5 * 60 * 1000, // 5 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    enabled: !!dayNumber,
+    enabled: !!dayNumber && !!user,
     refetchInterval: 60 * 1000 // AJOUT : Rafraîchissement auto toutes les 60 secondes
   });
 

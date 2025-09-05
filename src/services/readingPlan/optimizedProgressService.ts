@@ -32,11 +32,21 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
   }
   
   try {
-    // Requête directe et simple - pas de cache léger
+    // D'abord récupérer le plan sélectionné de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('selected_plan_id')
+      .eq('id', userId)
+      .single();
+
+    if (profileError) throw profileError;
+
+    // Requête directe et simple - filtrer par plan
     const { data: chapters } = await supabase
       .from('reading_plan_chapters')
       .select('id')
-      .eq('day_number', dayNumber);
+      .eq('day_number', dayNumber)
+      .eq('plan_id', profile.selected_plan_id);
     
     if (!chapters || chapters.length === 0) {
       if (DEBUG_MODE) {

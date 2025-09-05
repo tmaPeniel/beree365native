@@ -44,8 +44,8 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
   // Requêtes optimisées avec React Query
   const { data: chaptersData = [] } = useQuery({
     queryKey: ['reading-plan-chapters', day],
-    queryFn: () => getReadingPlanForDay(day),
-    enabled: isOpen && !!day,
+    queryFn: () => user ? getReadingPlanForDay(day, user.id) : [],
+    enabled: isOpen && !!day && !!user,
     staleTime: 10 * 60 * 1000
   });
 
