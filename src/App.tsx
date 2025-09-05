@@ -16,6 +16,7 @@ import ProfileStatistics from "./pages/ProfileStatistics";
 import ProfileBadges from "./pages/ProfileBadges";
 import ProfileSettings from "./pages/ProfileSettings";
 import ProfileAbout from "./pages/ProfileAbout";
+import ReadingPlanManagement from "./pages/ReadingPlanManagement";
 import Reading from "./pages/Reading";
 import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -81,6 +82,14 @@ function App() {
                   } 
                 />
                 <Route 
+                  path="/reading-plan" 
+                  element={
+                    <ProtectedRoute>
+                      <ReadingPlanManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route
                   path="/profile/settings" 
                   element={
                     <ProtectedRoute>
