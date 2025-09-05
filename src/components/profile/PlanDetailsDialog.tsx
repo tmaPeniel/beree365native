@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Calendar, Clock, CheckCircle } from 'lucide-react';
@@ -22,13 +23,14 @@ const PlanDetailsDialog: React.FC<PlanDetailsDialogProps> = ({
   isCurrentPlan,
   isChanging,
 }) => {
+  const [showConfirmation, setShowConfirmation] = useState(false);
+
   if (!plan) return null;
 
-  const handleSelectPlan = () => {
-    if (!isCurrentPlan) {
-      onSelectPlan(plan.id);
-      onClose();
-    }
+  const handleConfirmPlanChange = () => {
+    onSelectPlan(plan.id);
+    setShowConfirmation(false);
+    onClose();
   };
 
   return (
@@ -104,20 +106,50 @@ const PlanDetailsDialog: React.FC<PlanDetailsDialogProps> = ({
                 Plan actuellement sélectionné
               </Button>
             ) : (
-              <Button 
-                onClick={handleSelectPlan}
-                disabled={isChanging}
-                className="w-full"
-              >
-                {isChanging ? (
-                  <div className="flex items-center gap-2">
-                    <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-foreground"></div>
-                    Changement en cours...
-                  </div>
-                ) : (
-                  'Sélectionner ce plan'
-                )}
-              </Button>
+              <AlertDialog open={showConfirmation} onOpenChange={setShowConfirmation}>
+                <AlertDialogTrigger asChild>
+                  <Button 
+                    disabled={isChanging}
+                    className="w-full"
+                  >
+                    {isChanging ? (
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-t-2 border-b-2 border-primary-foreground"></div>
+                        Changement en cours...
+                      </div>
+                    ) : (
+                      'Sélectionner ce plan'
+                    )}
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Confirmer le changement de plan</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Êtes-vous sûr de vouloir changer pour le plan "{plan.name}" ?
+                      <br /><br />
+                      <strong>Attention :</strong> Cette action supprimera définitivement :
+                      <br />
+                      • Toute votre progression de lecture actuelle
+                      <br />
+                      • Tous vos badges obtenus
+                      <br />
+                      • Votre historique de lecture
+                      <br /><br />
+                      Vous repartirez au jour 1 avec le nouveau plan. Cette action ne peut pas être annulée.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleConfirmPlanChange}
+                      className="bg-primary text-primary-foreground hover:bg-primary/90"
+                    >
+                      Oui, changer de plan
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             )}
             
             <Button variant="outline" onClick={onClose} className="w-full">
