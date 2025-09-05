@@ -76,6 +76,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_login_at: string | null
+          selected_plan_id: string
           start_date: string | null
         }
         Insert: {
@@ -85,6 +86,7 @@ export type Database = {
           id: string
           is_active?: boolean | null
           last_login_at?: string | null
+          selected_plan_id: string
           start_date?: string | null
         }
         Update: {
@@ -94,28 +96,75 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
+          selected_plan_id?: string
           start_date?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_profiles_selected_plan"
+            columns: ["selected_plan_id"]
+            isOneToOne: false
+            referencedRelation: "reading_plans"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       reading_plan_chapters: {
         Row: {
           day_number: number
           description: string | null
           id: string
+          plan_id: string
           reference: string
         }
         Insert: {
           day_number: number
           description?: string | null
           id?: string
+          plan_id: string
           reference: string
         }
         Update: {
           day_number?: number
           description?: string | null
           id?: string
+          plan_id?: string
           reference?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_reading_plan_chapters_plan"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "reading_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      reading_plans: {
+        Row: {
+          created_at: string
+          description: string | null
+          duration_days: number
+          id: string
+          is_active: boolean
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          id?: string
+          is_active?: boolean
+          name: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          duration_days?: number
+          id?: string
+          is_active?: boolean
+          name?: string
         }
         Relationships: []
       }
@@ -218,6 +267,10 @@ export type Database = {
     Functions: {
       calculate_user_badges: {
         Args: { _user_id: string }
+        Returns: undefined
+      }
+      change_user_plan: {
+        Args: { new_plan_id: string }
         Returns: undefined
       }
       get_completed_days_count: {
