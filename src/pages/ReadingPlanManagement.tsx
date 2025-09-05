@@ -261,18 +261,16 @@ const ReadingPlanManagement = () => {
                       
                       <div className="pt-2">
                         <Button 
-                          variant={isCurrentPlan ? "outline" : "secondary"} 
+                          variant="secondary" 
                           size="sm" 
                           className="w-full"
                           onClick={(e) => {
                             e.stopPropagation();
-                            if (!isCurrentPlan) {
-                              handleChangePlan(plan.id);
-                            }
+                            // Pour tous les plans, on ouvre juste les détails
+                            handlePlanCardClick(plan);
                           }}
-                          disabled={isCurrentPlan || changePlanMutation.isPending}
                         >
-                          {isCurrentPlan ? 'Plan actuel' : 'Voir les détails'}
+                          {isCurrentPlan ? 'Voir les détails' : 'Voir les détails'}
                         </Button>
                       </div>
                     </div>
