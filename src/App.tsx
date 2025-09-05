@@ -17,6 +17,7 @@ import ProfileBadges from "./pages/ProfileBadges";
 import ProfileSettings from "./pages/ProfileSettings";
 import ProfileAbout from "./pages/ProfileAbout";
 import ReadingPlanManagement from "./pages/ReadingPlanManagement";
+import VerseList from "./pages/VerseList";
 import Reading from "./pages/Reading";
 import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -86,6 +87,14 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <ReadingPlanManagement />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/verses" 
+                  element={
+                    <ProtectedRoute>
+                      <VerseList />
                     </ProtectedRoute>
                   } 
                 />

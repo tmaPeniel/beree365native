@@ -71,7 +71,7 @@ const Profile = () => {
       label: 'Verset du jour',
       description: 'Méditer sur la Parole',
       icon: Heart,
-      to: '/verse-of-day',
+      to: '/verses',
       color: 'text-red-500'
     },
     {
