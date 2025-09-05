@@ -24,8 +24,8 @@ export default function VerseList() {
       setLoading(true);
       const versesData: DailyVerse[] = [];
       
-      // Récupérer tous les versets du jour 1 au jour actuel
-      for (let day = 1; day <= currentDayNumber; day++) {
+      // Récupérer tous les versets du jour actuel vers le jour 1 (ordre décroissant)
+      for (let day = currentDayNumber; day >= 1; day--) {
         try {
           const verse = await getDailyVerse(day);
           if (verse) {
@@ -89,7 +89,7 @@ export default function VerseList() {
       <div className="container px-4 py-6">
         <div className="mb-6">
           <p className="text-muted-foreground">
-            Découvrez tous les versets depuis le début de votre parcours (jour 1 à {currentDayNumber})
+            Découvrez tous les versets depuis le début de votre parcours (du jour {currentDayNumber} au jour 1)
           </p>
         </div>
 
