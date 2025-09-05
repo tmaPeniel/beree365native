@@ -2,24 +2,26 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Calendar, Clock } from 'lucide-react';
-import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { getUserPlan } from '@/services/readingPlan/planService';
 import PlanChangeDialog from './PlanChangeDialog';
 
 const PlanCard: React.FC = () => {
-  const { user } = useOptimizedAuth();
+  const { user, isLoading: authLoading } = useAuth();
   
-  const { data: currentPlan, isLoading, refetch } = useQuery({
+  const { data: currentPlan, isLoading: planLoading, refetch, error } = useQuery({
     queryKey: ['user-plan', user?.id],
     queryFn: () => user ? getUserPlan(user.id) : null,
-    enabled: !!user,
+    enabled: !!user && !authLoading,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 
   const handlePlanChanged = () => {
     refetch();
   };
+
+  const isLoading = authLoading || planLoading;
 
   if (isLoading) {
     return (
@@ -35,7 +37,8 @@ const PlanCard: React.FC = () => {
     );
   }
 
-  if (!currentPlan) {
+  if (error) {
+    console.error('Erreur lors du chargement du plan:', error);
     return (
       <Card>
         <CardHeader>
@@ -43,6 +46,34 @@ const PlanCard: React.FC = () => {
             <BookOpen className="h-5 w-5 text-primary" />
             Plan de lecture
           </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-muted-foreground">Erreur de chargement du plan</p>
+          <button 
+            onClick={() => refetch()} 
+            className="text-primary hover:underline text-sm mt-2"
+          >
+            Réessayer
+          </button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!currentPlan) {
+    return (
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <BookOpen className="h-5 w-5 text-primary" />
+              Plan de lecture
+            </CardTitle>
+            <PlanChangeDialog 
+              currentPlan={undefined} 
+              onPlanChanged={handlePlanChanged}
+            />
+          </div>
         </CardHeader>
         <CardContent>
           <p className="text-muted-foreground">Aucun plan de lecture trouvé</p>

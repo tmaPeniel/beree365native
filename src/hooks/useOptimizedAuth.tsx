@@ -8,21 +8,14 @@ import { useAuth } from './useAuth';
 export const useOptimizedAuth = () => {
   const authContext = useAuth();
   
-  // Mémoriser les valeurs calculées pour éviter les re-rendus
-  const memoizedAuth = useMemo(() => ({
+  // Retourner directement le contexte d'auth sans mémorisation excessive
+  // La mémorisation est déjà gérée par useAuth
+  return {
     user: authContext.user,
     profile: authContext.profile,
     isLoading: authContext.isLoading,
     isAuthenticated: !!authContext.user,
     triggerProgressUpdate: authContext.triggerProgressUpdate,
     progressUpdateCounter: authContext.progressUpdateCounter
-  }), [
-    authContext.user, 
-    authContext.profile, 
-    authContext.isLoading,
-    authContext.triggerProgressUpdate,
-    authContext.progressUpdateCounter
-  ]);
-  
-  return memoizedAuth;
+  };
 };
