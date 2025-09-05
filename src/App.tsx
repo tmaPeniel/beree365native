@@ -12,6 +12,10 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
+import ProfileStatistics from "./pages/ProfileStatistics";
+import ProfileBadges from "./pages/ProfileBadges";
+import ProfileSettings from "./pages/ProfileSettings";
+import ProfileAbout from "./pages/ProfileAbout";
 import Reading from "./pages/Reading";
 import Admin from "./pages/Admin";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -57,6 +61,38 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <Profile />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/statistics" 
+                  element={
+                    <ProtectedRoute>
+                      <ProfileStatistics />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/badges" 
+                  element={
+                    <ProtectedRoute>
+                      <ProfileBadges />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/settings" 
+                  element={
+                    <ProtectedRoute>
+                      <ProfileSettings />
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/about" 
+                  element={
+                    <ProtectedRoute>
+                      <ProfileAbout />
                     </ProtectedRoute>
                   } 
                 />
