@@ -41,6 +41,70 @@ export const getDailyVerse = async (dayNumber: number) => {
 };
 
 /**
+ * Récupère tous les versets du jour 1 jusqu'au jour spécifié de manière optimisée
+ * @param {number} maxDayNumber Jour maximum à récupérer
+ * @returns {Promise<DailyVerse[]>}
+ */
+export const getAllVersesUpToDay = async (maxDayNumber: number): Promise<DailyVerse[]> => {
+  try {
+    console.log(`Fetching all verses from day 1 to ${maxDayNumber}...`);
+    
+    if (!maxDayNumber || maxDayNumber < 1 || maxDayNumber > 365) {
+      console.warn(`Invalid max day number provided: ${maxDayNumber}`);
+      return [];
+    }
+    
+    // Récupérer tous les versets disponibles en une seule requête
+    const { data, error } = await supabase
+      .from('daily_verses')
+      .select('*')
+      .lte('day_number', maxDayNumber)
+      .order('day_number', { ascending: false }); // Ordre décroissant comme dans l'original
+    
+    if (error) {
+      console.error(`Error fetching verses up to day ${maxDayNumber}:`, error);
+      // En cas d'erreur, générer des versets par défaut
+      return generateDefaultVerses(maxDayNumber);
+    }
+    
+    console.log(`Successfully fetched ${data?.length || 0} verses`);
+    
+    // Compléter avec des versets par défaut pour les jours manquants
+    const verses = data as DailyVerse[];
+    const versesMap = new Map(verses.map(v => [v.day_number, v]));
+    const completeVerses: DailyVerse[] = [];
+    
+    // Créer une liste complète du jour maxDayNumber vers 1
+    for (let day = maxDayNumber; day >= 1; day--) {
+      const existingVerse = versesMap.get(day);
+      if (existingVerse) {
+        completeVerses.push(existingVerse);
+      } else {
+        completeVerses.push(getDefaultVerse(day));
+      }
+    }
+    
+    return completeVerses;
+  } catch (error) {
+    console.error(`Error in getAllVersesUpToDay for max day ${maxDayNumber}:`, error);
+    return generateDefaultVerses(maxDayNumber);
+  }
+};
+
+/**
+ * Génère des versets par défaut pour tous les jours de 1 à maxDay
+ * @param {number} maxDay Jour maximum
+ * @returns {DailyVerse[]}
+ */
+const generateDefaultVerses = (maxDay: number): DailyVerse[] => {
+  const verses: DailyVerse[] = [];
+  for (let day = maxDay; day >= 1; day--) {
+    verses.push(getDefaultVerse(day));
+  }
+  return verses;
+};
+
+/**
  * Fournit un verset par défaut lorsque aucun n'est disponible dans la base de données
  * @param {number} dayNumber Numéro du jour 
  * @returns {DailyVerse} Verset par défaut

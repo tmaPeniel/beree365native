@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
 import { ArrowLeft, Calendar, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getDailyVerse } from '@/services/readingPlan/verseService';
+import { getAllVersesUpToDay } from '@/services/readingPlan/verseService';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useDateService } from '@/hooks/useDateService';
 import { DailyVerse } from '@/types/supabase';
@@ -14,34 +14,19 @@ export default function VerseList() {
   const navigate = useNavigate();
   const { user } = useOptimizedAuth();
   const { currentDayNumber } = useDateService();
-  const [verses, setVerses] = useState<DailyVerse[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const fetchVerses = async () => {
-      if (!user || !currentDayNumber) return;
-      
-      setLoading(true);
-      const versesData: DailyVerse[] = [];
-      
-      // Récupérer tous les versets du jour actuel vers le jour 1 (ordre décroissant)
-      for (let day = currentDayNumber; day >= 1; day--) {
-        try {
-          const verse = await getDailyVerse(day);
-          if (verse) {
-            versesData.push(verse);
-          }
-        } catch (error) {
-          console.error(`Error fetching verse for day ${day}:`, error);
-        }
-      }
-      
-      setVerses(versesData);
-      setLoading(false);
-    };
-
-    fetchVerses();
-  }, [user, currentDayNumber]);
+  // Utiliser React Query pour le cache et la gestion d'état optimisée
+  const { 
+    data: verses = [], 
+    isLoading: loading, 
+    error 
+  } = useQuery({
+    queryKey: ['verses', currentDayNumber],
+    queryFn: () => getAllVersesUpToDay(currentDayNumber || 1),
+    enabled: !!user && !!currentDayNumber,
+    staleTime: 5 * 60 * 1000, // 5 minutes de cache
+    gcTime: 30 * 60 * 1000, // 30 minutes avant garbage collection
+  });
 
   if (loading) {
     return (
