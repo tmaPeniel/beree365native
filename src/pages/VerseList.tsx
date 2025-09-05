@@ -72,11 +72,6 @@ export default function VerseList() {
       </div>
 
       <div className="container px-4 py-6">
-        <div className="mb-6">
-          <p className="text-muted-foreground">
-            Découvrez tous les versets depuis le début de votre parcours (du jour {currentDayNumber} au jour 1)
-          </p>
-        </div>
 
         <ScrollArea className="h-[calc(100vh-200px)]">
           <div className="space-y-4">
