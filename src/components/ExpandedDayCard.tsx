@@ -1,9 +1,9 @@
-
 import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedCacheService';
 import { useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Loader2, CheckCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
 interface Chapter {
@@ -32,6 +32,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
 }) => {
   const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
   const queryClient = useQueryClient();
   
   // Mémoriser la date formatée
@@ -114,6 +115,62 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     }
   }, [user, chapters, day, queryClient, triggerProgressUpdate]);
 
+  // Handler pour marquer tous les passages comme lus
+  const handleMarkAllRead = useCallback(async () => {
+    if (!user || isMarkingAll) return;
+    
+    const uncompletedChapters = chapters.filter(ch => !ch.completed);
+    
+    if (uncompletedChapters.length === 0) {
+      toast.info("Tous les passages sont déjà cochés !");
+      return;
+    }
+    
+    setIsMarkingAll(true);
+    
+    try {
+      // Marquer tous les chapitres non complétés
+      const promises = uncompletedChapters.map(chapter => 
+        optimizedToggleChapterStatus(user.id, chapter.id, 'pending', day)
+      );
+      
+      await Promise.all(promises);
+      
+      // Mise à jour optimiste du cache
+      queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
+        if (!oldData) return oldData;
+        
+        return oldData.map((dayData: any) => {
+          if (dayData.day !== day) return dayData;
+          
+          const updatedChapters = dayData.chapters.map((ch: Chapter) => ({
+            ...ch,
+            completed: true
+          }));
+          
+          return {
+            ...dayData,
+            chapters: updatedChapters,
+            progressPercentage: 100,
+            completed: true
+          };
+        });
+      });
+      
+      triggerProgressUpdate();
+      toast.success(`${uncompletedChapters.length} passage${uncompletedChapters.length > 1 ? 's' : ''} marqué${uncompletedChapters.length > 1 ? 's' : ''} comme lu${uncompletedChapters.length > 1 ? 's' : ''} !`);
+      
+    } catch (error) {
+      console.error('Error marking all chapters as read:', error);
+      toast.error("Une erreur est survenue lors du marquage");
+      queryClient.invalidateQueries({ 
+        queryKey: ['optimized-reading-plan-data', user.id] 
+      });
+    } finally {
+      setIsMarkingAll(false);
+    }
+  }, [user, chapters, day, queryClient, triggerProgressUpdate, isMarkingAll]);
+
   // Classes CSS mémorisées avec optimisation mobile
   const cardClasses = useMemo(() => 
     `relative w-full rounded-xl border transition-all ${
@@ -141,7 +198,34 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
         </div>
       </div>
       
-      {/* Liste des passages optimisée pour mobile */}
+      {/* En-tête des passages avec bouton "Tout cocher" */}
+      {chapters && chapters.length > 0 && (
+        <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
+          <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>
+            Passages du jour
+          </span>
+          
+          {/* Bouton "Tout cocher" */}
+          {chapters.some(ch => !ch.completed) && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleMarkAllRead}
+              disabled={isMarkingAll}
+              className={`${isMobile ? 'h-6 px-2 text-xs' : 'h-7 px-3 text-xs'} border-green-200 hover:border-green-300 hover:bg-green-50`}
+            >
+              {isMarkingAll ? (
+                <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin mr-1`} />
+              ) : (
+                <CheckCheck className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+              )}
+              Tout cocher
+            </Button>
+          )}
+        </div>
+      )}
+      
+      {/* Liste des passages */}
       <div className={`space-y-${isMobile ? '1.5' : '2'} mb-3`}>
         {chapters && chapters.length > 0 ? (
           chapters.map((chapter) => (
