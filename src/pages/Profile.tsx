@@ -134,13 +134,6 @@ const Profile = () => {
                 <p className="text-muted-foreground">{user?.email}</p>
               </div>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              className="hidden sm:flex"
-            >
-              Éditer
-            </Button>
           </div>
         </div>
       </div>
