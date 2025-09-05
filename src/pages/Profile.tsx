@@ -75,13 +75,6 @@ const Profile = () => {
       color: 'text-red-500'
     },
     {
-      label: 'Prière',
-      description: 'Temps de communion',
-      icon: MessageSquare,
-      to: '/prayer',
-      color: 'text-purple-500'
-    },
-    {
       label: 'Paramètres',
       description: 'Gérer vos préférences',
       icon: Settings,
