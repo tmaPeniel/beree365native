@@ -26,7 +26,7 @@ const ThemeFilter: React.FC<ThemeFilterProps> = ({
       <div className="flex items-center gap-3">
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">Filtrer par thématique :</span>
+          <span className="text-sm font-medium">Thématique :</span>
         </div>
         
         <Select value={selectedTheme} onValueChange={onThemeChange}>
