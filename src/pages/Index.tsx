@@ -34,7 +34,7 @@ const Index = () => {
   // Fonction pour gérer l'installation PWA
   const handlePWAInstall = async () => {
     const result = await promptInstall();
-    setShowPWADialog(false);
+    setShowPWADialog(true);
     
     // Rediriger après installation (ou tentative)
     if (isAuthenticated) {
