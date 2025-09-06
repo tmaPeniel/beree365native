@@ -1,55 +1,16 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import Logo from '@/components/Logo';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { useIsMobile } from '@/hooks/use-mobile';
-import { usePWAInstall } from '@/hooks/usePWAInstall';
-import PWAInstallDialog from '@/components/PWAInstallDialog';
 
 const Index = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useOptimizedAuth();
-  const isMobile = useIsMobile();
-  const { shouldShowInstallPrompt, promptInstall, markAsPrompted, isInstalling } = usePWAInstall();
-  const [showPWADialog, setShowPWADialog] = useState(false);
 
   // Fonction pour gérer le clic sur "Commencer"
   const handleGetStarted = () => {
-    // Sur mobile, proposer l'installation PWA si disponible
-    if (isMobile && shouldShowInstallPrompt) {
-      setShowPWADialog(true);
-      return;
-    }
-
-    // Comportement normal
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    } else {
-      navigate('/signup');
-    }
-  };
-
-  // Fonction pour gérer l'installation PWA
-  const handlePWAInstall = async () => {
-    const result = await promptInstall();
-    setShowPWADialog(true);
-    
-    // Rediriger après installation (ou tentative)
-    if (isAuthenticated) {
-      navigate('/dashboard');
-    } else {
-      navigate('/signup');
-    }
-  };
-
-  // Fonction pour annuler l'installation PWA
-  const handlePWACancel = () => {
-    markAsPrompted();
-    setShowPWADialog(false);
-    
-    // Rediriger normalement
     if (isAuthenticated) {
       navigate('/dashboard');
     } else {
@@ -129,14 +90,6 @@ const Index = () => {
           className="w-full max-w-md rounded-2xl shadow-md"
         />
       </div>
-
-      {/* PWA Install Dialog */}
-      <PWAInstallDialog
-        isOpen={showPWADialog}
-        onInstall={handlePWAInstall}
-        onCancel={handlePWACancel}
-        isInstalling={isInstalling}
-      />
     </div>
   );
 };
