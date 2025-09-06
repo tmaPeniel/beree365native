@@ -1,6 +1,7 @@
 import { ArrowLeft, Calendar, BookOpen } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
+import { useMemo, useState } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -9,11 +10,13 @@ import { getAllVersesUpToDay } from '@/services/readingPlan/verseService';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useDateService } from '@/hooks/useDateService';
 import { DailyVerse } from '@/types/supabase';
+import ThemeFilter from '@/components/ThemeFilter';
 
 export default function VerseList() {
   const navigate = useNavigate();
   const { user } = useOptimizedAuth();
   const { currentDayNumber } = useDateService();
+  const [selectedTheme, setSelectedTheme] = useState<string>('all');
 
   // Utiliser React Query pour le cache et la gestion d'état optimisée
   const { 
@@ -27,6 +30,24 @@ export default function VerseList() {
     staleTime: 5 * 60 * 1000, // 5 minutes de cache
     gcTime: 30 * 60 * 1000, // 30 minutes avant garbage collection
   });
+
+  // Calculer les thématiques uniques et les versets filtrés
+  const { availableThemes, filteredVerses } = useMemo(() => {
+    const themes = Array.from(new Set(
+      verses
+        .map(verse => verse.wisdomType)
+        .filter(Boolean) as string[]
+    ));
+    
+    const filtered = selectedTheme === 'all' 
+      ? verses 
+      : verses.filter(verse => verse.wisdomType === selectedTheme);
+    
+    return {
+      availableThemes: themes,
+      filteredVerses: filtered
+    };
+  }, [verses, selectedTheme]);
 
   if (loading) {
     return (
@@ -72,10 +93,19 @@ export default function VerseList() {
       </div>
 
       <div className="container px-4 py-6">
+        {/* Filtre par thématique */}
+        <div className="mb-6">
+          <ThemeFilter
+            themes={availableThemes}
+            selectedTheme={selectedTheme}
+            onThemeChange={setSelectedTheme}
+            verseCount={filteredVerses.length}
+          />
+        </div>
 
-        <ScrollArea className="h-[calc(100vh-200px)]">
+        <ScrollArea className="h-[calc(100vh-280px)]">
           <div className="space-y-4">
-            {verses.map((verse) => (
+            {filteredVerses.map((verse) => (
               <Card key={verse.id} className="transition-colors hover:bg-muted/50">
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-3">
