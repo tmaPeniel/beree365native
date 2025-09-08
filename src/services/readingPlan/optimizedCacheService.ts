@@ -60,7 +60,12 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
   // D'abord récupérer le plan sélectionné de l'utilisateur
   const { data: profileData, error: profileError } = await supabase
     .from('profiles')
-    .select('selected_plan_id')
+    .select(`
+      selected_plan_id,
+      reading_plans:selected_plan_id (
+        duration_days
+      )
+    `)
     .eq('id', userId)
     .maybeSingle();
 
@@ -78,6 +83,7 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
   }
 
   const selectedPlanId = profileData.selected_plan_id;
+  const planDuration = profileData.reading_plans?.duration_days || 365;
   const cacheKey = getCacheKey(userId, 'ultra-optimized-reading-plan', selectedPlanId);
   const cached = globalCache.get(cacheKey);
   
@@ -126,17 +132,17 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
         dayDistribution.set(day, (dayDistribution.get(day) || 0) + 1);
       });
       
-      console.log(`📊 [STATS] Days coverage: ${dayDistribution.size} unique days (should be 365)`);
+      console.log(`📊 [STATS] Days coverage: ${dayDistribution.size} unique days (should be ${planDuration})`);
       const maxDay = Math.max(...dayDistribution.keys());
       console.log(`📊 [STATS] Highest day number: ${maxDay}`);
       
-      if (maxDay < 365) {
+      if (maxDay < planDuration) {
         console.warn(`⚠️ [WARNING] Missing days detected! Only have data up to day ${maxDay}`);
       }
     }
     
     // Traitement des données avec logs détaillés
-    const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate);
+    const processedData = processChaptersDataOptimized(chaptersWithProgress || [], startDate, planDuration);
     
     // Mise en cache CORRIGÉE avec plan ID
     globalCache.set(cacheKey, {
@@ -160,7 +166,7 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
 /**
  * Traite les données des chapitres - VERSION AVEC DEBUGGING
  */
-const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
+const processChaptersDataOptimized = (chapters: any[], startDate: string, planDuration: number = 365) => {
   if (DEBUG_MODE) {
     console.log(`🔄 [PROCESS] Processing ${chapters.length} chapters...`);
   }
@@ -171,7 +177,7 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
   chapters.forEach(chapter => {
     const dayNum = chapter.day_number;
     
-    if (!dayNum || dayNum < 1 || dayNum > 365) {
+    if (!dayNum || dayNum < 1 || dayNum > planDuration) {
       console.warn(`⚠️ [WARNING] Invalid day number: ${dayNum}`);
       return;
     }
@@ -205,7 +211,7 @@ const processChaptersDataOptimized = (chapters: any[], startDate: string) => {
   }
 
   // Générer tous les jours manquants
-  for (let day = 1; day <= 365; day++) {
+  for (let day = 1; day <= planDuration; day++) {
     if (!dayGroups.has(day)) {
       const calculatedDate = calculateDateForDay(startDate, day);
       
