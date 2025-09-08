@@ -72,9 +72,9 @@ const Reading = React.memo(() => {
   };
 
   // Requête principale pour charger toutes les données du plan de lecture
-  // Cache optimisé pour de meilleures performances
+  // Cache optimisé pour de meilleures performances - avec plan sélectionné
   const { data: optimizedData = [], isLoading: dataLoading, error, refetch } = useQuery({
-    queryKey: ['optimized-reading-plan-data', profile?.id],
+    queryKey: ['optimized-reading-plan-data', profile?.id, profile?.selected_plan_id, profile?.start_date],
     queryFn: async () => {
       if (!profile) return [];
       return await getOptimizedReadingPlanData(profile.id, profile.start_date);
@@ -239,15 +239,24 @@ const Reading = React.memo(() => {
         )}
         
         {optimizedData.length === 0 ? (
-          /* État vide avec option de rechargement */
+          /* État vide avec message informatif */
           <div className="text-center py-12">
-            <p className="text-gray-600">Aucune donnée de plan de lecture disponible</p>
-            <button 
-              onClick={() => refetch()} 
-              className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Recharger
-            </button>
+            <p className="text-gray-600 mb-2">Votre plan sélectionné ne contient pas de chapitres pour le moment.</p>
+            <p className="text-gray-500 text-sm mb-4">Vous pouvez changer de plan dans votre profil pour accéder à du contenu disponible.</p>
+            <div className="space-y-2">
+              <button 
+                onClick={() => refetch()} 
+                className="block mx-auto px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              >
+                Recharger
+              </button>
+              <a 
+                href="/profile" 
+                className="block mx-auto px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-fit"
+              >
+                Changer de plan
+              </a>
+            </div>
           </div>
         ) : filteredData.length === 0 && searchQuery ? (
           /* État de recherche sans résultats */
