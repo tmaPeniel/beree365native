@@ -8,6 +8,7 @@ import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Loader2 } from 'lucide-react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import { usePlanDuration } from '@/hooks/usePlanDuration';
 import { getReadingPlanForDay } from '@/services/readingPlan';
 import { getCachedUserProgressForDay, optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -32,6 +33,7 @@ interface OptimizedReadingPlanProps {
 const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber }) => {
   // Hooks d'authentification et de gestion d'état
   const { user, triggerProgressUpdate } = useOptimizedAuth();
+  const { planDuration } = usePlanDuration();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const queryClient = useQueryClient();
@@ -236,7 +238,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
           <h2 className="text-xl font-semibold">Aujourd'hui</h2>
           <div className="flex items-center gap-2">
             <span className="text-sm bg-green-100 text-green-700 py-1 px-3 rounded-full">
-              Jour {dayNumber}/365
+              Jour {dayNumber}/{planDuration}
             </span>
           </div>
         </div>

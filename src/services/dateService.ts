@@ -15,12 +15,11 @@ const parseLocalDate = (dateStr: string): Date => {
  * Calcule le numéro du jour actuel dans le plan de lecture
  * VERSION CORRIGÉE - Simple et directe
  */
-export const getCurrentDayNumber = (startDateStr: string): number => {
-  console.log(`📅 Calcul du jour courant - Date de début: ${startDateStr}`);
+export const getCurrentDayNumber = (startDateStr: string, planDuration: number = 365): number => {
+  console.log(`📅 Calcul du jour courant - Date de début: ${startDateStr}, Durée: ${planDuration} jours`);
   
   const startDate = parseLocalDate(startDateStr);
   const today = new Date();
-  //console.log(`📅 Calcul du jour courant: ${today}`);
   
   // Normaliser les dates à minuit pour éviter les problèmes d'heures
   const startDateNormalized = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate(),0 ,0, 0);
@@ -33,10 +32,8 @@ export const getCurrentDayNumber = (startDateStr: string): number => {
   // Le jour 1 commence à la date de début (diffDays = 0 = jour 1)
   const currentDay = diffDays+1;
   
-  // Limiter entre 1 et 365
-  const finalDay = Math.max(1, Math.min(currentDay, 365));
-  
-  //console.log(`📅 Jour calculé: ${finalDay} (diffDays: ${diffDays})`);
+  // Limiter entre 1 et la durée du plan
+  const finalDay = Math.max(1, Math.min(currentDay, planDuration));
   
   return finalDay;
 };
@@ -85,15 +82,15 @@ export const formatDateToFrench = (dateStr: string): string => {
 /**
  * Calcule les statistiques du plan
  */
-export const getPlanStats = (startDateStr: string) => {
-  const currentDay = getCurrentDayNumber(startDateStr);
-  const remainingDays = Math.max(0, 365 - currentDay);
-  const progressPercentage = Math.round((currentDay / 365) * 100);
+export const getPlanStats = (startDateStr: string, planDuration: number = 365) => {
+  const currentDay = getCurrentDayNumber(startDateStr, planDuration);
+  const remainingDays = Math.max(0, planDuration - currentDay);
+  const progressPercentage = Math.round((currentDay / planDuration) * 100);
   
   return {
     currentDay,
     remainingDays,
     progressPercentage,
-    totalDays: 365
+    totalDays: planDuration
   };
 };

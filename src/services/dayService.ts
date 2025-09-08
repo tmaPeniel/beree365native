@@ -29,10 +29,10 @@ export const getCurrentDayFromDB = async (userId: string): Promise<number> => {
 /**
  * Met à jour le jour courant dans la base de données
  */
-export const updateCurrentDay = async (userId: string, newDay: number): Promise<boolean> => {
+export const updateCurrentDay = async (userId: string, newDay: number, planDuration: number = 365): Promise<boolean> => {
   try {
-    // S'assurer que le jour est entre 1 et 365
-    const clampedDay = Math.max(1, Math.min(newDay, 365));
+    // S'assurer que le jour est entre 1 et la durée du plan
+    const clampedDay = Math.max(1, Math.min(newDay, planDuration));
     
     const { error } = await supabase
       .from('profiles')
@@ -53,12 +53,12 @@ export const updateCurrentDay = async (userId: string, newDay: number): Promise<
 /**
  * Passe au jour suivant
  */
-export const goToNextDay = async (userId: string): Promise<number | null> => {
+export const goToNextDay = async (userId: string, planDuration: number = 365): Promise<number | null> => {
   try {
     const currentDay = await getCurrentDayFromDB(userId);
-    const nextDay = Math.min(currentDay + 1, 365);
+    const nextDay = Math.min(currentDay + 1, planDuration);
     
-    const success = await updateCurrentDay(userId, nextDay);
+    const success = await updateCurrentDay(userId, nextDay, planDuration);
     if (success) {
       toast.success(`Passage au jour ${nextDay}`);
       return nextDay;
@@ -75,12 +75,12 @@ export const goToNextDay = async (userId: string): Promise<number | null> => {
 /**
  * Passe au jour précédent
  */
-export const goToPreviousDay = async (userId: string): Promise<number | null> => {
+export const goToPreviousDay = async (userId: string, planDuration: number = 365): Promise<number | null> => {
   try {
     const currentDay = await getCurrentDayFromDB(userId);
     const previousDay = Math.max(currentDay - 1, 1);
     
-    const success = await updateCurrentDay(userId, previousDay);
+    const success = await updateCurrentDay(userId, previousDay, planDuration);
     if (success) {
       toast.success(`Passage au jour ${previousDay}`);
       return previousDay;
