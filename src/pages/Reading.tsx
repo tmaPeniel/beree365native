@@ -240,23 +240,18 @@ const Reading = React.memo(() => {
         
         {optimizedData.length === 0 ? (
           /* État vide avec message informatif */
-          <div className="text-center py-12">
-            <p className="text-gray-600 mb-2">Votre plan sélectionné ne contient pas de chapitres pour le moment.</p>
-            <p className="text-gray-500 text-sm mb-4">Vous pouvez changer de plan dans votre profil pour accéder à du contenu disponible.</p>
-            <div className="space-y-2">
-              <button 
-                onClick={() => refetch()} 
-                className="block mx-auto px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-              >
-                Recharger
-              </button>
-              <a 
-                href="/profile" 
-                className="block mx-auto px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 w-fit"
-              >
-                Changer de plan
-              </a>
-            </div>
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="text-6xl mb-4">📖</div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Pas de passages</h3>
+            <p className="text-gray-500 text-center max-w-md mb-6">
+              Votre plan sélectionné ne contient pas de passages pour le moment.
+            </p>
+            <Button 
+              onClick={() => window.location.href = '/reading-plan-management'}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Changer de plan
+            </Button>
           </div>
         ) : filteredData.length === 0 && searchQuery ? (
           /* État de recherche sans résultats */
