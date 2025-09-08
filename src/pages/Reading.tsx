@@ -205,27 +205,35 @@ const Reading = React.memo(() => {
       {/* En-tête avec titre et contrôles de navigation */}
       <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-        <p className="text-gray-500">
-          Suivez votre progression au fil des jours
-        </p>
-        
-        {/* Barre de recherche */}
-        <div className="mt-4 max-w-md mx-auto">
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
-            className="w-full"
-          />
-        </div>
-        
-        {/* Contrôles de navigation centrés */}
-        <div className="mt-4 flex justify-center">
-          <DayNavigationControls 
-            onCurrentDayClick={scrollToCurrentDay}
-            showNavigationButtons={true}
-          />
-        </div>
+        {optimizedData.length > 0 ? (
+          <>
+            <p className="text-gray-500">
+              Suivez votre progression au fil des jours
+            </p>
+            
+            {/* Barre de recherche */}
+            <div className="mt-4 max-w-md mx-auto">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
+                className="w-full"
+              />
+            </div>
+            
+            {/* Contrôles de navigation centrés */}
+            <div className="mt-4 flex justify-center">
+              <DayNavigationControls 
+                onCurrentDayClick={scrollToCurrentDay}
+                showNavigationButtons={true}
+              />
+            </div>
+          </>
+        ) : (
+          <p className="text-gray-500">
+            Aucun passage disponible dans votre plan actuel
+          </p>
+        )}
       </div>
       
       {/* Contenu principal - grille des jours */}
