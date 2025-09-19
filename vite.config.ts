@@ -16,6 +16,9 @@ export default defineConfig(({ mode, command }) => ({
     componentTagger(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'public',
+      filename: 'sw.js',
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
@@ -42,16 +45,19 @@ export default defineConfig(({ mode, command }) => ({
         scope: '/',
         start_url: '/',
         categories: ['education', 'lifestyle', 'books'],
+        
         icons: [
           {
             src: 'beree-192x192.png',
             sizes: '192x192',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'maskable any'
           },
           {
             src: 'beree-512x512.png',
             sizes: '512x512',
-            type: 'image/png'
+            type: 'image/png',
+            purpose: 'maskable any'
           }
         ],
         shortcuts: [
