@@ -1,11 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-
-interface PushSubscriptionData {
-  endpoint: string;
-  p256dh: string;
-  auth: string;
-}
+import { pushNotificationService, type PushSubscriptionData } from '@/services/pushNotificationService';
 
 interface UsePushNotificationsReturn {
   isSupported: boolean;
@@ -51,7 +46,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       const registration = await navigator.serviceWorker.getRegistration();
       if (registration) {
         const subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!subscription);
+        const hasLocalSubscription = !!subscription;
+        
+        // Vérifier aussi côté serveur
+        const hasServerSubscription = await pushNotificationService.hasActiveSubscription();
+        
+        setIsSubscribed(hasLocalSubscription && hasServerSubscription);
       }
     } catch (error) {
       console.error('Erreur lors de la vérification de l\'abonnement existant:', error);
@@ -137,8 +137,12 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')!)))
       };
 
-      // TODO: Envoyer les données d'abonnement au serveur Supabase
-      console.log('Données d\'abonnement à envoyer au serveur:', subscriptionData);
+      // Sauvegarder l'abonnement sur le serveur Supabase
+      const saved = await pushNotificationService.saveSubscription(subscriptionData);
+      
+      if (!saved) {
+        throw new Error('Échec de la sauvegarde de l\'abonnement sur le serveur');
+      }
 
       setIsSubscribed(true);
       toast.success('Abonnement aux notifications réussi');
@@ -166,10 +170,11 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       if (registration) {
         const subscription = await registration.pushManager.getSubscription();
         if (subscription) {
-          await subscription.unsubscribe();
+          // Supprimer l'abonnement côté serveur
+          await pushNotificationService.removeSubscription(subscription.endpoint);
           
-          // TODO: Informer le serveur de la désinscription
-          console.log('Désabonnement des notifications');
+          // Désabonner côté client
+          await subscription.unsubscribe();
           
           setIsSubscribed(false);
           toast.success('Désabonnement réussi');
