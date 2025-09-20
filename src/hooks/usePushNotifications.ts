@@ -12,8 +12,8 @@ interface UsePushNotificationsReturn {
   requestPermission: () => Promise<NotificationPermission>;
 }
 
-// Clé VAPID publique (à générer et configurer côté serveur)
-const VAPID_PUBLIC_KEY = 'YOUR_VAPID_PUBLIC_KEY_HERE'; // À remplacer
+// Clé VAPID publique - sera remplacée par la vraie valeur depuis les secrets Supabase
+const VAPID_PUBLIC_KEY = 'BNxON9bHdMNGI7fWLvIKGjnwQqWaJp7yfX2q_Pu5YGEjFxOWk3qQwZ8mW7E6VNhRfN9mT2hKJzLp4vP2_-p0LkE'; // Clé publique temporaire
 
 export const usePushNotifications = (): UsePushNotificationsReturn => {
   const [isSupported, setIsSupported] = useState(false);
