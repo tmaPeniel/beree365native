@@ -24,7 +24,7 @@ interface GlobalCacheEntry {
 }
 
 const globalCache = new Map<string, GlobalCacheEntry>();
-const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes - durée optimale
+const CACHE_DURATION = 2 * 60 * 1000; // RÉDUIT : 2 minutes au lieu de 5
 const DEBUG_MODE = false; // Activer les logs de debugging
 
 /**
@@ -291,12 +291,12 @@ export const invalidateUserCacheSelective = (userId: string, type?: string) => {
 export const optimizedToggleChapterStatus = async (
   userId: string, 
   chapterId: string, 
-  newStatus: 'pending' | 'completed',
+  currentStatus: 'pending' | 'completed',
   dayNumber: number,
   silent: boolean = false
 ) => {
   if (DEBUG_MODE) {
-    console.log(`🔄 [TOGGLE] Chapter toggle - User: ${userId}, Chapter: ${chapterId}, New Status: ${newStatus}`);
+    console.log(`🔄 [TOGGLE] Chapter toggle - User: ${userId}, Chapter: ${chapterId}, Status: ${currentStatus} -> ${currentStatus === 'pending' ? 'completed' : 'pending'}`);
   }
   
   const { data: sessionData } = await supabase.auth.getSession();
@@ -307,6 +307,8 @@ export const optimizedToggleChapterStatus = async (
     }
     return { success: false, error: "User not authenticated" };
   }
+  
+  const newStatus = currentStatus === 'pending' ? 'completed' : 'pending';
   const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
   
   try {

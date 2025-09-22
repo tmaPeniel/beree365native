@@ -108,7 +108,7 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
       const result = await optimizedToggleChapterStatus(
         user.id, 
         id, 
-        item.completed ? 'pending' : 'completed',
+        item.completed ? 'completed' : 'pending',
         day
       );
       

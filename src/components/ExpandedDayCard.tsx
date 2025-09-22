@@ -62,7 +62,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       const result = await optimizedToggleChapterStatus(
         user.id, 
         chapterId, 
-        chapter.completed ? 'pending' : 'completed',
+        chapter.completed ? 'completed' : 'pending',
         day
       );
       
