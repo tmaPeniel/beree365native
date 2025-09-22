@@ -111,7 +111,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
       const result = await optimizedToggleChapterStatus(
         user.id, 
         id, 
-        item.completed ? 'completed' : 'pending',
+        item.completed ? 'pending' : 'completed',
         dayNumber
       );
       
