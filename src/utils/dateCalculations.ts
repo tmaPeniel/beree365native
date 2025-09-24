@@ -78,9 +78,8 @@ export const calculateCurrentDayNumber = (startDateStr: string): number => {
   const currentDay = diffDays + 1; // Corrigé de +2 à +1
   //console.log(`🎯 Jour calculé (diffDays + 1): ${currentDay}`);
   
-  // S'assurer que le jour est dans la plage du plan de lecture (valeur par défaut 365)
-  const planDuration = 365; // TODO: Récupérer depuis le plan sélectionné
-  const finalDay = Math.max(1, Math.min(currentDay, planDuration));
+  // S'assurer que le jour est entre 1 et 365
+  const finalDay = Math.max(1, Math.min(currentDay, 365));
   //console.log(`✅ Jour final (limité 1-365): ${finalDay}`);
   
   // Test de vérification

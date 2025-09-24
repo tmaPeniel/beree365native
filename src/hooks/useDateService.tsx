@@ -1,7 +1,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useOptimizedAuth } from './useOptimizedAuth';
-import { usePlanDuration } from './usePlanDuration';
 import { getCurrentDayNumber, getDateForDay, isToday, getPlanStats } from '@/services/dateService';
 import { updateCurrentDay } from '@/services/dayService';
 
@@ -11,7 +10,6 @@ import { updateCurrentDay } from '@/services/dayService';
  */
 export const useDateService = () => {
   const { profile, user } = useOptimizedAuth();
-  const { planDuration } = usePlanDuration();
   const [currentDayNumber, setCurrentDayNumber] = useState<number>(1);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -24,7 +22,7 @@ export const useDateService = () => {
     }
 
     try {
-      const calculatedDay = getCurrentDayNumber(profile.start_date, planDuration);
+      const calculatedDay = getCurrentDayNumber(profile.start_date);
       console.log(`🎯 useDateService - Debut: ${profile.start_date}`);
       console.log(`🎯 useDateService - Jour calculé: ${calculatedDay}`);
       setCurrentDayNumber(calculatedDay);
@@ -34,7 +32,7 @@ export const useDateService = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [profile?.start_date, planDuration]);
+  }, [profile?.start_date]);
 
   // Recalculer à chaque changement de profil
   useEffect(() => {
@@ -49,22 +47,22 @@ export const useDateService = () => {
 
   // Navigation entre les jours (mise à jour en DB pour compatibilité)
   const goToNext = useCallback(async () => {
-    if (!user?.id || currentDayNumber >= planDuration) return false;
+    if (!user?.id || currentDayNumber >= 365) return false;
     
     const newDay = currentDayNumber + 1;
-    const success = await updateCurrentDay(user.id, newDay, planDuration);
+    const success = await updateCurrentDay(user.id, newDay);
     if (success) {
       setCurrentDayNumber(newDay);
       return true;
     }
     return false;
-  }, [user?.id, currentDayNumber, planDuration]);
+  }, [user?.id, currentDayNumber]);
 
   const goToPrevious = useCallback(async () => {
     if (!user?.id || currentDayNumber <= 1) return false;
     
     const newDay = currentDayNumber - 1;
-    const success = await updateCurrentDay(user.id, newDay, planDuration);
+    const success = await updateCurrentDay(user.id, newDay);
     if (success) {
       setCurrentDayNumber(newDay);
       return true;
@@ -75,14 +73,14 @@ export const useDateService = () => {
   const goToSpecificDay = useCallback(async (dayNumber: number) => {
     if (!user?.id) return false;
     
-    const clampedDay = Math.max(1, Math.min(dayNumber, planDuration));
-    const success = await updateCurrentDay(user.id, clampedDay, planDuration);
+    const clampedDay = Math.max(1, Math.min(dayNumber, 365));
+    const success = await updateCurrentDay(user.id, clampedDay);
     if (success) {
       setCurrentDayNumber(clampedDay);
       return true;
     }
     return false;
-  }, [user?.id, planDuration]);
+  }, [user?.id]);
 
   // Fonctions utilitaires
   const getDateForCurrentDay = useCallback(() => {
@@ -96,29 +94,20 @@ export const useDateService = () => {
   }, [profile?.start_date]);
 
   const getStats = useCallback(() => {
-    if (!profile?.start_date) return { currentDay: 1, remainingDays: planDuration - 1, progressPercentage: 0, totalDays: planDuration };
-    
-    const remainingDays = Math.max(0, planDuration - currentDayNumber);
-    const progressPercentage = Math.round((currentDayNumber / planDuration) * 100);
-    
-    return {
-      currentDay: currentDayNumber,
-      remainingDays,
-      progressPercentage,
-      totalDays: planDuration
-    };
-  }, [profile?.start_date, currentDayNumber, planDuration]);
+    if (!profile?.start_date) return { currentDay: 1, remainingDays: 364, progressPercentage: 0, totalDays: 365 };
+    return getPlanStats(profile.start_date);
+  }, [profile?.start_date]);
 
   return {
     currentDayNumber,
     isLoading,
+    refreshCurrentDay,
     goToNext,
     goToPrevious,
     goToSpecificDay,
     getDateForCurrentDay,
     checkIsToday,
     getStats,
-    startDate: profile?.start_date,
-    planDuration
+    startDate: profile?.start_date
   };
 };

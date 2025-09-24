@@ -2,8 +2,6 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useDateService } from '@/hooks/useDateService';
-import { usePlanDuration } from '@/hooks/usePlanDuration';
-
 interface DayNavigationControlsProps {
   className?: string;
   size?: 'sm' | 'default' | 'lg';
@@ -27,10 +25,8 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
     goToPrevious,
     isLoading
   } = useDateService();
-  const { planDuration } = usePlanDuration();
-  
   const canGoBack = currentDayNumber > 1;
-  const canGoForward = currentDayNumber < planDuration;
+  const canGoForward = currentDayNumber < 365;
   const handlePrevious = async () => {
     const success = await goToPrevious();
     if (success && onCurrentDayClick) {

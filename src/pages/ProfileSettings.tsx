@@ -1,57 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/providers/ThemeProvider';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { pushNotificationService, type NotificationPreferences } from '@/services/pushNotificationService';
 
 /**
  * Page des paramètres utilisateur
  */
 const ProfileSettings = () => {
   const { theme, setTheme } = useTheme();
-  const { isSupported, isSubscribed, permission, subscribe, unsubscribe } = usePushNotifications();
-  const [preferences, setPreferences] = useState<NotificationPreferences>({});
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Charger les préférences au montage
-  useEffect(() => {
-    const loadPreferences = async () => {
-      const prefs = await pushNotificationService.getNotificationPreferences();
-      if (prefs) {
-        setPreferences(prefs);
-      }
-      setIsLoading(false);
-    };
-    loadPreferences();
-  }, []);
-
-  // Mettre à jour les préférences
-  const updatePreference = async (key: keyof NotificationPreferences, value: boolean) => {
-    const newPrefs = { ...preferences, [key]: value };
-    setPreferences(newPrefs);
-    await pushNotificationService.updateNotificationPreferences(newPrefs);
-  };
-
-  // Obtenir le statut des notifications push
-  const getNotificationStatus = () => {
-    if (!isSupported) {
-      return { status: 'unsupported', label: 'Non supporté', variant: 'secondary' as const };
-    }
-    if (permission === 'denied') {
-      return { status: 'denied', label: 'Refusé', variant: 'destructive' as const };
-    }
-    if (isSubscribed) {
-      return { status: 'active', label: 'Actif', variant: 'default' as const };
-    }
-    return { status: 'inactive', label: 'Inactif', variant: 'outline' as const };
-  };
-
-  const notificationStatus = getNotificationStatus();
   const settingsGroups = [
     {
       title: 'Profil',
@@ -67,39 +26,20 @@ const ProfileSettings = () => {
     },
     {
       title: 'Notifications',
-      status: notificationStatus,
       options: [
-        {
-          label: 'Notifications push',
-          description: `Statut: ${notificationStatus.label}`,
-          icon: Bell,
-          action: 'navigate',
-          to: '/profile/notifications',
-          badge: notificationStatus
-        },
         {
           label: 'Rappels de lecture',
           description: 'Recevoir des rappels quotidiens',
           icon: Bell,
           action: 'toggle',
-          key: 'reading_reminder_enabled',
-          value: preferences.reading_reminder_enabled ?? true
+          defaultValue: true
         },
         {
           label: 'Versets du jour',
           description: 'Notifications pour le verset quotidien',
           icon: Bell,
           action: 'toggle',
-          key: 'daily_verse_enabled',
-          value: preferences.daily_verse_enabled ?? true
-        },
-        {
-          label: 'Encouragements badges',
-          description: 'Notifications pour les nouveaux badges',
-          icon: Bell,
-          action: 'toggle',
-          key: 'badge_encouragement_enabled',
-          value: preferences.badge_encouragement_enabled ?? true
+          defaultValue: true
         }
       ]
     },
@@ -170,38 +110,19 @@ const ProfileSettings = () => {
                   <div key={optionIndex} className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">
                       <option.icon className="h-5 w-5 text-muted-foreground" />
-                      <div className="flex-1">
-                        <div className="flex items-center space-x-2">
-                          <p className="font-medium text-foreground">{option.label}</p>
-                          {option.badge && (
-                            <Badge variant={option.badge.variant}>
-                              {option.badge.status === 'active' && <Check className="h-3 w-3 mr-1" />}
-                              {option.badge.status === 'denied' && <X className="h-3 w-3 mr-1" />}
-                              {option.badge.status === 'unsupported' && <AlertCircle className="h-3 w-3 mr-1" />}
-                              {option.badge.label}
-                            </Badge>
-                          )}
-                        </div>
+                      <div>
+                        <p className="font-medium text-foreground">{option.label}</p>
                         <p className="text-sm text-muted-foreground">{option.description}</p>
                       </div>
                     </div>
                     {option.action === 'toggle' && (
                       <Switch 
-                        checked={
-                          option.label === 'Mode sombre' 
-                            ? theme === 'dark' 
-                            : option.key 
-                              ? option.value 
-                              : option.defaultValue
-                        }
-                        onCheckedChange={async (checked) => {
+                        checked={option.label === 'Mode sombre' ? theme === 'dark' : option.defaultValue}
+                        onCheckedChange={(checked) => {
                           if (option.label === 'Mode sombre') {
                             setTheme(checked ? 'dark' : 'light');
-                          } else if (option.key) {
-                            await updatePreference(option.key as keyof NotificationPreferences, checked);
                           }
                         }}
-                        disabled={isLoading}
                       />
                     )}
                     {option.action === 'navigate' && (

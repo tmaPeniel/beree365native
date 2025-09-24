@@ -17,9 +17,8 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
   const fetchVerse = async () => {
     console.log(`VerseOfDay component: fetching verse for day ${dayNumber}`);
     
-    // Limiter aux jours valides et utiliser un verset par défaut si hors limite
-    // Note: La limite est maintenant basée sur la durée du plan utilisateur
-    if (dayNumber > 1000 || dayNumber < 1) {
+    // Limiter aux jours 1-365 et utiliser un verset par défaut si hors limite
+    if (dayNumber > 365 || dayNumber < 1) {
       return await getDefaultVerse(dayNumber);
     }
     
