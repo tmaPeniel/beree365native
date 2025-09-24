@@ -72,9 +72,9 @@ const Reading = React.memo(() => {
   };
 
   // Requête principale pour charger toutes les données du plan de lecture
-  // Cache optimisé pour de meilleures performances
+  // Cache optimisé pour de meilleures performances - avec plan sélectionné
   const { data: optimizedData = [], isLoading: dataLoading, error, refetch } = useQuery({
-    queryKey: ['optimized-reading-plan-data', profile?.id],
+    queryKey: ['optimized-reading-plan-data', profile?.id, profile?.selected_plan_id, profile?.start_date],
     queryFn: async () => {
       if (!profile) return [];
       return await getOptimizedReadingPlanData(profile.id, profile.start_date);
@@ -205,27 +205,35 @@ const Reading = React.memo(() => {
       {/* En-tête avec titre et contrôles de navigation */}
       <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-        <p className="text-gray-500">
-          Suivez votre progression au fil des jours
-        </p>
-        
-        {/* Barre de recherche */}
-        <div className="mt-4 max-w-md mx-auto">
-          <SearchBar
-            value={searchQuery}
-            onChange={setSearchQuery}
-            placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
-            className="w-full"
-          />
-        </div>
-        
-        {/* Contrôles de navigation centrés */}
-        <div className="mt-4 flex justify-center">
-          <DayNavigationControls 
-            onCurrentDayClick={scrollToCurrentDay}
-            showNavigationButtons={true}
-          />
-        </div>
+        {optimizedData.length > 0 ? (
+          <>
+            <p className="text-gray-500">
+              Suivez votre progression au fil des jours
+            </p>
+            
+            {/* Barre de recherche */}
+            <div className="mt-4 max-w-md mx-auto">
+              <SearchBar
+                value={searchQuery}
+                onChange={setSearchQuery}
+                placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
+                className="w-full"
+              />
+            </div>
+            
+            {/* Contrôles de navigation centrés */}
+            <div className="mt-4 flex justify-center">
+              <DayNavigationControls 
+                onCurrentDayClick={scrollToCurrentDay}
+                showNavigationButtons={true}
+              />
+            </div>
+          </>
+        ) : (
+          <p className="text-gray-500">
+            Aucun passage disponible dans votre plan actuel
+          </p>
+        )}
       </div>
       
       {/* Contenu principal - grille des jours */}
@@ -239,15 +247,19 @@ const Reading = React.memo(() => {
         )}
         
         {optimizedData.length === 0 ? (
-          /* État vide avec option de rechargement */
-          <div className="text-center py-12">
-            <p className="text-gray-600">Aucune donnée de plan de lecture disponible</p>
-            <button 
-              onClick={() => refetch()} 
-              className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+          /* État vide avec message informatif */
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="text-6xl mb-4">📖</div>
+            <h3 className="text-xl font-semibold text-gray-700 mb-2">Pas de passages</h3>
+            <p className="text-gray-500 text-center max-w-md mb-6">
+              Votre plan sélectionné ne contient pas de passages pour le moment.
+            </p>
+            <Button 
+              onClick={() => window.location.href = '/reading-plan-management'}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
             >
-              Recharger
-            </button>
+              Changer de plan
+            </Button>
           </div>
         ) : filteredData.length === 0 && searchQuery ? (
           /* État de recherche sans résultats */

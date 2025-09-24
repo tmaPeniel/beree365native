@@ -22,11 +22,29 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
     
     console.log(`Fetching user progress for user ${userId} and day ${dayNumber}...`);
     
-    // D'abord récupérer tous les chapitres pour ce jour
+    // Récupérer le plan sélectionné de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('selected_plan_id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (profileError) {
+      console.error("Error fetching user profile:", profileError);
+      throw profileError;
+    }
+    
+    if (!profile?.selected_plan_id) {
+      console.log("No selected plan found for user");
+      return [];
+    }
+    
+    // Récupérer tous les chapitres pour ce jour ET le plan sélectionné
     const { data: chapters, error: chaptersError } = await supabase
       .from('reading_plan_chapters')
       .select('*')
-      .eq('day_number', dayNumber);
+      .eq('day_number', dayNumber)
+      .eq('plan_id', profile.selected_plan_id);
     
     if (chaptersError) {
       console.error(`Error fetching chapters for day ${dayNumber}:`, chaptersError);
@@ -187,11 +205,22 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
  */
 export const getDayProgress = async (userId: string, dayNumber: number) => {
   try {
-    // Récupérer tous les chapitres pour ce jour
+    // Récupérer le plan sélectionné de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('selected_plan_id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (profileError) throw profileError;
+    if (!profile?.selected_plan_id) return 0;
+    
+    // Récupérer tous les chapitres pour ce jour ET le plan sélectionné
     const { data: chapters, error: chaptersError } = await supabase
       .from('reading_plan_chapters')
       .select('id')
-      .eq('day_number', dayNumber);
+      .eq('day_number', dayNumber)
+      .eq('plan_id', profile.selected_plan_id);
     
     if (chaptersError) throw chaptersError;
     if (!chapters || chapters.length === 0) return 0;
@@ -258,10 +287,21 @@ export const getCompletedDaysCount = async (userId: string) => {
  */
 const getCompletedDaysCountFallback = async (userId: string): Promise<number> => {
   try {
-    // Récupérer tous les jours distincts du plan de lecture
+    // Récupérer le plan sélectionné de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('selected_plan_id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (profileError) throw profileError;
+    if (!profile?.selected_plan_id) return 0;
+    
+    // Récupérer tous les jours distincts du plan de lecture sélectionné
     const { data: allDays, error: daysError } = await supabase
       .from('reading_plan_chapters')
       .select('day_number')
+      .eq('plan_id', profile.selected_plan_id)
       .order('day_number');
     
     if (daysError) throw daysError;
@@ -300,10 +340,29 @@ export const getOverallProgress = async (userId: string) => {
   try {
     console.log(`Calculating overall progress for user ${userId}...`);
     
-    // Récupérer le nombre total de chapitres
+    // Récupérer le plan sélectionné de l'utilisateur
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('selected_plan_id')
+      .eq('id', userId)
+      .maybeSingle();
+    
+    if (profileError) throw profileError;
+    if (!profile?.selected_plan_id) {
+      return {
+        totalPassages: 0,
+        passagesRead: 0,
+        passagesRemaining: 0,
+        progressPercentage: 0,
+        completedDays: 0
+      };
+    }
+    
+    // Récupérer le nombre total de chapitres du plan sélectionné
     const { count: totalCount, error: totalError } = await supabase
       .from('reading_plan_chapters')
-      .select('*', { count: 'exact', head: true });
+      .select('*', { count: 'exact', head: true })
+      .eq('plan_id', profile.selected_plan_id);
     
     if (totalError) throw totalError;
     
