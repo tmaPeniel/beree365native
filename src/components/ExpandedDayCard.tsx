@@ -42,7 +42,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     queryFn: () => user ? getCachedUserProgressForDay(user.id, day) : null,
     enabled: !!user,
     refetchInterval: 500, // Rafraîchir toutes les 2 secondes
-    staleTime: 500, // Considérer les données comme périmées après 1 seconde
+    staleTime: 1000, // Considérer les données comme périmées après 1 seconde
   });
   
   // Invalider le cache global quand les données de progression changent
