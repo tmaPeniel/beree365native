@@ -1,7 +1,8 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { optimizedToggleChapterStatus, markAllChaptersAsRead } from '@/services/readingPlan/optimizedCacheService';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { getCachedUserProgressForDay } from '@/services/readingPlan/optimizedProgressService';
 import { Check, Loader2, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -34,6 +35,24 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
   const queryClient = useQueryClient();
+  
+  // Ajouter le rafraîchissement automatique pour synchroniser les cartes
+  const { data: progressData } = useQuery({
+    queryKey: ['user-progress-refresh', user?.id, day],
+    queryFn: () => user ? getCachedUserProgressForDay(user.id, day) : null,
+    enabled: !!user,
+    refetchInterval: 2000, // Rafraîchir toutes les 2 secondes
+    staleTime: 1000, // Considérer les données comme périmées après 1 seconde
+  });
+  
+  // Invalider le cache global quand les données de progression changent
+  React.useEffect(() => {
+    if (progressData && user) {
+      queryClient.invalidateQueries({ 
+        queryKey: ['optimized-reading-plan-data', user.id] 
+      });
+    }
+  }, [progressData, user, queryClient]);
   
   // Mémoriser la date formatée
   const formattedDate = useMemo(() => 
