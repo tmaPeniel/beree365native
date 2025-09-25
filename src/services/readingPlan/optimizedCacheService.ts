@@ -99,7 +99,7 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
       console.log('🔥 [FETCH] Executing SINGLE ultra-optimized query for plan:', selectedPlanId);
     }
     
-    // REQUÊTE OPTIMISÉE avec filtrage par plan sélectionné
+    // REQUÊTE OPTIMISÉE avec filtrage par plan sélectionné ET par utilisateur
     const { data: chaptersWithProgress, error } = await supabase
       .from('reading_plan_chapters')
       .select(`
@@ -114,6 +114,7 @@ export const getOptimizedReadingPlanData = async (userId: string, startDate: str
         )
       `)
       .eq('plan_id', selectedPlanId)
+      .eq('user_progress.user_id', userId)
       .order('day_number', { ascending: true })
       .range(0, 1500);
     
