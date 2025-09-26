@@ -8,6 +8,7 @@ import { AuthProvider } from "@/hooks/useAuth";
 import SplashScreen from "./components/SplashScreen";
 import { useSplashScreen } from "./hooks/useSplashScreen";
 import { PWAUpdateNotification } from "./components/PWAUpdateNotification";
+import AppLayout from "./components/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
@@ -61,7 +62,9 @@ function App() {
                   path="/dashboard" 
                   element={
                     <ProtectedRoute>
-                      <Dashboard />
+                      <AppLayout>
+                        <Dashboard />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -69,7 +72,9 @@ function App() {
                   path="/profile" 
                   element={
                     <ProtectedRoute>
-                      <Profile />
+                      <AppLayout>
+                        <Profile />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -77,7 +82,9 @@ function App() {
                   path="/profile/statistics" 
                   element={
                     <ProtectedRoute>
-                      <ProfileStatistics />
+                      <AppLayout>
+                        <ProfileStatistics />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -85,7 +92,9 @@ function App() {
                   path="/profile/badges" 
                   element={
                     <ProtectedRoute>
-                      <ProfileBadges />
+                      <AppLayout>
+                        <ProfileBadges />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -93,7 +102,9 @@ function App() {
                   path="/reading-plan" 
                   element={
                     <ProtectedRoute>
-                      <ReadingPlanManagement />
+                      <AppLayout>
+                        <ReadingPlanManagement />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -101,7 +112,9 @@ function App() {
                   path="/verses" 
                   element={
                     <ProtectedRoute>
-                      <VerseList />
+                      <AppLayout>
+                        <VerseList />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -109,7 +122,9 @@ function App() {
                   path="/profile/settings" 
                   element={
                     <ProtectedRoute>
-                      <ProfileSettings />
+                      <AppLayout>
+                        <ProfileSettings />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -117,7 +132,9 @@ function App() {
                   path="/profile/notifications" 
                   element={
                     <ProtectedRoute>
-                      <ProfileNotifications />
+                      <AppLayout>
+                        <ProfileNotifications />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -125,7 +142,9 @@ function App() {
                   path="/profile/edit" 
                   element={
                     <ProtectedRoute>
-                      <ProfileEdit />
+                      <AppLayout>
+                        <ProfileEdit />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -133,7 +152,9 @@ function App() {
                   path="/profile/about" 
                   element={
                     <ProtectedRoute>
-                      <ProfileAbout />
+                      <AppLayout>
+                        <ProfileAbout />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -141,7 +162,9 @@ function App() {
                   path="/reading" 
                   element={
                     <ProtectedRoute>
-                      <Reading />
+                      <AppLayout>
+                        <Reading />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
@@ -150,7 +173,9 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AdminRoute>
-                        <Admin />
+                        <AppLayout>
+                          <Admin />
+                        </AppLayout>
                       </AdminRoute>
                     </ProtectedRoute>
                   } 
