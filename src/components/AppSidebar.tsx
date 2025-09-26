@@ -73,7 +73,7 @@ const AppSidebar = () => {
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
-                      <Icon size={30} className={isActive ? 'animate-icon-bounce' : 'hover:animate-float'} />
+                      <Icon size={40} className={isActive ? 'animate-icon-bounce' : 'hover:animate-float'} />
                       {!collapsed && <span className="ml-2">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
