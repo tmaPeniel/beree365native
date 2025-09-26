@@ -51,7 +51,7 @@ const AppSidebar = () => {
   const visibleItems = navItems.filter(item => item.show);
 
   return (
-    <Sidebar className={collapsed ? "w-60" : "w-60"} collapsible="icon">
+    <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
@@ -73,7 +73,7 @@ const AppSidebar = () => {
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
-                      <Icon size={40} className={isActive ? 'animate-icon-bounce' : 'hover:animate-float'} />
+                      <Icon size={20} className={isActive ? 'animate-icon-bounce' : 'hover:animate-float'} />
                       {!collapsed && <span className="ml-2">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
