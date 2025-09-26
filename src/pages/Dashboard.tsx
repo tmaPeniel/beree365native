@@ -5,7 +5,6 @@
  */
 
 import React from 'react';
-import NavBar from '@/components/NavBar';
 import ProgressStats from '@/components/ProgressStats';
 import ReadingPlan from '@/components/ReadingPlan';
 import VerseOfDay from '@/components/VerseOfDay';
@@ -71,7 +70,6 @@ const Dashboard = () => {
         </div>
       </div>
       
-      <NavBar />
     </div>
   );
 };

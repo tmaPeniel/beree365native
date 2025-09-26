@@ -16,7 +16,6 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import NavBar from '@/components/NavBar';
 import MonthlyReadingPlan from '@/components/MonthlyReadingPlan';
 import DayNavigationControls from '@/components/DayNavigationControls';
 import SearchBar from '@/components/SearchBar';
@@ -290,8 +289,6 @@ const Reading = React.memo(() => {
         </Button>
       )}
       
-      {/* Barre de navigation en bas */}
-      <NavBar />
     </div>
   );
 });
