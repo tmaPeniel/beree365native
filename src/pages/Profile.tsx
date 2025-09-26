@@ -24,7 +24,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import NavBar from '@/components/NavBar';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
@@ -245,8 +244,6 @@ const Profile = () => {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Barre de navigation */}
-      <NavBar />
     </div>
   );
 };

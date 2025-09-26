@@ -18,7 +18,7 @@ import InactiveUsersCard from '@/components/admin/InactiveUsersCard';
 import SearchBar from '@/components/SearchBar';
 import { getUserStats, getRecentlyActiveUsers, getInactiveUsers, isCurrentUserAdmin } from '@/services/admin';
 import { UserStats } from '@/types/supabase';
-import NavBar from '@/components/NavBar';
+
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('overview');
@@ -336,7 +336,6 @@ const Admin = () => {
             </TabsContent>
           </Tabs>
         </div>
-        <NavBar />
       </div>
     </AdminRoute>
   );
