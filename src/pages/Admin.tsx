@@ -193,7 +193,7 @@ const Admin = () => {
               </CardContent>
             </Card>
           </div>
-          <NavBar />
+
         </div>
       </AdminRoute>
     );

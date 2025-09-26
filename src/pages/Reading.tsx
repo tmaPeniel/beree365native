@@ -169,7 +169,6 @@ const Reading = React.memo(() => {
             <p className="text-gray-600">Chargement des passages...</p>
           </div>
         </div>
-        <NavBar />
       </div>
     );
   }
@@ -193,7 +192,6 @@ const Reading = React.memo(() => {
             </button>
           </div>
         </div>
-        <NavBar />
       </div>
     );
   }
