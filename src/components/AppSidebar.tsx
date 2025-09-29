@@ -67,14 +67,14 @@ const AppSidebar = () => {
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
                       onClick={() => navigate(item.path)}
-                      className={`transition-all duration-200 ${
+                      className={`transition-all duration-200 flex items-center justify-center ${collapsed ? 'h-12 w-12' : 'justify-start'} ${
                         isActive 
                           ? 'text-primary bg-primary/10' 
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
-                      <Icon size={20} className={isActive ? 'animate-icon-bounce' : 'hover:animate-float'} />
-                      {!collapsed && <span className="ml-2">{item.label}</span>}
+                      <Icon size={28} className={`${isActive ? 'animate-icon-bounce' : 'hover:animate-float'} ${collapsed ? 'mx-auto' : ''}`} />
+                      {!collapsed && <span className="ml-3">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
