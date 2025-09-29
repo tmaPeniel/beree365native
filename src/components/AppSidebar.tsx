@@ -51,14 +51,14 @@ const AppSidebar = () => {
   const visibleItems = navItems.filter(item => item.show);
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-60"} collapsible="icon">
+    <Sidebar className={collapsed ? "w-60" : "w-60"} collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className={collapsed ? "px-2 py-4 space-y-2" : ""}>
+            <SidebarMenu>
               {visibleItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -68,20 +68,13 @@ const AppSidebar = () => {
                     <SidebarMenuButton
                       onClick={() => navigate(item.path)}
                       className={`transition-all duration-200 ${
-                        collapsed 
-                          ? 'h-14 w-14 rounded-lg flex items-center justify-center p-0 mx-auto' 
-                          : 'flex items-center justify-start px-3 py-2'
-                      } ${
                         isActive 
-                          ? 'text-primary bg-primary/10 border border-primary/20' 
+                          ? 'text-primary bg-primary/10' 
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
-                      <Icon 
-                        size={collapsed ? 24 : 20} 
-                        className={`${isActive ? 'animate-pulse' : ''} ${collapsed ? '' : 'mr-3'}`} 
-                      />
-                      {!collapsed && <span>{item.label}</span>}
+                      <Icon size={40} className={isActive ? 'animate-icon-bounce' : 'hover:animate-float'} />
+                      {!collapsed && <span className="ml-2">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
