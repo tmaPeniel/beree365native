@@ -63,14 +63,14 @@ const Login = () => {
   // Afficher un indicateur de chargement
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
       <AuthForm 
         isLogin={isLogin} 
         toggleForm={toggleForm} 

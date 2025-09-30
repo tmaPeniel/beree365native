@@ -47,7 +47,7 @@ const SortableHeader: React.FC<SortableHeaderProps> = ({
 
   return (
     <button
-      className="flex items-center hover:bg-gray-50 px-2 py-1 rounded -mx-2 -my-1 transition-colors"
+      className="flex items-center hover:bg-muted px-2 py-1 rounded -mx-2 -my-1 transition-colors"
       onClick={() => onSort(sortKey)}
     >
       {children}
@@ -184,7 +184,7 @@ const UserStatsTable: React.FC<UserStatsTableProps> = ({ users, isLoading }) => 
         <TableBody>
           {sortedData.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+              <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                 Aucun utilisateur trouvé
               </TableCell>
             </TableRow>

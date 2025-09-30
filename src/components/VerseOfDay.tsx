@@ -65,7 +65,7 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
             <Book className="h-8 w-8 text-green-600" />
           </div>
           <h2 className="text-lg font-semibold text-green-800 mb-3">Sagesse du jour</h2>
-          <p className="text-gray-600 italic">
+          <p className="text-muted-foreground italic">
             "Sagesse du Jour"
           </p>
         </CardContent>
@@ -80,7 +80,7 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
           <Book className="h-8 w-8 text-green-600" />
         </div>
         <h2 className="text-lg font-semibold text-green-800 mb-3">{wisdomContent}</h2>
-        <blockquote className="text-gray-700 italic text-base mb-4 leading-relaxed">
+        <blockquote className="text-foreground italic text-base mb-4 leading-relaxed">
           "{verse.text}"
         </blockquote>
         {verse?.reference && (

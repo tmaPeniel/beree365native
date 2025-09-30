@@ -62,7 +62,7 @@ const OptimizedDayCard = React.memo<OptimizedDayCardProps>(({
         ? 'bg-primary text-primary-foreground shadow-lg border-2 border-primary/50 animate-badge-glow' // Style pour le jour actuel avec animation
         : completed 
           ? 'bg-green-400 text-white shadow-sm hover:bg-green-600 hover:shadow-lg' // Style pour jour complété
-          : 'bg-white border border-gray-200 text-gray-600 hover:bg-gray-100 hover:shadow-md' // Style par défaut
+          : 'bg-card border border-border text-muted-foreground hover:bg-muted hover:shadow-md' // Style par défaut
     }`, [isToday, completed]
   );
   
@@ -77,7 +77,7 @@ const OptimizedDayCard = React.memo<OptimizedDayCardProps>(({
       {/* Indicateur de progression si > 0% */}
       {progressPercentage > 0 && (
         <div className="absolute bottom-1 left-0 right-0 flex justify-center">
-          <span className="text-xs font-medium bg-white/80 text-green-800 px-1 rounded-sm">
+          <span className="text-xs font-medium bg-card/80 text-green-800 dark:text-green-400 px-1 rounded-sm">
             {progressPercentage}%
           </span>
         </div>

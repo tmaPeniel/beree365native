@@ -16,13 +16,13 @@ const NotFound = () => {
   }, [location.pathname]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-background px-4">
       <div className="text-center max-w-md">
         <h1 className="text-7xl font-bold text-beree-500 mb-4">404</h1>
-        <p className="text-xl text-gray-700 mb-6">
+        <p className="text-xl text-foreground mb-6">
           Cette page n'existe pas
         </p>
-        <p className="text-gray-600 mb-8">
+        <p className="text-muted-foreground mb-8">
           La page que vous recherchez n'a pas été trouvée ou a été déplacée.
         </p>
         <Link to="/">

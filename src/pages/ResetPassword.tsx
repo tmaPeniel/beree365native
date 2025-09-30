@@ -136,10 +136,10 @@ const ResetPassword = () => {
   // Affichage pendant la vérification du token
   if (isValidToken === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Vérification du lien de réinitialisation...</p>
+          <p className="text-muted-foreground">Vérification du lien de réinitialisation...</p>
         </div>
       </div>
     );
@@ -148,17 +148,17 @@ const ResetPassword = () => {
   // Affichage si le token est invalide
   if (isValidToken === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
+      <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
         <Card className="w-[400px] shadow-lg border-t-4 border-t-red-500">
           <CardHeader className="text-center">
             <h1 className="text-2xl font-bold text-red-600">Lien invalide</h1>
           </CardHeader>
           
           <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Le lien de réinitialisation est invalide ou a expiré.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Vous allez être redirigé vers la page de demande de réinitialisation...
             </p>
           </CardContent>
@@ -168,11 +168,11 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
       <Card className="w-[400px] shadow-lg border-t-4 border-t-green-500">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-bold">Nouveau mot de passe</h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Choisissez votre nouveau mot de passe
           </p>
         </CardHeader>

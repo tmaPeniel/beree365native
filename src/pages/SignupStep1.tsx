@@ -47,7 +47,7 @@ const SignupStep1 = () => {
   };
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
       <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-green-500">
         <CardHeader className="text-center">
           <h1 className="font-bold text-xl md:text-2xl">Inscription</h1>

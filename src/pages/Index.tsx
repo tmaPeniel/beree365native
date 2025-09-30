@@ -23,7 +23,7 @@ const Index = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
-        <p className="text-gray-600">Chargement...</p>
+        <p className="text-muted-foreground">Chargement...</p>
       </div>
     );
   }
@@ -33,11 +33,11 @@ const Index = () => {
       <div className="max-w-md w-full text-center">
         <Logo size="large" className="mb-6" />
         
-        <h1 className="text-3xl font-bold mb-4 text-gray-800">
+        <h1 className="text-3xl font-bold mb-4 text-foreground">
           Parcourez la Bible en un an
         </h1>
         
-        <p className="text-gray-600 mb-8">
+        <p className="text-muted-foreground mb-8">
           Suivez votre lecture quotidienne, établissez une routine de lecture et progressez pas à pas.
         </p>
         

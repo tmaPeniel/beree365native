@@ -89,14 +89,14 @@ const Profile = () => {
       description: 'Gérer vos préférences',
       icon: Settings,
       to: '/profile/settings',
-      color: 'text-gray-500'
+      color: 'text-muted-foreground'
     },
     {
       label: 'À propos',
       description: 'Informations sur l\'application',
       icon: Info,
       to: '/profile/about',
-      color: 'text-gray-500'
+      color: 'text-muted-foreground'
     },
     {
       label: 'Partager l\'app',

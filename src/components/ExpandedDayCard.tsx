@@ -202,7 +202,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     } ${
       isToday 
         ? 'bg-green-50 border-green-200 shadow-md' 
-        : 'bg-white border-gray-200 hover:shadow-sm'
+        : 'bg-card border-border hover:shadow-sm'
     }`, [isToday, isMobile]
   );
   
@@ -212,11 +212,11 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
         <div className="flex flex-col">
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold ${
-            isToday ? 'text-green-700' : 'text-gray-900'
+            isToday ? 'text-green-700 dark:text-green-400' : 'text-foreground'
           }`}>
             Jour {day}
           </span>
-          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-500`}>
+          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-muted-foreground`}>
             {formattedDate}
           </span>
         </div>
@@ -226,7 +226,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       {/* En-tête des passages */}
       {chapters && chapters.length > 0 && (
         <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
-          <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-gray-700`}>
+          <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
             Passages du jour
           </span>
         </div>
@@ -257,14 +257,14 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
               </button>
               
               <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${
-                chapter.completed ? 'line-through text-gray-400' : 'text-gray-700'
+                chapter.completed ? 'line-through text-muted-foreground' : 'text-foreground'
               } leading-tight`}>
                 {chapter.reference}
               </span>
             </div>
           ))
         ) : (
-          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-400 italic`}>
+          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-muted-foreground italic`}>
             Aucun passage trouvé
           </p>
         )}
@@ -296,10 +296,10 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
           isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'
         } font-medium rounded-full ${
           progressPercentage === 0
-            ? 'bg-gray-100 text-gray-500' // Style discret pour 0%
-            : isToday 
-              ? 'bg-green-200 text-green-800' 
-              : 'bg-gray-100 text-gray-600'
+            ? 'bg-muted text-muted-foreground' // Style discret pour 0%
+            : progressPercentage >= 100
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground'
         }`}>
           {progressPercentage}%
         </span>

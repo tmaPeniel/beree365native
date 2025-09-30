@@ -77,17 +77,17 @@ const BadgeProgressDisplay: React.FC<BadgeProgressDisplayProps> = ({ badge, prog
       
       {/* Badge info */}
       <div className="text-center">
-        <h3 className="font-semibold text-xs text-gray-500 line-clamp-2 min-h-[2rem]">
+        <h3 className="font-semibold text-xs text-muted-foreground line-clamp-2 min-h-[2rem]">
           {badge.name}
         </h3>
         
         {/* Progression */}
         <div className="mt-2">
-          <div className="flex justify-between text-xs text-gray-600 mb-1">
+          <div className="flex justify-between text-xs text-muted-foreground mb-1">
             <span>{current}</span>
             <span>{required}</span>
           </div>
-          <div className="w-full bg-gray-200 rounded-full h-1.5">
+          <div className="w-full bg-muted rounded-full h-1.5">
             <div 
               className="bg-gradient-to-r from-primary to-accent h-1.5 rounded-full transition-all duration-500"
               style={{ width: `${progress}%` }}
@@ -189,7 +189,7 @@ const BadgesSection: React.FC = () => {
 
   if (isLoading) {
     return (
-      <Card className="bg-white shadow-sm">
+      <Card className="bg-card shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Trophy className="h-5 w-5 text-yellow-500" />
@@ -199,7 +199,7 @@ const BadgesSection: React.FC = () => {
         <CardContent>
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-yellow-500 mx-auto"></div>
-            <p className="text-gray-500 mt-2">Chargement des badges...</p>
+            <p className="text-muted-foreground mt-2">Chargement des badges...</p>
           </div>
         </CardContent>
       </Card>
@@ -215,7 +215,7 @@ const BadgesSection: React.FC = () => {
             Badges et Récompenses
           </CardTitle>
         <div className="flex items-center justify-between mt-2">
-          <div className="text-sm text-gray-600">
+          <div className="text-sm text-muted-foreground">
             {badgeStats.unlockedBadges} / {badgeStats.totalBadges} badges débloqués
           </div>
           <Badge variant="secondary" className="bg-yellow-100 text-yellow-800">

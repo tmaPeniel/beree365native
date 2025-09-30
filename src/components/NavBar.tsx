@@ -44,7 +44,7 @@ const NavBar = () => {
   const visibleItems = navItems.filter(item => item.show);
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-border shadow-lg z-50 animate-slide-up">
+    <nav className="fixed bottom-0 left-0 right-0 bg-card/95 backdrop-blur-md border-t border-border shadow-lg z-50 animate-slide-up">
       <div className="flex justify-around items-center h-16 px-4">
         {visibleItems.map((item, index) => {
           const Icon = item.icon;

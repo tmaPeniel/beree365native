@@ -106,7 +106,7 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
 
       {/* Icône principale avec effet spectaculaire */}
       <div className="absolute inset-0 flex items-center justify-center">
-        <div className={`relative p-6 rounded-full bg-white shadow-2xl ${glowColor} animate-bounce-gentle`}>
+        <div className={`relative p-6 rounded-full bg-card shadow-2xl ${glowColor} animate-bounce-gentle`}>
           <Icon 
             size={80} 
             className={`${iconColor} animate-tada drop-shadow-lg`}
@@ -176,7 +176,7 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
       {/* Message de félicitations avec animation améliorée */}
       <div className="absolute inset-x-0 bottom-1/3 flex justify-center">
         <div className="animate-slide-up" style={{ animationDelay: '0.5s' }}>
-          <div className={`bg-white/95 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-2xl ${glowColor} border border-white/20`}>
+          <div className={`bg-card/95 backdrop-blur-sm rounded-2xl px-8 py-4 shadow-2xl ${glowColor} border border-border`}>
             <div className="text-center">
               <div className="text-2xl mb-1">
                 {type === 'day-complete' && '🎉'}
@@ -188,7 +188,7 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
                 {type === 'badge-unlock' && 'Nouveau badge !'}
                 {type === 'progress-milestone' && 'Excellent progrès !'}
               </p>
-              <p className="text-gray-600 text-sm mt-1">
+              <p className="text-muted-foreground text-sm mt-1">
                 {type === 'day-complete' && 'Félicitations pour votre assiduité !'}
                 {type === 'badge-unlock' && 'Vous avez débloqué une récompense !'}
                 {type === 'progress-milestone' && 'Continuez sur cette lancée !'}

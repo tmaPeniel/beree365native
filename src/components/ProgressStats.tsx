@@ -60,7 +60,7 @@ const ProgressStats = () => {
   // Affichage du loader pendant le chargement
   if (isLoading) {
     return (
-      <Card className="bg-white border-none shadow-sm">
+      <Card className="bg-card border-none shadow-sm">
         <CardContent className="p-4 md:p-6">
           <div className="flex justify-center items-center h-48">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
@@ -85,19 +85,19 @@ const ProgressStats = () => {
           <div className="w-full md:w-3/5 space-y-2 md:space-y-3">
             {/* Total de passages à lire */}
             <div className="grid grid-cols-2 items-center bg-secondary/50 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-secondary hover:animate-lift animate-fade-in" style={{ animationDelay: '0.1s' }}>
-              <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages à lire</span>
+              <span className="text-sm md:text-base text-foreground font-medium">Total de Passages à lire</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.totalPassages}</span>
             </div>
             
             {/* Total de passages lus */}
             <div className="grid grid-cols-2 items-center bg-accent/10 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-accent/20 hover:animate-lift animate-fade-in" style={{ animationDelay: '0.2s' }}>
-              <span className="text-sm md:text-base text-gray-700 font-medium">Total de Passages lus</span>
+              <span className="text-sm md:text-base text-foreground font-medium">Total de Passages lus</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
             </div>
             
             {/* Total passages restants */}
             <div className="grid grid-cols-2 items-center bg-muted p-2 md:p-3 rounded-md border-r-2 border-muted-foreground/20 transition-all duration-300 hover:bg-muted/80 hover:animate-lift animate-fade-in" style={{ animationDelay: '0.3s' }}>
-              <span className="text-sm md:text-base text-gray-700 font-medium">Total Passages restants</span>
+              <span className="text-sm md:text-base text-foreground font-medium">Total Passages restants</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRemaining}</span>
             </div>
           </div>
@@ -118,11 +118,11 @@ const ProgressStats = () => {
           <div className="flex items-center space-x-3 md:space-x-4">
             <div className="flex items-center">
               <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
-              <span className="text-xs text-gray-600">Passages Lus</span>
+              <span className="text-xs text-muted-foreground">Passages Lus</span>
             </div>
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-gray-500 rounded-full mr-1"></div>
-              <span className="text-xs text-gray-600">Restants</span>
+              <div className="w-3 h-3 bg-muted-foreground rounded-full mr-1"></div>
+              <span className="text-xs text-muted-foreground">Restants</span>
             </div>
           </div>
         </div>

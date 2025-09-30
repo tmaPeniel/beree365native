@@ -195,8 +195,8 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
         }}
         disabled={isProcessing}
         className={`flex items-center w-full text-left transition-all duration-200 ${
-          item.completed ? 'text-gray-400' : 'text-gray-800'
-        } ${isProcessing ? 'opacity-70 cursor-not-allowed' : 'hover:bg-gray-50 rounded p-2 cursor-pointer'}`}
+          item.completed ? 'text-muted-foreground' : 'text-foreground'
+        } ${isProcessing ? 'opacity-70 cursor-not-allowed' : 'hover:bg-muted rounded p-2 cursor-pointer'}`}
       >
         <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-all duration-200 ${
           item.completed ? 'bg-green-500 scale-110' : 'border-2 border-green-300 hover:border-green-400 hover:scale-105'
@@ -219,7 +219,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   // État de chargement
   if (isLoading) {
     return (
-      <Card className="bg-white border-none shadow-sm">
+      <Card className="bg-card border-none shadow-sm">
         <CardContent className="p-6">
           <div className="flex justify-center items-center h-32">
             <div className="animate-gentle-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
@@ -231,7 +231,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
 
   // Rendu principal du composant
   return (
-    <Card className="bg-white border-none shadow-sm">
+    <Card className="bg-card border-none shadow-sm">
       <CardContent className="p-6">
         {/* En-tête avec indicateur de rafraîchissement automatique */}
         <div className="mb-4 flex items-center justify-between">
@@ -245,7 +245,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
         
         {/* Section des passages à lire */}
         <div className="mb-6">
-          <h3 className="font-medium text-gray-700 mb-3">Passages du jour</h3>
+          <h3 className="font-medium text-foreground mb-3">Passages du jour</h3>
           {readingItems.length > 0 ? (
             <ul className="space-y-2">
               {readingItems.map((item) => (
@@ -258,7 +258,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
               ))}
             </ul>
           ) : (
-            <p className="text-center text-gray-500 my-4">
+            <p className="text-center text-muted-foreground my-4">
               Aucun passage trouvé pour ce jour
             </p>
           )}

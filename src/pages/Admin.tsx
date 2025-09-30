@@ -158,7 +158,7 @@ const Admin = () => {
   if (allUsersIsError && !allUsersLoading) {
     return (
       <AdminRoute>
-        <div className="min-h-screen bg-gray-50 p-6">
+        <div className="min-h-screen bg-background p-6">
           <div className="max-w-7xl mx-auto">
             <Card className="border-red-200 bg-red-50">
               <CardHeader>
@@ -201,13 +201,13 @@ const Admin = () => {
 
   return (
     <AdminRoute>
-      <div className="min-h-screen bg-gray-50 p-6">
+      <div className="min-h-screen bg-background p-6">
         <div className="max-w-7xl mx-auto">
           {/* En-tête */}
           <div className="flex justify-between items-center mb-6">
             <div>
               <h1 className="text-3xl font-bold">Administrateur</h1>
-              <p className="text-gray-600">
+              <p className="text-muted-foreground">
                 Gestion des utilisateurs et statistiques
               </p>
             </div>

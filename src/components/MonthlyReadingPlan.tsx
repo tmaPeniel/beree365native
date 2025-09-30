@@ -98,7 +98,7 @@ const MonthlyReadingPlan: React.FC<MonthlyReadingPlanProps> = ({
   if (!currentMonth) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Aucune donnée disponible</p>
+        <p className="text-muted-foreground">Aucune donnée disponible</p>
       </div>
     );
   }
@@ -106,7 +106,7 @@ const MonthlyReadingPlan: React.FC<MonthlyReadingPlanProps> = ({
   return (
     <div className="space-y-6">
       {/* Navigation entre les mois */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm">
+      <div className="flex items-center justify-between bg-card p-4 rounded-lg shadow-sm">
         <Button
           variant="outline"
           size="sm"
@@ -119,7 +119,7 @@ const MonthlyReadingPlan: React.FC<MonthlyReadingPlanProps> = ({
         </Button>
 
         <div className="text-center">
-          <h2 className="text-lg font-semibold text-gray-800 capitalize">
+          <h2 className="text-lg font-semibold text-foreground capitalize">
             {currentMonth.monthName} {currentMonth.year}
           </h2>
           {currentPage !== currentMonthIndex && (
@@ -147,7 +147,7 @@ const MonthlyReadingPlan: React.FC<MonthlyReadingPlanProps> = ({
       </div>
 
       {/* Affichage du mois courant */}
-      <Card className="bg-white shadow-sm">
+      <Card className="bg-card shadow-sm">
         
         <CardContent className="p-4 md:p-6">
           {/* Grille des jours du mois */}

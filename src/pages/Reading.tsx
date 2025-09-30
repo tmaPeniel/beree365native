@@ -143,10 +143,10 @@ const Reading = React.memo(() => {
   // États de chargement avec interfaces claires
   if (authLoading || dayLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du plan de lecture...</p>
+          <p className="text-muted-foreground">Chargement du plan de lecture...</p>
         </div>
       </div>
     );
@@ -155,18 +155,18 @@ const Reading = React.memo(() => {
   // État de chargement des données
   if (dataLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {/* En-tête avec état de chargement */}
-        <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+      <div className="min-h-screen bg-background">
+        {/* Affichage du jour actuel et du verset du jour */}
+        <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-          <p className="text-gray-500">Chargement de vos données...</p>
+          <p className="text-muted-foreground">Chargement de vos données...</p>
         </div>
         
         {/* Contenu avec indicateur de chargement */}
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des passages...</p>
+            <p className="text-muted-foreground">Chargement des passages...</p>
           </div>
         </div>
       </div>
@@ -176,8 +176,8 @@ const Reading = React.memo(() => {
   // État d'erreur avec option de retry
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+      <div className="min-h-screen bg-background">
+        <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
           <p className="text-red-500">Une erreur est survenue</p>
         </div>
@@ -198,13 +198,13 @@ const Reading = React.memo(() => {
 
   // Rendu principal de la page
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* En-tête avec titre et contrôles de navigation */}
-      <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+      <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
         <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
         {optimizedData.length > 0 ? (
           <>
-            <p className="text-gray-500">
+            <p className="text-muted-foreground">
               Suivez votre progression au fil des jours
             </p>
             
@@ -227,7 +227,7 @@ const Reading = React.memo(() => {
             </div>
           </>
         ) : (
-          <p className="text-gray-500">
+          <p className="text-muted-foreground">
             Aucun passage disponible dans votre plan actuel
           </p>
         )}
@@ -247,8 +247,8 @@ const Reading = React.memo(() => {
           /* État vide avec message informatif */
           <div className="flex flex-col items-center justify-center py-16 px-4">
             <div className="text-6xl mb-4">📖</div>
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Pas de passages</h3>
-            <p className="text-gray-500 text-center max-w-md mb-6">
+            <h3 className="text-xl font-semibold text-foreground mb-2">Pas de passages</h3>
+            <p className="text-muted-foreground text-center max-w-md mb-6">
               Votre plan sélectionné ne contient pas de passages pour le moment.
             </p>
             <Button 
@@ -261,8 +261,8 @@ const Reading = React.memo(() => {
         ) : filteredData.length === 0 && searchQuery ? (
           /* État de recherche sans résultats */
           <div className="text-center py-12">
-            <p className="text-gray-600">Aucun passage trouvé pour "{searchQuery}"</p>
-            <p className="text-gray-500 text-sm mt-2">Essayez de rechercher par nom de livre (ex: Jean, Psaumes, Genèse...)</p>
+            <p className="text-muted-foreground">Aucun passage trouvé pour "{searchQuery}"</p>
+            <p className="text-muted-foreground text-sm mt-2">Essayez de rechercher par nom de livre (ex: Jean, Psaumes, Genèse...)</p>
           </div>
         ) : (
           /* Organisation mensuelle du plan de lecture */

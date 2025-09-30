@@ -182,7 +182,7 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
         <DialogHeader>
           <DialogTitle className="text-center">
             <div className="mb-1 text-lg font-bold">Jour {day}</div>
-            <div className="text-sm text-gray-500">{formattedDate}</div>
+            <div className="text-sm text-muted-foreground">{formattedDate}</div>
           </DialogTitle>
         </DialogHeader>
         
@@ -228,7 +228,7 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
                   </button>
                 ))
               ) : (
-                <p className="text-center text-gray-500 my-4">
+                <p className="text-center text-muted-foreground my-4">
                   Aucun passage trouvé pour ce jour
                 </p>
               )}

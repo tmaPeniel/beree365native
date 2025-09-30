@@ -32,20 +32,20 @@ const Dashboard = () => {
   
   if (isLoading || !profile || dayLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement...</p>
+          <p className="text-muted-foreground">Chargement...</p>
         </div>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
-      <div className="bg-white p-4 md:p-6 shadow-sm">
+    <div className="min-h-screen bg-background pb-20">
+      <div className="bg-card p-4 md:p-6 shadow-sm">
         <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Le Tour de ma Bible en 365 jours</h1>
-        <p className="text-sm md:text-base text-gray-500">SISAP Editions Powered</p>
+        <p className="text-sm md:text-base text-muted-foreground">SISAP Editions Powered</p>
       </div>
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
