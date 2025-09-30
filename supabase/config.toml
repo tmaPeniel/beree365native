@@ -1,4 +1,3 @@
-
 project_id = "xizlfyrjhzkzdchjezfn"
 
 [api]
@@ -45,4 +44,7 @@ enabled = true
 port = 54325
 
 [functions]
+verify_jwt = false
+
+[functions.check-scheduled-notifications]
 verify_jwt = false
