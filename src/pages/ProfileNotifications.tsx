@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Bell, Clock, Check, X, AlertCircle, Smartphone, Settings } from 'lucide-react';
+import { ArrowLeft, Bell, Clock, Check, X, AlertCircle, Smartphone, Settings, TestTube } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Separator } from '@/components/ui/separator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { pushNotificationService, type NotificationPreferences } from '@/services/pushNotificationService';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 /**
@@ -28,6 +29,7 @@ const ProfileNotifications = () => {
   const [preferences, setPreferences] = useState<NotificationPreferences>({});
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
 
   // Charger les préférences
   useEffect(() => {
@@ -62,6 +64,38 @@ const ProfileNotifications = () => {
       setPreferences(preferences);
     }
     setIsUpdating(false);
+  };
+
+  // Tester l'envoi de notification
+  const testNotification = async () => {
+    setIsTesting(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        toast.error('Vous devez être connecté');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('test-push-notification', {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      });
+
+      if (error) {
+        console.error('Erreur test notification:', error);
+        toast.error('Erreur lors du test: ' + error.message);
+      } else {
+        console.log('Résultat test:', data);
+        toast.success('Notification de test envoyée ! Vérifiez vos notifications.');
+      }
+    } catch (error) {
+      console.error('Erreur:', error);
+      toast.error('Erreur lors du test');
+    } finally {
+      setIsTesting(false);
+    }
   };
 
   // Obtenir le statut global des notifications
@@ -200,6 +234,24 @@ const ProfileNotifications = () => {
                   Pour les réactiver, allez dans les paramètres de votre navigateur.
                 </AlertDescription>
               </Alert>
+            )}
+
+            {/* Bouton de test */}
+            {isSubscribed && (
+              <div className="pt-2">
+                <Button
+                  onClick={testNotification}
+                  disabled={isTesting}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <TestTube className="h-4 w-4 mr-2" />
+                  {isTesting ? 'Envoi en cours...' : 'Tester les notifications'}
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2 text-center">
+                  Envoyez une notification de test pour vérifier que tout fonctionne
+                </p>
+              </div>
             )}
           </CardContent>
         </Card>

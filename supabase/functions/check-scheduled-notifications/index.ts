@@ -38,6 +38,11 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     
+    console.log('🔧 Configuration:', {
+      supabaseUrl: supabaseUrl?.substring(0, 30) + '...',
+      hasServiceKey: !!supabaseServiceKey
+    });
+    
     const supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
         autoRefreshToken: false,
@@ -46,7 +51,8 @@ serve(async (req) => {
     });
 
     const now = new Date();
-    console.log(`🕐 Vérification des notifications planifiées - ${now.toISOString()}`);
+    const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    console.log(`🕐 Vérification notifications - ${now.toISOString()} (${currentTime})`);
 
     // Récupérer tous les utilisateurs actifs avec leurs préférences
     const { data: users, error: usersError } = await supabase
@@ -67,11 +73,23 @@ serve(async (req) => {
       .eq('is_active', true);
 
     if (usersError) {
-      console.error('Erreur lors de la récupération des utilisateurs:', usersError);
+      console.error('❌ Erreur récupération utilisateurs:', usersError);
       throw usersError;
     }
 
     console.log(`📊 ${users?.length || 0} utilisateurs actifs trouvés`);
+    
+    if (users && users.length > 0) {
+      console.log('👥 Détails utilisateurs:');
+      for (const user of users) {
+        const prefs = user.notification_preferences?.[0];
+        console.log(`  - ${user.full_name || user.id}:`, {
+          hasPrefs: !!prefs,
+          readingReminder: prefs?.reading_reminder_enabled ? prefs.reading_reminder_time : 'désactivé',
+          dailyVerse: prefs?.daily_verse_enabled ? prefs.daily_verse_time : 'désactivé'
+        });
+      }
+    }
 
     let readingRemindersSent = 0;
     let dailyVersesSent = 0;
@@ -97,12 +115,18 @@ serve(async (req) => {
     for (const user of users || []) {
       try {
         const preferences = user.notification_preferences?.[0];
-        if (!preferences) continue;
+        if (!preferences) {
+          console.log(`⚠️ ${user.full_name || user.id}: pas de préférences`);
+          continue;
+        }
 
         // Vérifier les rappels de lecture
         if (preferences.reading_reminder_enabled && preferences.reading_reminder_time) {
-          if (isTimeMatch(preferences.reading_reminder_time, now)) {
-            console.log(`⏰ Heure de rappel pour ${user.full_name || user.id}: ${preferences.reading_reminder_time}`);
+          const timeMatches = isTimeMatch(preferences.reading_reminder_time, now);
+          console.log(`🔍 ${user.full_name || user.id} - Rappel lecture ${preferences.reading_reminder_time}: ${timeMatches ? 'OUI ✅' : 'non'}`);
+          
+          if (timeMatches) {
+            console.log(`⏰ ENVOI rappel pour ${user.full_name || user.id}`);
             
             // Calculer le jour actuel
             const startDate = new Date(user.start_date);
@@ -160,8 +184,11 @@ serve(async (req) => {
 
         // Vérifier le verset du jour
         if (preferences.daily_verse_enabled && preferences.daily_verse_time) {
-          if (isTimeMatch(preferences.daily_verse_time, now)) {
-            console.log(`⏰ Heure verset pour ${user.full_name || user.id}: ${preferences.daily_verse_time}`);
+          const timeMatches = isTimeMatch(preferences.daily_verse_time, now);
+          console.log(`🔍 ${user.full_name || user.id} - Verset quotidien ${preferences.daily_verse_time}: ${timeMatches ? 'OUI ✅' : 'non'}`);
+          
+          if (timeMatches) {
+            console.log(`⏰ ENVOI verset pour ${user.full_name || user.id}`);
             
             const notificationRequest: NotificationRequest = {
               title: `📜 Verset du jour - ${dailyVerse.reference}`,

@@ -48,3 +48,6 @@ verify_jwt = false
 
 [functions.check-scheduled-notifications]
 verify_jwt = false
+
+[functions.test-push-notification]
+verify_jwt = true
