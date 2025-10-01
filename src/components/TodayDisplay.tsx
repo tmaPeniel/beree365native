@@ -13,7 +13,6 @@ const TodayDisplay: React.FC<TodayDisplayProps> = ({
   date,
   userName
 }) => {
-  console.log(`🏷️ TodayDisplay - Jour reçu: ${dayNumber}`);
 
   const formattedDate = date.toLocaleDateString('fr-FR', {
     weekday: 'long',

@@ -105,27 +105,13 @@ const Admin = () => {
 
   // Log des données pour débogage
   React.useEffect(() => {
-    console.log('État admin debug:', {
-      isAdminStatus,
-      adminCheckLoading,
-      allUsersCount: allUsers.length,
-      recentUsersCount: recentUsers.length,
-      inactiveUsersCount: inactiveUsers.length,
-      allUsersLoading,
-      recentUsersLoading,
-      inactiveUsersLoading,
-      allUsersIsError,
-      recentUsersIsError,
-      inactiveUsersIsError
-    });
+    
   }, [isAdminStatus, adminCheckLoading, allUsers, recentUsers, inactiveUsers, allUsersLoading, recentUsersLoading, inactiveUsersLoading, allUsersIsError, recentUsersIsError, inactiveUsersIsError]);
 
   const handleRefresh = async () => {
     try {
-      console.log('Actualisation des données admin...');
       await Promise.all([refetchAllUsers(), refetchRecentUsers(), refetchInactiveUsers()]);
       toast.success('Données mises à jour');
-      console.log('Actualisation terminée avec succès');
     } catch (error) {
       console.error('Erreur lors de l\'actualisation:', error);
       toast.error('Erreur lors de la mise à jour');

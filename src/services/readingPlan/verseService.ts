@@ -13,7 +13,6 @@ import { DailyVerse } from "@/types/supabase";
  */
 export const getDailyVerse = async (dayNumber: number) => {
   try {
-    console.log(`Fetching verse for day ${dayNumber}...`);
     
     if (!dayNumber || dayNumber < 1 || dayNumber > 365) {
       console.warn(`Invalid day number provided: ${dayNumber}. Using default verse.`);
@@ -32,7 +31,6 @@ export const getDailyVerse = async (dayNumber: number) => {
       return getDefaultVerse(dayNumber);
     }
     
-    console.log(`Successfully fetched verse for day ${dayNumber}:`, data);
     return data as DailyVerse;
   } catch (error) {
     console.error(`Error in getDailyVerse for day ${dayNumber}:`, error);
@@ -47,7 +45,6 @@ export const getDailyVerse = async (dayNumber: number) => {
  */
 export const getAllVersesUpToDay = async (maxDayNumber: number): Promise<DailyVerse[]> => {
   try {
-    console.log(`Fetching all verses from day 1 to ${maxDayNumber}...`);
     
     if (!maxDayNumber || maxDayNumber < 1 || maxDayNumber > 365) {
       console.warn(`Invalid max day number provided: ${maxDayNumber}`);
@@ -66,8 +63,6 @@ export const getAllVersesUpToDay = async (maxDayNumber: number): Promise<DailyVe
       // En cas d'erreur, générer des versets par défaut
       return generateDefaultVerses(maxDayNumber);
     }
-    
-    console.log(`Successfully fetched ${data?.length || 0} verses`);
     
     // Compléter avec des versets par défaut pour les jours manquants
     const verses = data as DailyVerse[];

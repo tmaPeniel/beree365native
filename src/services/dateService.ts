@@ -16,7 +16,6 @@ const parseLocalDate = (dateStr: string): Date => {
  * VERSION CORRIGÉE - Simple et directe
  */
 export const getCurrentDayNumber = (startDateStr: string, planDuration: number = 365): number => {
-  console.log(`📅 Calcul du jour courant - Date de début: ${startDateStr}, Durée: ${planDuration} jours`);
   
   const startDate = parseLocalDate(startDateStr);
   const today = new Date();

@@ -57,7 +57,6 @@ export const useInactivityTimer = ({
   }, [warningTime]);
 
   const resetTimer = useCallback(() => {
-    console.log('🔄 Activité détectée - Reset du timer d\'inactivité');
     clearAllTimers();
     setIsWarningActive(false);
     setTimeLeft(0);
@@ -66,7 +65,6 @@ export const useInactivityTimer = ({
 
     // Timer pour l'avertissement
     warningTimeoutRef.current = setTimeout(() => {
-      console.log('⚠️ Avertissement de déconnexion');
       setIsWarningActive(true);
       startCountdown();
       onWarning?.();
@@ -74,7 +72,6 @@ export const useInactivityTimer = ({
 
     // Timer pour la déconnexion automatique
     timeoutRef.current = setTimeout(() => {
-      console.log('🚪 Déconnexion automatique due à l\'inactivité');
       clearAllTimers();
       setIsWarningActive(false);
       onTimeout?.();
@@ -82,12 +79,10 @@ export const useInactivityTimer = ({
   }, [enabled, timeout, warningTime, onWarning, onTimeout, clearAllTimers, startCountdown]);
 
   const extendSession = useCallback(() => {
-    console.log('⏰ Extension de session demandée');
     resetTimer();
   }, [resetTimer]);
 
   const forceLogout = useCallback(() => {
-    console.log('🚪 Déconnexion forcée par l\'utilisateur');
     clearAllTimers();
     setIsWarningActive(false);
     onTimeout?.();

@@ -25,8 +25,7 @@ export const useDateService = () => {
 
     try {
       const calculatedDay = getCurrentDayNumber(profile.start_date, planDuration);
-      console.log(`🎯 useDateService - Debut: ${profile.start_date}`);
-      console.log(`🎯 useDateService - Jour calculé: ${calculatedDay}`);
+
       setCurrentDayNumber(calculatedDay);
     } catch (error) {
       console.error("Erreur lors du calcul du jour:", error);

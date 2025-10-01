@@ -24,5 +24,5 @@ export const supabase = createClient<Database>(
 
 // Add a custom debug listener to global events
 supabase.auth.onAuthStateChange((event, session) => {
-  console.info("Auth state changed:", event, session ? "Session present" : "No session");
+  
 });

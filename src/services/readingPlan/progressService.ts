@@ -20,7 +20,6 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
       return [];
     }
     
-    console.log(`Fetching user progress for user ${userId} and day ${dayNumber}...`);
     
     // Récupérer le plan sélectionné de l'utilisateur
     const { data: profile, error: profileError } = await supabase
@@ -56,8 +55,6 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
       return [];
     }
     
-    console.log(`Found ${chapters.length} chapters for day ${dayNumber}`);
-    
     // Récupérer la progression existante (peut être vide pour un nouvel utilisateur)
     const chapterIds = chapters.map(chapter => chapter.id);
     const { data: progressData, error: progressError } = await supabase
@@ -71,7 +68,6 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
       throw progressError;
     }
     
-    console.log(`Found ${progressData?.length || 0} existing progress entries for user ${userId} and day ${dayNumber}`);
     
     // Créer la structure de retour en combinant chapitres et progression
     const result = chapters.map(chapter => {
@@ -88,7 +84,6 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
       };
     });
     
-    console.log(`Successfully created ${result.length} progress entries for user ${userId} and day ${dayNumber}`);
     return result as (UserProgress & { reading_plan_chapters: ReadingPlanChapter })[];
   } catch (error) {
     console.error(`Error fetching user progress for day ${dayNumber}:`, error);
@@ -104,7 +99,6 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
  * @returns {Promise<{success: boolean, data?: any, error?: string}>}
  */
 export const toggleChapterStatus = async (userId: string, chapterId: string, currentStatus: 'pending' | 'completed') => {
-  console.log(`Toggling chapter status - User: ${userId}, Chapter: ${chapterId}, Current status: ${currentStatus}`);
   
   // Vérifier l'authentification
   const { data: sessionData } = await supabase.auth.getSession();
@@ -119,7 +113,6 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
   
   try {
     // Vérifier si une entrée existe déjà
-    console.log(`Checking if entry exists for user ${userId} and chapter ${chapterId}...`);
     const { data: existingEntries, error: checkError } = await supabase
       .from('user_progress')
       .select('*')
@@ -132,12 +125,11 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
       return { success: false, error: checkError.message };
     }
     
-    console.log(`Found ${existingEntries?.length || 0} existing entries`);
     
     let result;
     
     if (existingEntries && existingEntries.length > 0) {
-      console.log(`Updating existing entry to status: ${newStatus}`);
+      
       // Mettre à jour l'entrée existante
       const { data, error } = await supabase
         .from('user_progress')
@@ -155,10 +147,8 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
         throw error;
       }
       
-      console.log("Update successful:", data);
       result = { success: true, data };
     } else {
-      console.log(`Creating new entry with status: ${newStatus}`);
       // Créer une nouvelle entrée (première action de l'utilisateur sur ce chapitre)
       const { data, error } = await supabase
         .from('user_progress')
@@ -176,7 +166,6 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
         throw error;
       }
       
-      console.log("Insert successful:", data);
       result = { success: true, data };
     }
     
@@ -243,7 +232,6 @@ export const getDayProgress = async (userId: string, dayNumber: number) => {
     const totalCount = chapters.length;
     const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
     
-    console.log(`Day ${dayNumber} progress: ${completedCount}/${totalCount} (${percentage}%)`);
     return percentage;
   } catch (error) {
     console.error(`Erreur lors du calcul de la progression pour le jour ${dayNumber}:`, error);
@@ -258,7 +246,7 @@ export const getDayProgress = async (userId: string, dayNumber: number) => {
  */
 export const getCompletedDaysCount = async (userId: string) => {
   try {
-    console.log(`Calculating completed days count for user ${userId}...`);
+    
     
     // Requête optimisée pour compter les jours où tous les chapitres sont complétés
     const { data, error } = await supabase.rpc('get_completed_days_count', {
@@ -272,7 +260,6 @@ export const getCompletedDaysCount = async (userId: string) => {
     }
     
     const completedDaysCount = data || 0;
-    console.log(`User ${userId} has ${completedDaysCount} completed days`);
     return completedDaysCount;
   } catch (error) {
     console.error("Erreur lors du calcul des jours complétés:", error);
@@ -323,7 +310,6 @@ const getCompletedDaysCountFallback = async (userId: string): Promise<number> =>
       }
     }
     
-    console.log(`Fallback method: User ${userId} has ${completedDaysCount} completed days`);
     return completedDaysCount;
   } catch (error) {
     console.error("Erreur dans la méthode fallback des jours complétés:", error);
@@ -338,7 +324,7 @@ const getCompletedDaysCountFallback = async (userId: string): Promise<number> =>
  */
 export const getOverallProgress = async (userId: string) => {
   try {
-    console.log(`Calculating overall progress for user ${userId}...`);
+    
     
     // Récupérer le plan sélectionné de l'utilisateur
     const { data: profile, error: profileError } = await supabase
@@ -386,7 +372,7 @@ export const getOverallProgress = async (userId: string) => {
       completedDays: completedDays
     };
     
-    console.log(`Overall progress for user ${userId}:`, result);
+    
     return result;
   } catch (error) {
     console.error("Erreur lors du calcul de la progression globale:", error);

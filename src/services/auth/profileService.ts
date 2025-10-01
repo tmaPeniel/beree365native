@@ -80,7 +80,6 @@ export const refreshUserProfile = async (userId: string): Promise<Profile | null
       }
       
       if (profile) {
-        console.log("Profil trouvé:", profile.id);
         return profile as Profile;
       }
       

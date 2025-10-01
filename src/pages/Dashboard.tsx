@@ -20,8 +20,6 @@ const Dashboard = () => {
   const { currentDayNumber, isLoading: dayLoading, getStats } = useDateService();
   const today = new Date();
   
-  console.log(`🏠 Dashboard - Jour courant: ${currentDayNumber}`);
-  
   // Calculer les statistiques du plan
   const stats = getStats();
   

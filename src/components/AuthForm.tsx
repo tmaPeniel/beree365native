@@ -63,7 +63,6 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
     });
     
     const handleSubmit = (values: LoginFormValues) => {
-      console.log("Soumission du formulaire de connexion avec:", values);
       onSubmit({
         email: values.email,
         password: values.password

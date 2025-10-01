@@ -27,9 +27,6 @@ const DEBUG_MODE = true; // Activer les logs de debugging
  * @returns Tableau de la progression utilisateur avec informations des chapitres
  */
 export const getCachedUserProgressForDay = async (userId: string, dayNumber: number) => {
-  if (DEBUG_MODE) {
-    console.log(`🔍 [PROGRESS] Fetching progress for user ${userId}, day ${dayNumber}`);
-  }
   
   try {
     // D'abord récupérer le plan sélectionné de l'utilisateur
@@ -57,10 +54,6 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
     
     const chapterIds = chapters.map(chapter => chapter.id);
     
-    if (DEBUG_MODE) {
-      console.log(`📊 [PROGRESS] Found ${chapters.length} chapters for day ${dayNumber}`);
-    }
-    
     // Récupérer la progression pour ces chapitres
     const { data, error } = await supabase
       .from('user_progress')
@@ -73,9 +66,6 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
       throw error;
     }
     
-    if (DEBUG_MODE) {
-      console.log(`📊 [PROGRESS] Retrieved ${data?.length || 0} progress entries`);
-    }
     
     return data as (UserProgress & { reading_plan_chapters: ReadingPlanChapter })[];
   } catch (error) {
@@ -91,10 +81,7 @@ export const getCachedUserProgressForDay = async (userId: string, dayNumber: num
  * @param userId - ID de l'utilisateur
  * @param dayNumber - Numéro du jour spécifique (optionnel)
  */
-export const invalidateProgressCache = (userId: string, dayNumber?: number) => {
-  if (DEBUG_MODE) {
-    console.log(`🗑️ [INVALIDATE] Invalidating progress cache for user ${userId}${dayNumber ? `, day ${dayNumber}` : ''}`);
-  }
+export const invalidateProgressCache = (userId: string, dayNumber?: number) => { 
   
   // Utiliser uniquement l'invalidation du cache global
   invalidateUserCacheSelective(userId);
