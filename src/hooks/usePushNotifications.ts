@@ -41,6 +41,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
   }, []);
 
   // Vérifier s'il y a déjà un abonnement existant
+  // Utilise maintenant la fonction sécurisée qui ne retourne pas les clés sensibles
   const checkExistingSubscription = useCallback(async () => {
     try {
       const registration = await navigator.serviceWorker.getRegistration();
@@ -48,7 +49,7 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
         const subscription = await registration.pushManager.getSubscription();
         const hasLocalSubscription = !!subscription;
         
-        // Vérifier aussi côté serveur
+        // Vérifier aussi côté serveur avec la fonction sécurisée
         const hasServerSubscription = await pushNotificationService.hasActiveSubscription();
         
         setIsSubscribed(hasLocalSubscription && hasServerSubscription);

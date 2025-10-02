@@ -387,6 +387,25 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: number
       }
+      get_user_notification_history: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          notification_type: string
+          sent_at: string
+          status_message: string
+          success: boolean
+        }[]
+      }
+      get_user_push_subscription_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          created_at: string
+          endpoint_preview: string
+          id: string
+          is_active: boolean
+        }[]
+      }
       get_user_stats: {
         Args: Record<PropertyKey, never>
         Returns: {

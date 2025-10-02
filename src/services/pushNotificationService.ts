@@ -169,6 +169,7 @@ class PushNotificationService {
 
   /**
    * Vérifier si l'utilisateur a un abonnement actif
+   * Utilise une fonction sécurisée qui ne retourne pas les clés sensibles
    */
   async hasActiveSubscription(): Promise<boolean> {
     try {
@@ -178,19 +179,15 @@ class PushNotificationService {
         return false;
       }
 
-      const { data, error } = await supabase
-        .from('push_subscriptions')
-        .select('id')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .limit(1);
+      // Utiliser la fonction sécurisée au lieu d'une requête directe
+      const { data, error } = await supabase.rpc('get_user_push_subscription_status');
 
       if (error) {
         console.error('Erreur lors de la vérification de l\'abonnement:', error);
         return false;
       }
 
-      return data && data.length > 0;
+      return data && data.length > 0 && data[0]?.is_active === true;
     } catch (error) {
       console.error('Erreur dans hasActiveSubscription:', error);
       return false;
