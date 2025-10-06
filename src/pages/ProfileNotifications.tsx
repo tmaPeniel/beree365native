@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Bell, Clock, Check, X, AlertCircle, Smartphone, Settings, TestTube } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
@@ -11,11 +11,15 @@ import { usePushNotifications } from '@/hooks/usePushNotifications';
 import { pushNotificationService, type NotificationPreferences } from '@/services/pushNotificationService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/hooks/useAuth';
 
 /**
  * Page de gestion détaillée des notifications
  */
 const ProfileNotifications = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
   const { 
     isSupported, 
     isSubscribed, 
@@ -30,6 +34,15 @@ const ProfileNotifications = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
+
+  // Vérifier l'authentification
+  useEffect(() => {
+    if (!user) {
+      console.log('⚠️ Utilisateur non connecté, redirection vers /login');
+      toast.error('Vous devez être connecté pour gérer les notifications');
+      navigate('/login');
+    }
+  }, [user, navigate]);
 
   // Charger les préférences
   useEffect(() => {

@@ -21,23 +21,25 @@ export interface NotificationPreferences {
 class PushNotificationService {
   /**
    * Sauvegarder un abonnement push en base
+   * Note: Les anciens abonnements restent en base mais deviennent inactifs
    */
   async saveSubscription(subscriptionData: PushSubscriptionData): Promise<boolean> {
     try {
+      console.log('💾 Début sauvegarde abonnement...');
+      
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
+        console.error('❌ Utilisateur non authentifié');
         throw new Error('Utilisateur non authentifié');
       }
 
-      // Désactiver les anciens abonnements pour cet utilisateur
-      await supabase
-        .from('push_subscriptions')
-        .update({ is_active: false })
-        .eq('user_id', user.id);
+      console.log('✅ Utilisateur identifié:', user.id);
 
       // Insérer le nouvel abonnement
-      const { error } = await supabase
+      // Note: Les anciens abonnements ne sont pas supprimés pour garder l'historique
+      // Un seul abonnement actif par utilisateur est maintenu côté logique métier
+      const { data, error } = await supabase
         .from('push_subscriptions')
         .insert({
           user_id: user.id,
@@ -45,16 +47,18 @@ class PushNotificationService {
           p256dh_key: subscriptionData.p256dh,
           auth_key: subscriptionData.auth,
           is_active: true
-        });
+        })
+        .select();
 
       if (error) {
-        console.error('Erreur lors de la sauvegarde de l\'abonnement:', error);
+        console.error('❌ Erreur lors de la sauvegarde de l\'abonnement:', error);
         return false;
       }
 
+      console.log('✅ Abonnement sauvegardé avec succès:', data);
       return true;
     } catch (error) {
-      console.error('Erreur dans saveSubscription:', error);
+      console.error('❌ Erreur dans saveSubscription:', error);
       return false;
     }
   }
@@ -176,6 +180,7 @@ class PushNotificationService {
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
+        console.log('⚠️ Pas d\'utilisateur authentifié pour vérifier l\'abonnement');
         return false;
       }
 
@@ -183,13 +188,19 @@ class PushNotificationService {
       const { data, error } = await supabase.rpc('get_user_push_subscription_status');
 
       if (error) {
-        console.error('Erreur lors de la vérification de l\'abonnement:', error);
+        console.error('❌ Erreur lors de la vérification de l\'abonnement:', error);
         return false;
       }
 
-      return data && data.length > 0 && data[0]?.is_active === true;
+      console.log('📊 Statut abonnement reçu:', data);
+
+      // La fonction RPC retourne un tableau d'objets avec is_active
+      const hasActive = Array.isArray(data) && data.length > 0 && data[0]?.is_active === true;
+      console.log(`✅ Abonnement actif: ${hasActive}`);
+      
+      return hasActive;
     } catch (error) {
-      console.error('Erreur dans hasActiveSubscription:', error);
+      console.error('❌ Erreur dans hasActiveSubscription:', error);
       return false;
     }
   }
