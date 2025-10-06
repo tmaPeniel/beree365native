@@ -1,7 +1,17 @@
+/**
+ * Hook simplifié pour la gestion des notifications push
+ */
+
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from 'sonner';
-import { pushNotificationService, type PushSubscriptionData } from '@/services/pushNotificationService';
 import { supabase } from '@/integrations/supabase/client';
+import { ServiceWorkerManager } from '@/utils/serviceWorkerManager';
+import { PushSubscriptionCleaner } from '@/utils/pushSubscriptionCleaner';
+import { urlBase64ToUint8Array } from '@/utils/vapidConverter';
+import { subscriptionService } from '@/services/notifications/subscriptionService';
+import { PushSubscriptionData } from '@/types/notifications';
+import { NOTIFICATION_MESSAGES } from '@/constants/notifications';
+import { logger } from '@/utils/logger';
 
 interface UsePushNotificationsReturn {
   isSupported: boolean;
@@ -20,99 +30,53 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
   const [permission, setPermission] = useState<NotificationPermission>('default');
   const [vapidPublicKey, setVapidPublicKey] = useState<string | null>(null);
 
-  // Récupérer la clé VAPID publique depuis le serveur
+  // Récupérer la clé VAPID
   useEffect(() => {
     const fetchVapidKey = async () => {
       try {
         const { data, error } = await supabase.functions.invoke('get-vapid-public-key');
         
         if (error) {
-          console.error('❌ Erreur récupération clé VAPID:', error);
-          toast.error('Erreur lors de l\'initialisation des notifications');
+          logger.error('Failed to fetch VAPID key', error);
           return;
         }
         
         if (data?.publicKey) {
-          console.log('✅ Clé VAPID publique chargée');
+          logger.success('VAPID key loaded');
           setVapidPublicKey(data.publicKey);
         }
       } catch (error) {
-        console.error('❌ Erreur inattendue lors de la récupération de la clé VAPID:', error);
+        logger.error('VAPID key fetch error', error);
       }
     };
 
     fetchVapidKey();
   }, []);
 
-  // Nettoyer les anciens abonnements au démarrage
+  // Vérifier le support
   useEffect(() => {
-    const cleanupOldSubscriptions = async () => {
-      if (!('serviceWorker' in navigator && 'PushManager' in window)) {
-        return;
-      }
-
-      try {
-        const registration = await navigator.serviceWorker.getRegistration();
-        if (registration) {
-          const subscription = await registration.pushManager.getSubscription();
-          if (subscription && vapidPublicKey) {
-            // Vérifier si l'abonnement existant utilise une clé différente
-            // Si oui, le nettoyer pour permettre un nouvel abonnement
-            console.log('🧹 Vérification de l\'ancien abonnement...');
-            
-            // Note: On ne peut pas directement comparer les clés, mais on va nettoyer
-            // silencieusement au cas où pour éviter les conflits
-          }
-        }
-      } catch (error) {
-        console.error('Erreur lors du nettoyage des anciens abonnements:', error);
-      }
-    };
-
-    if (vapidPublicKey) {
-      cleanupOldSubscriptions();
+    const supported = ServiceWorkerManager.isSupported();
+    setIsSupported(supported);
+    
+    if (supported) {
+      setPermission(Notification.permission);
+      checkExistingSubscription();
     }
-  }, [vapidPublicKey]);
-
-  // Vérifier le support des notifications push
-  useEffect(() => {
-    const checkSupport = () => {
-      const supported = 
-        'serviceWorker' in navigator &&
-        'PushManager' in window &&
-        'Notification' in window;
-      
-      setIsSupported(supported);
-      
-      if (supported) {
-        setPermission(Notification.permission);
-        checkExistingSubscription();
-      }
-    };
-
-    checkSupport();
   }, []);
 
-  // Vérifier s'il y a déjà un abonnement existant
-  // Utilise maintenant la fonction sécurisée qui ne retourne pas les clés sensibles
+  // Vérifier l'abonnement existant
   const checkExistingSubscription = useCallback(async () => {
     try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration) {
-        const subscription = await registration.pushManager.getSubscription();
-        const hasLocalSubscription = !!subscription;
-        
-        // Vérifier aussi côté serveur avec la fonction sécurisée
-        const hasServerSubscription = await pushNotificationService.hasActiveSubscription();
-        
-        setIsSubscribed(hasLocalSubscription && hasServerSubscription);
-      }
+      const localSub = await ServiceWorkerManager.getCurrentSubscription();
+      const serverSub = await subscriptionService.hasActive();
+      
+      setIsSubscribed(!!localSub && serverSub);
     } catch (error) {
-      console.error('Erreur lors de la vérification de l\'abonnement existant:', error);
+      logger.error('Failed to check subscription', error);
     }
   }, []);
 
-  // Demander la permission pour les notifications
+  // Demander la permission
   const requestPermission = useCallback(async (): Promise<NotificationPermission> => {
     if (!isSupported) {
       toast.error('Les notifications push ne sont pas supportées sur cet appareil');
@@ -124,60 +88,31 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       setPermission(result);
       
       if (result === 'granted') {
-        toast.success('Permissions accordées pour les notifications');
+        toast.success(NOTIFICATION_MESSAGES.PERMISSION_GRANTED);
       } else if (result === 'denied') {
-        toast.error('Permissions refusées pour les notifications');
+        toast.error(NOTIFICATION_MESSAGES.PERMISSION_DENIED);
       }
       
       return result;
     } catch (error) {
-      console.error('Erreur lors de la demande de permission:', error);
-      toast.error('Erreur lors de la demande de permission');
+      logger.error('Permission request failed', error);
       return 'denied';
     }
   }, [isSupported]);
 
-  // Convertir la clé VAPID en Uint8Array
-  const urlBase64ToUint8Array = (base64String: string): Uint8Array => {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding)
-      .replace(/-/g, '+')
-      .replace(/_/g, '/');
-
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-
-    for (let i = 0; i < rawData.length; ++i) {
-      outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-  };
-
-  // S'abonner aux notifications push
+  // S'abonner
   const subscribe = useCallback(async (): Promise<boolean> => {
-    console.log('🔔 Tentative d\'abonnement aux notifications...');
-    
-    if (!isSupported) {
-      console.error('❌ Notifications non supportées');
-      toast.error('Les notifications push ne sont pas supportées');
+    if (!isSupported || !vapidPublicKey) {
+      toast.error('Configuration des notifications non disponible');
       return false;
     }
 
     // Vérifier l'authentification
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      console.error('❌ Utilisateur non authentifié');
-      toast.error('Vous devez être connecté pour activer les notifications');
+      toast.error(NOTIFICATION_MESSAGES.AUTH_REQUIRED);
       return false;
     }
-    console.log('✅ Utilisateur authentifié');
-
-    if (!vapidPublicKey) {
-      console.error('❌ Clé VAPID publique non disponible');
-      toast.error('Erreur de configuration des notifications');
-      return false;
-    }
-    console.log('✅ Clé VAPID disponible');
 
     setIsLoading(true);
 
@@ -185,104 +120,57 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       // Demander la permission si nécessaire
       let currentPermission = permission;
       if (currentPermission !== 'granted') {
-        console.log('⚠️ Permission non accordée, demande en cours...');
         currentPermission = await requestPermission();
         if (currentPermission !== 'granted') {
-          console.error('❌ Permission refusée');
           return false;
         }
       }
-      console.log('✅ Permission accordée');
 
       // Obtenir le service worker
-      const registration = await navigator.serviceWorker.getRegistration();
+      const registration = await ServiceWorkerManager.getRegistration();
       if (!registration) {
-        console.error('❌ Service Worker non disponible');
         throw new Error('Service Worker non disponible');
       }
-      console.log('✅ Service Worker disponible');
 
-      // Désabonner l'ancien abonnement s'il existe (pour éviter les conflits de clés VAPID)
-      const existingSubscription = await registration.pushManager.getSubscription();
-      if (existingSubscription) {
-        console.log('🧹 Ancien abonnement détecté, nettoyage en cours...');
-        toast.info('Nettoyage de l\'ancien abonnement...');
-        
-        try {
-          await pushNotificationService.removeSubscription(existingSubscription.endpoint);
-          await existingSubscription.unsubscribe();
-          console.log('✅ Ancien abonnement nettoyé');
-        } catch (cleanupError) {
-          console.warn('⚠️ Erreur lors du nettoyage (non bloquante):', cleanupError);
-        }
-      }
+      // Nettoyer l'ancien abonnement
+      await PushSubscriptionCleaner.cleanupOldSubscription(
+        (endpoint) => subscriptionService.remove(endpoint)
+      );
 
-      // Créer l'abonnement push
-      console.log('📝 Création du nouvel abonnement...');
-      toast.info('Création du nouvel abonnement...');
-      
+      // Créer le nouvel abonnement
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
       });
 
-      console.log('✅ Abonnement push créé');
-
-      // Extraire les données de l'abonnement
+      // Extraire les données
       const subscriptionData: PushSubscriptionData = {
         endpoint: subscription.endpoint,
         p256dh: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('p256dh')!))),
         auth: btoa(String.fromCharCode(...new Uint8Array(subscription.getKey('auth')!)))
       };
 
-      console.log('💾 Sauvegarde de l\'abonnement sur le serveur...');
-      // Sauvegarder l'abonnement sur le serveur Supabase
-      const saved = await pushNotificationService.saveSubscription(subscriptionData);
+      // Sauvegarder sur le serveur
+      const saved = await subscriptionService.save(subscriptionData);
       
       if (!saved) {
-        console.error('❌ Échec de la sauvegarde sur le serveur');
-        throw new Error('Échec de la sauvegarde de l\'abonnement sur le serveur');
+        throw new Error('Échec de la sauvegarde de l\'abonnement');
       }
 
-      console.log('✅ Abonnement sauvegardé avec succès');
       setIsSubscribed(true);
-      toast.success('Abonnement aux notifications réussi');
+      toast.success(NOTIFICATION_MESSAGES.SUBSCRIPTION_SUCCESS);
       return true;
 
     } catch (error) {
-      console.error('❌ Erreur lors de l\'abonnement aux notifications:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
-      
-      // Gérer l'erreur spécifique de conflit de clés VAPID
-      if (errorMessage.includes('applicationServerKey') || errorMessage.includes('gcm_sender_id')) {
-        console.log('🔄 Détection d\'un conflit de clés VAPID, nouvelle tentative...');
-        toast.error('Ancien abonnement détecté, nouvelle tentative...');
-        
-        // Réessayer une fois après avoir nettoyé
-        try {
-          const registration = await navigator.serviceWorker.getRegistration();
-          if (registration) {
-            const oldSub = await registration.pushManager.getSubscription();
-            if (oldSub) {
-              await oldSub.unsubscribe();
-            }
-          }
-          // Relancer la fonction (mais une seule fois pour éviter la récursion infinie)
-          // On ne relance pas automatiquement, on demande à l'utilisateur de réessayer
-          toast.info('Veuillez réessayer d\'activer les notifications');
-        } catch (retryError) {
-          console.error('❌ Échec de la nouvelle tentative:', retryError);
-        }
-      }
-      
-      toast.error(`Erreur lors de l'abonnement: ${errorMessage}`);
+      logger.error('Subscription failed', error);
+      toast.error(NOTIFICATION_MESSAGES.SUBSCRIPTION_ERROR);
       return false;
     } finally {
       setIsLoading(false);
     }
   }, [isSupported, permission, requestPermission, vapidPublicKey]);
 
-  // Se désabonner des notifications push
+  // Se désabonner
   const unsubscribe = useCallback(async (): Promise<boolean> => {
     if (!isSupported) {
       return false;
@@ -291,24 +179,18 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     setIsLoading(true);
 
     try {
-      const registration = await navigator.serviceWorker.getRegistration();
-      if (registration) {
-        const subscription = await registration.pushManager.getSubscription();
-        if (subscription) {
-          // Supprimer l'abonnement côté serveur
-          await pushNotificationService.removeSubscription(subscription.endpoint);
-          
-          // Désabonner côté client
-          await subscription.unsubscribe();
-          
-          setIsSubscribed(false);
-          toast.success('Désabonnement réussi');
-          return true;
-        }
+      const subscription = await ServiceWorkerManager.getCurrentSubscription();
+      if (subscription) {
+        await subscriptionService.remove(subscription.endpoint);
+        await subscription.unsubscribe();
+        
+        setIsSubscribed(false);
+        toast.success(NOTIFICATION_MESSAGES.UNSUBSCRIPTION_SUCCESS);
+        return true;
       }
       return false;
     } catch (error) {
-      console.error('Erreur lors du désabonnement:', error);
+      logger.error('Unsubscription failed', error);
       toast.error('Erreur lors du désabonnement');
       return false;
     } finally {

@@ -1,21 +1,22 @@
+/**
+ * Page de gestion des notifications - Version simplifiée
+ */
+
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Bell, Clock, Check, X, AlertCircle, Smartphone, Settings, TestTube } from 'lucide-react';
+import { ArrowLeft, Bell, AlertCircle, Check, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { pushNotificationService, type NotificationPreferences } from '@/services/pushNotificationService';
-import { supabase } from '@/integrations/supabase/client';
+import { preferencesService } from '@/services/notifications/preferencesService';
+import { notificationTestService } from '@/services/notifications/testService';
+import { NotificationStatusCard } from '@/components/notifications/NotificationStatusCard';
+import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
+import { NotificationPreferences, NotificationStatusInfo } from '@/types/notifications';
+import { DEFAULT_NOTIFICATION_PREFS, NOTIFICATION_MESSAGES } from '@/constants/notifications';
 import { toast } from 'sonner';
 import { useAuth } from '@/hooks/useAuth';
 
-/**
- * Page de gestion détaillée des notifications
- */
 const ProfileNotifications = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -30,7 +31,7 @@ const ProfileNotifications = () => {
     requestPermission
   } = usePushNotifications();
   
-  const [preferences, setPreferences] = useState<NotificationPreferences>({});
+  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFS);
   const [isLoading, setIsLoading] = useState(true);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
@@ -38,7 +39,6 @@ const ProfileNotifications = () => {
   // Vérifier l'authentification
   useEffect(() => {
     if (!user) {
-      console.log('⚠️ Utilisateur non connecté, redirection vers /login');
       toast.error('Vous devez être connecté pour gérer les notifications');
       navigate('/login');
     }
@@ -47,16 +47,8 @@ const ProfileNotifications = () => {
   // Charger les préférences
   useEffect(() => {
     const loadPreferences = async () => {
-      const prefs = await pushNotificationService.getNotificationPreferences();
-      if (prefs) {
-        setPreferences({
-          reading_reminder_enabled: prefs.reading_reminder_enabled ?? true,
-          reading_reminder_time: prefs.reading_reminder_time ?? '20:00',
-          daily_verse_enabled: prefs.daily_verse_enabled ?? true,
-          daily_verse_time: prefs.daily_verse_time ?? '07:00',
-          badge_encouragement_enabled: prefs.badge_encouragement_enabled ?? true
-        });
-      }
+      const prefs = await preferencesService.get();
+      setPreferences(prefs);
       setIsLoading(false);
     };
     loadPreferences();
@@ -68,56 +60,30 @@ const ProfileNotifications = () => {
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
     
-    const success = await pushNotificationService.updateNotificationPreferences(newPrefs);
+    const success = await preferencesService.update(newPrefs);
     if (success) {
-      toast.success('Préférences mises à jour');
+      toast.success(NOTIFICATION_MESSAGES.PREFERENCES_UPDATED);
     } else {
-      toast.error('Erreur lors de la mise à jour');
-      // Revenir à l'ancienne valeur en cas d'erreur
+      toast.error(NOTIFICATION_MESSAGES.PREFERENCES_ERROR);
       setPreferences(preferences);
     }
     setIsUpdating(false);
   };
 
-  // Tester l'envoi de notification
-  const testNotification = async () => {
+  // Tester les notifications
+  const handleTest = async () => {
     setIsTesting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (!session) {
-        toast.error('Vous devez être connecté');
-        return;
-      }
-
-      const { data, error } = await supabase.functions.invoke('test-push-notification', {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
-      });
-
-      if (error) {
-        console.error('Erreur test notification:', error);
-        toast.error('Erreur lors du test: ' + error.message);
-      } else {
-        console.log('Résultat test:', data);
-        toast.success('Notification de test envoyée ! Vérifiez vos notifications.');
-      }
-    } catch (error) {
-      console.error('Erreur:', error);
-      toast.error('Erreur lors du test');
-    } finally {
-      setIsTesting(false);
-    }
+    await notificationTestService.sendTest();
+    setIsTesting(false);
   };
 
-  // Obtenir le statut global des notifications
-  const getGlobalStatus = () => {
+  // Obtenir le statut global
+  const getGlobalStatus = (): NotificationStatusInfo => {
     if (!isSupported) {
       return { 
         status: 'unsupported', 
         label: 'Non supporté', 
-        variant: 'secondary' as const,
+        variant: 'secondary',
         icon: AlertCircle,
         description: 'Votre navigateur ne supporte pas les notifications push'
       };
@@ -126,7 +92,7 @@ const ProfileNotifications = () => {
       return { 
         status: 'denied', 
         label: 'Permissions refusées', 
-        variant: 'destructive' as const,
+        variant: 'destructive',
         icon: X,
         description: 'Les permissions pour les notifications ont été refusées'
       };
@@ -135,7 +101,7 @@ const ProfileNotifications = () => {
       return { 
         status: 'active', 
         label: 'Notifications actives', 
-        variant: 'default' as const,
+        variant: 'default',
         icon: Check,
         description: 'Vous recevrez les notifications selon vos préférences'
       };
@@ -143,16 +109,13 @@ const ProfileNotifications = () => {
     return { 
       status: 'inactive', 
       label: 'Notifications inactives', 
-      variant: 'outline' as const,
+      variant: 'outline',
       icon: Bell,
       description: 'Activez les notifications pour recevoir les rappels'
     };
   };
 
-  const globalStatus = getGlobalStatus();
-  const StatusIcon = globalStatus.icon;
-
-  // Gérer l'activation/désactivation des notifications
+  // Gérer l'activation/désactivation
   const handleToggleNotifications = async () => {
     if (isSubscribed) {
       await unsubscribe();
@@ -197,180 +160,24 @@ const ProfileNotifications = () => {
 
       {/* Contenu */}
       <div className="px-6 py-6 space-y-6">
-        {/* Statut global */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Smartphone className="h-5 w-5" />
-              <span>Statut des notifications push</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <StatusIcon className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <div className="flex items-center space-x-2">
-                    <p className="font-medium text-foreground">Notifications push</p>
-                    <Badge variant={globalStatus.variant}>
-                      {globalStatus.label}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{globalStatus.description}</p>
-                </div>
-              </div>
-              {isSupported && permission !== 'denied' && (
-                <Switch
-                  checked={isSubscribed}
-                  onCheckedChange={handleToggleNotifications}
-                  disabled={pushLoading}
-                />
-              )}
-            </div>
+        <NotificationStatusCard
+          status={getGlobalStatus()}
+          isSubscribed={isSubscribed}
+          isSupported={isSupported}
+          permission={permission}
+          isLoading={pushLoading}
+          onToggle={handleToggleNotifications}
+          onTest={handleTest}
+          isTesting={isTesting}
+        />
 
-            {/* Alertes spéciales */}
-            {!isSupported && (
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertDescription>
-                  Votre navigateur ne supporte pas les notifications push. 
-                  Utilisez un navigateur moderne pour profiter de cette fonctionnalité.
-                </AlertDescription>
-              </Alert>
-            )}
+        <NotificationPreferencesCard
+          preferences={preferences}
+          isSubscribed={isSubscribed}
+          isUpdating={isUpdating}
+          onUpdate={updatePreference}
+        />
 
-            {permission === 'denied' && (
-              <Alert variant="destructive">
-                <X className="h-4 w-4" />
-                <AlertDescription>
-                  Les permissions pour les notifications ont été refusées. 
-                  Pour les réactiver, allez dans les paramètres de votre navigateur.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {/* Bouton de test */}
-            {isSubscribed && (
-              <div className="pt-2">
-                <Button
-                  onClick={testNotification}
-                  disabled={isTesting}
-                  variant="outline"
-                  className="w-full"
-                >
-                  <TestTube className="h-4 w-4 mr-2" />
-                  {isTesting ? 'Envoi en cours...' : 'Tester les notifications'}
-                </Button>
-                <p className="text-xs text-muted-foreground mt-2 text-center">
-                  Envoyez une notification de test pour vérifier que tout fonctionne
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Préférences de notifications */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2">
-              <Settings className="h-5 w-5" />
-              <span>Préférences de notifications</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {/* Rappels de lecture */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">Rappels de lecture quotidiens</p>
-                    <p className="text-sm text-muted-foreground">
-                      Recevez un rappel pour votre lecture quotidienne
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={preferences.reading_reminder_enabled ?? true}
-                  onCheckedChange={(checked) => updatePreference('reading_reminder_enabled', checked)}
-                  disabled={isUpdating || !isSubscribed}
-                />
-              </div>
-              
-              {preferences.reading_reminder_enabled && (
-                <div className="ml-8 flex items-center space-x-3">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Heure:</span>
-                  <input
-                    type="time"
-                    value={preferences.reading_reminder_time || '20:00'}
-                    onChange={(e) => updatePreference('reading_reminder_time', e.target.value)}
-                    className="px-2 py-1 text-sm border rounded bg-background"
-                    disabled={isUpdating || !isSubscribed}
-                  />
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Versets du jour */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-3">
-                  <Bell className="h-5 w-5 text-muted-foreground" />
-                  <div>
-                    <p className="font-medium text-foreground">Verset du jour</p>
-                    <p className="text-sm text-muted-foreground">
-                      Recevez le verset quotidien le matin
-                    </p>
-                  </div>
-                </div>
-                <Switch
-                  checked={preferences.daily_verse_enabled ?? true}
-                  onCheckedChange={(checked) => updatePreference('daily_verse_enabled', checked)}
-                  disabled={isUpdating || !isSubscribed}
-                />
-              </div>
-              
-              {preferences.daily_verse_enabled && (
-                <div className="ml-8 flex items-center space-x-3">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm text-muted-foreground">Heure:</span>
-                  <input
-                    type="time"
-                    value={preferences.daily_verse_time || '07:00'}
-                    onChange={(e) => updatePreference('daily_verse_time', e.target.value)}
-                    className="px-2 py-1 text-sm border rounded bg-background"
-                    disabled={isUpdating || !isSubscribed}
-                  />
-                </div>
-              )}
-            </div>
-
-            <Separator />
-
-            {/* Encouragements badges */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium text-foreground">Encouragements badges</p>
-                  <p className="text-sm text-muted-foreground">
-                    Recevez des félicitations quand vous obtenez un nouveau badge
-                  </p>
-                </div>
-              </div>
-              <Switch
-                checked={preferences.badge_encouragement_enabled ?? true}
-                onCheckedChange={(checked) => updatePreference('badge_encouragement_enabled', checked)}
-                disabled={isUpdating || !isSubscribed}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Note informative */}
         <Alert>
           <Bell className="h-4 w-4" />
           <AlertDescription>

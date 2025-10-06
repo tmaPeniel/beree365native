@@ -7,7 +7,8 @@ import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/providers/ThemeProvider';
 import { usePushNotifications } from '@/hooks/usePushNotifications';
-import { pushNotificationService, type NotificationPreferences } from '@/services/pushNotificationService';
+import { preferencesService } from '@/services/notifications/preferencesService';
+import { NotificationPreferences } from '@/types/notifications';
 
 /**
  * Page des paramètres utilisateur
@@ -21,10 +22,8 @@ const ProfileSettings = () => {
   // Charger les préférences au montage
   useEffect(() => {
     const loadPreferences = async () => {
-      const prefs = await pushNotificationService.getNotificationPreferences();
-      if (prefs) {
-        setPreferences(prefs);
-      }
+      const prefs = await preferencesService.get();
+      setPreferences(prefs);
       setIsLoading(false);
     };
     loadPreferences();
@@ -34,7 +33,7 @@ const ProfileSettings = () => {
   const updatePreference = async (key: keyof NotificationPreferences, value: boolean) => {
     const newPrefs = { ...preferences, [key]: value };
     setPreferences(newPrefs);
-    await pushNotificationService.updateNotificationPreferences(newPrefs);
+    await preferencesService.update(newPrefs);
   };
 
   // Obtenir le statut des notifications push

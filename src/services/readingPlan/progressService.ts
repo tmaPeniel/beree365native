@@ -1,79 +1,50 @@
 /**
- * Service gérant la progression de l'utilisateur
+ * Service de progression - Version simplifiée
  */
 
 import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
+import { ProgressMetrics } from "@/types/progress";
 import { toast } from "sonner";
 import { ActivityService } from '../auth/activityService';
+import { getUserSelectedPlanId, getChaptersForDay } from './helpers/planRetrieval';
+import { getCompletedChaptersCount, calculatePercentage, getCompletedDaysViaRPC } from './helpers/progressCalculation';
+import { logger } from '@/utils/logger';
 
-/**
- * Récupère la progression de l'utilisateur pour un jour donné
- * @param {string} userId ID de l'utilisateur
- * @param {number} dayNumber Numéro du jour
- * @returns {Promise<Array<UserProgress & {reading_plan_chapters: ReadingPlanChapter}>>}
- */
 export const getUserProgressForDay = async (userId: string, dayNumber: number) => {
   try {
     if (!userId) {
-      console.error("getUserProgressForDay: No user ID provided");
+      logger.error("No user ID provided");
       return [];
     }
     
-    
-    // Récupérer le plan sélectionné de l'utilisateur
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('selected_plan_id')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    if (profileError) {
-      console.error("Error fetching user profile:", profileError);
-      throw profileError;
-    }
-    
-    if (!profile?.selected_plan_id) {
-      console.log("No selected plan found for user");
+    const planId = await getUserSelectedPlanId(userId);
+    if (!planId) {
+      logger.debug("No selected plan found");
       return [];
     }
     
-    // Récupérer tous les chapitres pour ce jour ET le plan sélectionné
-    const { data: chapters, error: chaptersError } = await supabase
-      .from('reading_plan_chapters')
-      .select('*')
-      .eq('day_number', dayNumber)
-      .eq('plan_id', profile.selected_plan_id);
-    
-    if (chaptersError) {
-      console.error(`Error fetching chapters for day ${dayNumber}:`, chaptersError);
-      throw chaptersError;
-    }
-    
-    if (!chapters || chapters.length === 0) {
-      console.log(`No chapters found for day ${dayNumber}`);
+    const chapters = await getChaptersForDay(dayNumber, planId);
+    if (chapters.length === 0) {
+      logger.debug(`No chapters for day ${dayNumber}`);
       return [];
     }
     
-    // Récupérer la progression existante (peut être vide pour un nouvel utilisateur)
-    const chapterIds = chapters.map(chapter => chapter.id);
-    const { data: progressData, error: progressError } = await supabase
+    const chapterIds = chapters.map(c => c.id);
+    const { data: progressData, error } = await supabase
       .from('user_progress')
       .select('*')
       .eq('user_id', userId)
       .in('chapter_id', chapterIds);
     
-    if (progressError) {
-      console.error(`Error fetching user progress for day ${dayNumber}:`, progressError);
-      throw progressError;
+    if (error) {
+      logger.error('Failed to fetch progress', error);
+      return [];
     }
     
-    
-    // Créer la structure de retour en combinant chapitres et progression
-    const result = chapters.map(chapter => {
+    return chapters.map(chapter => {
       const progressItem = progressData?.find(p => p.chapter_id === chapter.id);
       
-      // Si aucune progression n'existe, le statut par défaut est 'pending' (non lu)
       return {
         id: progressItem?.id || `temp-${chapter.id}`,
         user_id: userId,
@@ -82,28 +53,16 @@ export const getUserProgressForDay = async (userId: string, dayNumber: number) =
         completed_at: progressItem?.completed_at || null,
         reading_plan_chapters: chapter
       };
-    });
-    
-    return result as (UserProgress & { reading_plan_chapters: ReadingPlanChapter })[];
+    }) as (UserProgress & { reading_plan_chapters: ReadingPlanChapter })[];
   } catch (error) {
-    console.error(`Error fetching user progress for day ${dayNumber}:`, error);
+    logger.error('Get user progress error', error);
     return [];
   }
 };
 
-/**
- * Change le statut d'un chapitre entre 'pending' et 'completed'
- * @param {string} userId ID de l'utilisateur
- * @param {string} chapterId ID du chapitre
- * @param {ChapterStatus} currentStatus Statut actuel
- * @returns {Promise<{success: boolean, data?: any, error?: string}>}
- */
 export const toggleChapterStatus = async (userId: string, chapterId: string, currentStatus: 'pending' | 'completed') => {
-  
-  // Vérifier l'authentification
   const { data: sessionData } = await supabase.auth.getSession();
   if (!sessionData.session) {
-    console.error("toggleChapterStatus: User not authenticated");
     toast.error("Vous devez être connecté pour modifier le statut de lecture");
     return { success: false, error: "User not authenticated" };
   }
@@ -112,229 +71,113 @@ export const toggleChapterStatus = async (userId: string, chapterId: string, cur
   const completedAt = newStatus === 'completed' ? new Date().toISOString() : null;
   
   try {
-    // Vérifier si une entrée existe déjà
-    const { data: existingEntries, error: checkError } = await supabase
+    const { data: existingEntries } = await supabase
       .from('user_progress')
       .select('*')
       .eq('user_id', userId)
       .eq('chapter_id', chapterId);
-      
-    if (checkError) {
-      console.error("Error checking existing entries:", checkError);
-      toast.error("Erreur lors de la vérification de votre progression");
-      return { success: false, error: checkError.message };
-    }
-    
     
     let result;
     
     if (existingEntries && existingEntries.length > 0) {
-      
-      // Mettre à jour l'entrée existante
       const { data, error } = await supabase
         .from('user_progress')
-        .update({ 
-          status: newStatus,
-          completed_at: completedAt
-        })
+        .update({ status: newStatus, completed_at: completedAt })
         .eq('user_id', userId)
         .eq('chapter_id', chapterId)
         .select();
       
-      if (error) {
-        console.error("Error updating status:", error);
-        toast.error(`Erreur lors de la mise à jour: ${error.message}`);
-        throw error;
-      }
-      
+      if (error) throw error;
       result = { success: true, data };
     } else {
-      // Créer une nouvelle entrée (première action de l'utilisateur sur ce chapitre)
       const { data, error } = await supabase
         .from('user_progress')
-        .insert([{ 
-          user_id: userId,
-          chapter_id: chapterId,
-          status: newStatus,
-          completed_at: completedAt
-        }])
+        .insert([{ user_id: userId, chapter_id: chapterId, status: newStatus, completed_at: completedAt }])
         .select();
       
-      if (error) {
-        console.error("Error creating new entry:", error);
-        toast.error(`Erreur lors de la création: ${error.message}`);
-        throw error;
-      }
-      
+      if (error) throw error;
       result = { success: true, data };
     }
     
-    // Mettre à jour l'activité utilisateur pour toute action de toggle (cocher/décocher)
     await ActivityService.updateUserActivity(userId);
-    
-    // Notifier l'utilisateur
-    toast.success(newStatus === 'completed' ? 
-      "Passage marqué comme lu" : 
-      "Passage marqué comme non lu"
-    );
+    toast.success(newStatus === 'completed' ? "Passage marqué comme lu" : "Passage marqué comme non lu");
     
     return result;
   } catch (error: any) {
-    console.error("Error toggling chapter status:", error);
+    logger.error('Toggle status error', error);
     toast.error(`Une erreur est survenue: ${error.message}`);
     return { success: false, error: error.message };
   }
 };
 
-/**
- * Calcule le pourcentage de progression pour un jour donné
- * @param {string} userId ID de l'utilisateur
- * @param {number} dayNumber Numéro du jour
- * @returns {Promise<number>} Pourcentage de progression
- */
 export const getDayProgress = async (userId: string, dayNumber: number) => {
   try {
-    // Récupérer le plan sélectionné de l'utilisateur
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('selected_plan_id')
-      .eq('id', userId)
-      .maybeSingle();
+    const planId = await getUserSelectedPlanId(userId);
+    if (!planId) return 0;
     
-    if (profileError) throw profileError;
-    if (!profile?.selected_plan_id) return 0;
+    const chapters = await getChaptersForDay(dayNumber, planId);
+    if (chapters.length === 0) return 0;
     
-    // Récupérer tous les chapitres pour ce jour ET le plan sélectionné
-    const { data: chapters, error: chaptersError } = await supabase
-      .from('reading_plan_chapters')
-      .select('id')
-      .eq('day_number', dayNumber)
-      .eq('plan_id', profile.selected_plan_id);
+    const chapterIds = chapters.map(c => c.id);
+    const completedCount = await getCompletedChaptersCount(userId, chapterIds);
     
-    if (chaptersError) throw chaptersError;
-    if (!chapters || chapters.length === 0) return 0;
-    
-    const chapterIds = chapters.map(chapter => chapter.id);
-    
-    // Récupérer seulement les chapitres marqués comme 'completed'
-    // (les chapitres sans entrée dans user_progress sont considérés comme 'pending')
-    const { data: completedChapters, error: progressError } = await supabase
-      .from('user_progress')
-      .select('*')
-      .eq('user_id', userId)
-      .in('chapter_id', chapterIds)
-      .eq('status', 'completed');
-    
-    if (progressError) throw progressError;
-    
-    // Calculer le pourcentage
-    const completedCount = completedChapters ? completedChapters.length : 0;
-    const totalCount = chapters.length;
-    const percentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
-    
-    return percentage;
+    return calculatePercentage(completedCount, chapters.length);
   } catch (error) {
-    console.error(`Erreur lors du calcul de la progression pour le jour ${dayNumber}:`, error);
+    logger.error('Get day progress error', error);
     return 0;
   }
 };
 
-/**
- * Calcule le nombre de jours complétés à 100%
- * @param {string} userId ID de l'utilisateur
- * @returns {Promise<number>} Nombre de jours complètement terminés
- */
 export const getCompletedDaysCount = async (userId: string) => {
   try {
-    
-    
-    // Requête optimisée pour compter les jours où tous les chapitres sont complétés
-    const { data, error } = await supabase.rpc('get_completed_days_count', {
-      p_user_id: userId
-    });
-    
-    if (error) {
-      // Si la fonction RPC n'existe pas, utiliser une approche alternative
-      console.log('RPC function not available, using alternative approach');
-      return await getCompletedDaysCountFallback(userId);
+    // Essayer d'abord via RPC
+    const rpcResult = await getCompletedDaysViaRPC(userId);
+    if (rpcResult !== null) {
+      return rpcResult;
     }
     
-    const completedDaysCount = data || 0;
-    return completedDaysCount;
-  } catch (error) {
-    console.error("Erreur lors du calcul des jours complétés:", error);
+    // Fallback: calcul manuel
     return await getCompletedDaysCountFallback(userId);
+  } catch (error) {
+    logger.error('Get completed days error', error);
+    return 0;
   }
 };
 
-/**
- * Méthode alternative pour calculer les jours complétés (fallback)
- * @param {string} userId ID de l'utilisateur
- * @returns {Promise<number>} Nombre de jours complètement terminés
- */
 const getCompletedDaysCountFallback = async (userId: string): Promise<number> => {
   try {
-    // Récupérer le plan sélectionné de l'utilisateur
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('selected_plan_id')
-      .eq('id', userId)
-      .maybeSingle();
+    const planId = await getUserSelectedPlanId(userId);
+    if (!planId) return 0;
     
-    if (profileError) throw profileError;
-    if (!profile?.selected_plan_id) return 0;
-    
-    // Récupérer tous les jours distincts du plan de lecture sélectionné
-    const { data: allDays, error: daysError } = await supabase
+    const { data: allDays } = await supabase
       .from('reading_plan_chapters')
       .select('day_number')
-      .eq('plan_id', profile.selected_plan_id)
+      .eq('plan_id', planId)
       .order('day_number');
     
-    if (daysError) throw daysError;
     if (!allDays) return 0;
     
-    // Obtenir les numéros de jours uniques avec typage explicite et vérification null
-    const dayNumbers: number[] = allDays
-      .map(day => day?.day_number)
-      .filter((dayNumber): dayNumber is number => dayNumber != null);
+    const uniqueDays = [...new Set(allDays.map(d => d.day_number).filter(Boolean))];
+    let completedCount = 0;
     
-    const uniqueDays: number[] = [...new Set(dayNumbers)];
-    let completedDaysCount = 0;
-    
-    // Pour chaque jour, vérifier s'il est complété à 100%
     for (const dayNumber of uniqueDays) {
-      const progressPercentage = await getDayProgress(userId, dayNumber);
-      if (progressPercentage === 100) {
-        completedDaysCount++;
+      const progress = await getDayProgress(userId, dayNumber);
+      if (progress === 100) {
+        completedCount++;
       }
     }
     
-    return completedDaysCount;
+    return completedCount;
   } catch (error) {
-    console.error("Erreur dans la méthode fallback des jours complétés:", error);
+    logger.error('Fallback count error', error);
     return 0;
   }
 };
 
-/**
- * Calcule la progression globale du plan de lecture
- * @param {string} userId ID de l'utilisateur
- * @returns {Promise<{totalPassages: number, passagesRead: number, passagesRemaining: number, progressPercentage: number, completedDays: number}>}
- */
-export const getOverallProgress = async (userId: string) => {
+export const getOverallProgress = async (userId: string): Promise<ProgressMetrics> => {
   try {
-    
-    
-    // Récupérer le plan sélectionné de l'utilisateur
-    const { data: profile, error: profileError } = await supabase
-      .from('profiles')
-      .select('selected_plan_id')
-      .eq('id', userId)
-      .maybeSingle();
-    
-    if (profileError) throw profileError;
-    if (!profile?.selected_plan_id) {
+    const planId = await getUserSelectedPlanId(userId);
+    if (!planId) {
       return {
         totalPassages: 0,
         passagesRead: 0,
@@ -344,38 +187,28 @@ export const getOverallProgress = async (userId: string) => {
       };
     }
     
-    // Récupérer le nombre total de chapitres du plan sélectionné
-    const { count: totalCount, error: totalError } = await supabase
+    const { count: totalCount } = await supabase
       .from('reading_plan_chapters')
       .select('*', { count: 'exact', head: true })
-      .eq('plan_id', profile.selected_plan_id);
+      .eq('plan_id', planId);
     
-    if (totalError) throw totalError;
-    
-    // Récupérer seulement les chapitres marqués comme 'completed'
-    const { count: completedCount, error: completedError } = await supabase
+    const { count: completedCount } = await supabase
       .from('user_progress')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('status', 'completed');
     
-    if (completedError) throw completedError;
-    
-    // Calculer le nombre de jours complétés à 100%
     const completedDays = await getCompletedDaysCount(userId);
     
-    const result = {
+    return {
       totalPassages: totalCount || 0,
       passagesRead: completedCount || 0,
       passagesRemaining: (totalCount || 0) - (completedCount || 0),
-      progressPercentage: totalCount ? Math.round(((completedCount || 0) / totalCount) * 100) : 0,
-      completedDays: completedDays
+      progressPercentage: calculatePercentage(completedCount || 0, totalCount || 0),
+      completedDays
     };
-    
-    
-    return result;
   } catch (error) {
-    console.error("Erreur lors du calcul de la progression globale:", error);
+    logger.error('Get overall progress error', error);
     return {
       totalPassages: 0,
       passagesRead: 0,
