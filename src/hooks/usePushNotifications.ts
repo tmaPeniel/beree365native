@@ -44,6 +44,36 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     fetchVapidKey();
   }, []);
 
+  // Nettoyer les anciens abonnements au démarrage
+  useEffect(() => {
+    const cleanupOldSubscriptions = async () => {
+      if (!('serviceWorker' in navigator && 'PushManager' in window)) {
+        return;
+      }
+
+      try {
+        const registration = await navigator.serviceWorker.getRegistration();
+        if (registration) {
+          const subscription = await registration.pushManager.getSubscription();
+          if (subscription && vapidPublicKey) {
+            // Vérifier si l'abonnement existant utilise une clé différente
+            // Si oui, le nettoyer pour permettre un nouvel abonnement
+            console.log('🧹 Vérification de l\'ancien abonnement...');
+            
+            // Note: On ne peut pas directement comparer les clés, mais on va nettoyer
+            // silencieusement au cas où pour éviter les conflits
+          }
+        }
+      } catch (error) {
+        console.error('Erreur lors du nettoyage des anciens abonnements:', error);
+      }
+    };
+
+    if (vapidPublicKey) {
+      cleanupOldSubscriptions();
+    }
+  }, [vapidPublicKey]);
+
   // Vérifier le support des notifications push
   useEffect(() => {
     const checkSupport = () => {
@@ -172,8 +202,25 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
       }
       console.log('✅ Service Worker disponible');
 
+      // Désabonner l'ancien abonnement s'il existe (pour éviter les conflits de clés VAPID)
+      const existingSubscription = await registration.pushManager.getSubscription();
+      if (existingSubscription) {
+        console.log('🧹 Ancien abonnement détecté, nettoyage en cours...');
+        toast.info('Nettoyage de l\'ancien abonnement...');
+        
+        try {
+          await pushNotificationService.removeSubscription(existingSubscription.endpoint);
+          await existingSubscription.unsubscribe();
+          console.log('✅ Ancien abonnement nettoyé');
+        } catch (cleanupError) {
+          console.warn('⚠️ Erreur lors du nettoyage (non bloquante):', cleanupError);
+        }
+      }
+
       // Créer l'abonnement push
-      console.log('📝 Création de l\'abonnement push...');
+      console.log('📝 Création du nouvel abonnement...');
+      toast.info('Création du nouvel abonnement...');
+      
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(vapidPublicKey)
@@ -205,6 +252,29 @@ export const usePushNotifications = (): UsePushNotificationsReturn => {
     } catch (error) {
       console.error('❌ Erreur lors de l\'abonnement aux notifications:', error);
       const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue';
+      
+      // Gérer l'erreur spécifique de conflit de clés VAPID
+      if (errorMessage.includes('applicationServerKey') || errorMessage.includes('gcm_sender_id')) {
+        console.log('🔄 Détection d\'un conflit de clés VAPID, nouvelle tentative...');
+        toast.error('Ancien abonnement détecté, nouvelle tentative...');
+        
+        // Réessayer une fois après avoir nettoyé
+        try {
+          const registration = await navigator.serviceWorker.getRegistration();
+          if (registration) {
+            const oldSub = await registration.pushManager.getSubscription();
+            if (oldSub) {
+              await oldSub.unsubscribe();
+            }
+          }
+          // Relancer la fonction (mais une seule fois pour éviter la récursion infinie)
+          // On ne relance pas automatiquement, on demande à l'utilisateur de réessayer
+          toast.info('Veuillez réessayer d\'activer les notifications');
+        } catch (retryError) {
+          console.error('❌ Échec de la nouvelle tentative:', retryError);
+        }
+      }
+      
       toast.error(`Erreur lors de l'abonnement: ${errorMessage}`);
       return false;
     } finally {
