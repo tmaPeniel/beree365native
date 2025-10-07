@@ -13,29 +13,47 @@ export interface SendNotificationRequest {
   userIds?: string[];
 }
 
+
 /**
- * Service pour envoyer des notifications push via l'Edge Function
+ * Service unifié pour envoyer des notifications push (Web + Native)
  */
 class NotificationService {
   /**
-   * Envoyer une notification push via l'Edge Function
+   * Envoyer une notification push via les Edge Functions appropriées
+   * Utilise FCM pour native et Web Push pour PWA
    */
   async sendPushNotification(request: SendNotificationRequest): Promise<boolean> {
     try {
-      const { data, error } = await supabase.functions.invoke('send-push-notification', {
-        body: request
-      });
+      // Envoyer via les deux canaux (FCM pour native, Web Push pour web)
+      // Les Edge Functions filtreront automatiquement les bons tokens
+      
+      const [fcmResult, webPushResult] = await Promise.allSettled([
+        // FCM pour iOS/Android
+        supabase.functions.invoke('send-fcm-notification', {
+          body: request
+        }),
+        // Web Push pour PWA
+        supabase.functions.invoke('send-push-notification', {
+          body: request
+        })
+      ]);
 
-      if (error) {
-        console.error('Erreur lors de l\'envoi de la notification:', error);
-        toast.error('Erreur lors de l\'envoi de la notification');
-        return false;
+      const fcmSuccess = fcmResult.status === 'fulfilled' && !fcmResult.value.error;
+      const webPushSuccess = webPushResult.status === 'fulfilled' && !webPushResult.value.error;
+
+      if (fcmSuccess || webPushSuccess) {
+        console.log('✅ Notifications sent:', { 
+          fcm: fcmSuccess, 
+          webPush: webPushSuccess 
+        });
+        return true;
       }
 
-      console.log('Notification envoyée avec succès:', data);
-      return true;
+      console.error('❌ Both notification methods failed:', { fcmResult, webPushResult });
+      toast.error('Erreur lors de l\'envoi de la notification');
+      return false;
     } catch (error) {
-      console.error('Erreur dans sendPushNotification:', error);
+      console.error('❌ Error in sendPushNotification:', error);
       toast.error('Erreur lors de l\'envoi de la notification');
       return false;
     }

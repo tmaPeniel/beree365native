@@ -51,3 +51,6 @@ verify_jwt = false
 
 [functions.test-push-notification]
 verify_jwt = true
+
+[functions.send-fcm-notification]
+verify_jwt = false
