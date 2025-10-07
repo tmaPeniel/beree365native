@@ -119,15 +119,20 @@ serve(async (req) => {
             userId: user.id
           };
 
-          const { error: notificationError } = await supabase.functions.invoke('send-push-notification', {
-            body: notificationRequest
-          });
+          // Envoyer via FCM (native) et Web Push (web)
+          const [fcmResult, webPushResult] = await Promise.allSettled([
+            supabase.functions.invoke('send-fcm-notification', { body: notificationRequest }),
+            supabase.functions.invoke('send-push-notification', { body: notificationRequest })
+          ]);
 
-          if (notificationError) {
-            console.error(`Erreur lors de l'envoi de la notification à ${user.id}:`, notificationError);
+          const fcmSuccess = fcmResult.status === 'fulfilled' && !fcmResult.value.error;
+          const webPushSuccess = webPushResult.status === 'fulfilled' && !webPushResult.value.error;
+
+          if (!fcmSuccess && !webPushSuccess) {
+            console.error(`Erreur lors de l'envoi de la notification à ${user.id}:`, { fcmResult, webPushResult });
             errors++;
           } else {
-            console.log(`✅ Rappel envoyé à ${user.full_name || user.id}`);
+            console.log(`✅ Rappel envoyé à ${user.full_name || user.id} (FCM: ${fcmSuccess}, Web: ${webPushSuccess})`);
             remindersSent++;
           }
         }

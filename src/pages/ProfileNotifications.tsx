@@ -5,6 +5,7 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Bell, AlertCircle, Check, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Capacitor } from '@capacitor/core';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
@@ -12,6 +13,7 @@ import { preferencesService } from '@/services/notifications/preferencesService'
 import { notificationTestService } from '@/services/notifications/testService';
 import { NotificationStatusCard } from '@/components/notifications/NotificationStatusCard';
 import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
+import { MobileSetupCard } from '@/components/MobileSetupCard';
 import { NotificationPreferences, NotificationStatusInfo } from '@/types/notifications';
 import { DEFAULT_NOTIFICATION_PREFS, NOTIFICATION_MESSAGES } from '@/constants/notifications';
 import { toast } from 'sonner';
@@ -20,6 +22,7 @@ import { useAuth } from '@/hooks/useAuth';
 const ProfileNotifications = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const isNative = Capacitor.isNativePlatform();
   
   const pushNotifications = useUnifiedPushNotifications();
   const { 
@@ -171,6 +174,9 @@ const ProfileNotifications = () => {
           onTest={handleTest}
           isTesting={isTesting}
         />
+
+        {/* Carte de setup mobile (si en mode web) */}
+        {!isNative && <MobileSetupCard />}
 
         <NotificationPreferencesCard
           preferences={preferences}
