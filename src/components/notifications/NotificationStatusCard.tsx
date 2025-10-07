@@ -15,7 +15,7 @@ interface NotificationStatusCardProps {
   status: NotificationStatusInfo;
   isSubscribed: boolean;
   isSupported: boolean;
-  permission: NotificationPermission;
+  permission: NotificationPermission | 'unknown';
   isLoading: boolean;
   onToggle: () => void;
   onTest: () => void;

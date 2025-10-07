@@ -7,7 +7,7 @@ import { ArrowLeft, Bell, AlertCircle, Check, X } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
 import { preferencesService } from '@/services/notifications/preferencesService';
 import { notificationTestService } from '@/services/notifications/testService';
 import { NotificationStatusCard } from '@/components/notifications/NotificationStatusCard';
@@ -21,6 +21,7 @@ const ProfileNotifications = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   
+  const pushNotifications = useUnifiedPushNotifications();
   const { 
     isSupported, 
     isSubscribed, 
@@ -29,7 +30,7 @@ const ProfileNotifications = () => {
     subscribe, 
     unsubscribe,
     requestPermission
-  } = usePushNotifications();
+  } = pushNotifications;
   
   const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFS);
   const [isLoading, setIsLoading] = useState(true);
