@@ -5,7 +5,7 @@ const config: CapacitorConfig = {
   appName: 'beree-365',
   webDir: 'dist',
   server: {
-    url: 'https://f27fcb77-1f7c-4b7c-8610-d0860593b05d.lovableproject.com?forceHideBadge=true',
+    androidScheme: "https",
     cleartext: true
   },
   plugins: {
