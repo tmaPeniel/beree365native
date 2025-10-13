@@ -50,7 +50,7 @@ serve(async (req) => {
       .select('*')
       .eq('user_id', user.id)
       .eq('is_active', true)
-      .single();
+      .maybeSingle();
 
     if (!subscription) {
       console.warn('⚠️ Pas d\'abonnement push actif');
@@ -64,6 +64,14 @@ serve(async (req) => {
     }
 
     console.log('✅ Abonnement trouvé:', subscription.endpoint.substring(0, 50) + '...');
+    
+    // Déterminer le type d'endpoint
+    const isNativeAndroid = subscription.endpoint.startsWith('android:') || 
+                           subscription.endpoint.includes('fcm.googleapis.com');
+    const isWebPush = subscription.endpoint.startsWith('https://') && 
+                     !subscription.endpoint.includes('fcm.googleapis.com');
+    
+    console.log('🔍 Type d\'endpoint:', { isNativeAndroid, isWebPush, endpoint: subscription.endpoint.substring(0, 80) });
 
     // Vérifier les clés VAPID
     const vapidPublic = Deno.env.get('VAPID_PUBLIC_KEY');
@@ -90,16 +98,58 @@ serve(async (req) => {
 
     console.log('📤 Envoi notification de test...');
 
-    const { data, error } = await supabase.functions.invoke('send-push-notification', {
-      body: testNotification
-    });
+    let data: any = null;
+    let error: any = null;
+
+    // Envoyer via FCM pour Android natif
+    if (isNativeAndroid) {
+      console.log('📱 Envoi via FCM (Android natif)...');
+      const result = await supabase.functions.invoke('send-fcm-notification', {
+        body: testNotification
+      });
+      data = result.data;
+      error = result.error;
+    }
+    
+    // Envoyer via Web Push pour PWA
+    if (isWebPush) {
+      console.log('🌐 Envoi via Web Push (PWA)...');
+      const result = await supabase.functions.invoke('send-push-notification', {
+        body: testNotification
+      });
+      data = result.data;
+      error = result.error;
+    }
+
+    if (!isNativeAndroid && !isWebPush) {
+      console.error('❌ Type d\'endpoint non supporté');
+      return new Response(
+        JSON.stringify({ 
+          error: 'Type d\'endpoint non supporté',
+          endpoint: subscription.endpoint.substring(0, 80)
+        }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     if (error) {
       console.error('❌ Erreur envoi:', error);
+      
+      // Logger l'échec
+      await supabase.from('notification_logs').insert({
+        user_id: user.id,
+        notification_type: 'test',
+        title: testNotification.title,
+        body: testNotification.body,
+        success: false,
+        error_message: JSON.stringify(error)
+      });
+      
       return new Response(
         JSON.stringify({ 
           error: 'Erreur lors de l\'envoi de la notification',
-          details: error
+          details: error,
+          endpoint_type: isNativeAndroid ? 'native' : 'web'
         }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
