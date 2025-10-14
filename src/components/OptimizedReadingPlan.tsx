@@ -199,7 +199,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
         } ${isProcessing ? 'opacity-70 cursor-not-allowed' : 'hover:bg-muted rounded p-2 cursor-pointer'}`}
       >
         <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-all duration-200 ${
-          item.completed ? 'bg-green-500 scale-110' : 'border-2 border-green-300 hover:border-green-400 hover:scale-105'
+          item.completed ? 'bg-primary scale-110' : 'border-2 border-primary/30 hover:border-primary hover:scale-105'
         }`}>
           {isProcessing ? (
             <Loader2 className="h-3 w-3 text-primary-foreground animate-gentle-spin" />
@@ -237,7 +237,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold">Aujourd'hui</h2>
           <div className="flex items-center gap-2">
-            <span className="text-sm bg-green-100 text-green-700 py-1 px-3 rounded-full">
+            <span className="text-sm bg-primary/10 text-primary py-1 px-3 rounded-full">
               Jour {dayNumber}/{planDuration}
             </span>
           </div>
