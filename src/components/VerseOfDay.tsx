@@ -43,11 +43,11 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
 
   if (isLoading) {
     return (
-      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+      <Card className="bg-card border-border">
         <CardContent className="p-6 text-center">
           <div className="animate-pulse-soft">
-            <div className="h-4 bg-green-200 rounded w-3/4 mx-auto mb-2"></div>
-            <div className="h-3 bg-green-200 rounded w-1/2 mx-auto"></div>
+            <div className="h-4 bg-muted rounded w-3/4 mx-auto mb-2"></div>
+            <div className="h-3 bg-muted rounded w-1/2 mx-auto"></div>
           </div>
         </CardContent>
       </Card>
@@ -59,12 +59,12 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
 
   if (error) {
     return (
-      <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+      <Card className="bg-card border-border">
         <CardContent className="p-6 text-center">
           <div className="flex items-center justify-center mb-4">
-            <Book className="h-8 w-8 text-green-600" />
+            <Book className="h-8 w-8 text-primary" />
           </div>
-          <h2 className="text-lg font-semibold text-green-800 mb-3">Sagesse du jour</h2>
+          <h2 className="text-lg font-semibold text-foreground mb-3">Sagesse du jour</h2>
           <p className="text-muted-foreground italic">
             "Sagesse du Jour"
           </p>
@@ -74,17 +74,17 @@ const VerseOfDay: React.FC<VerseOfDayProps> = ({ dayNumber }) => {
   }
 
   return (
-    <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+    <Card className="bg-card border-border">
       <CardContent className="p-6 text-center">
         <div className="flex items-center justify-center mb-4">
-          <Book className="h-8 w-8 text-green-600" />
+          <Book className="h-8 w-8 text-primary" />
         </div>
-        <h2 className="text-lg font-semibold text-green-800 mb-3">{wisdomContent}</h2>
+        <h2 className="text-lg font-semibold text-foreground mb-3">{wisdomContent}</h2>
         <blockquote className="text-foreground italic text-base mb-4 leading-relaxed">
           "{verse.text}"
         </blockquote>
         {verse?.reference && (
-          <cite className="text-sm text-green-700 font-medium">
+          <cite className="text-sm text-muted-foreground font-medium">
             {verse.reference}
           </cite>
         )}
