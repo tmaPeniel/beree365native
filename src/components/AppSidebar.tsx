@@ -51,7 +51,7 @@ const AppSidebar = () => {
   const visibleItems = navItems.filter(item => item.show);
 
   return (
-    <Sidebar className={collapsed ? "w-14" : "w-60"} collapsible="icon">
+    <Sidebar className={collapsed ? "w-16" : "w-60"} collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
@@ -66,14 +66,19 @@ const AppSidebar = () => {
                 return (
                   <SidebarMenuItem key={item.path}>
                     <SidebarMenuButton
+                      size="lg"
+                      tooltip={collapsed ? item.label : undefined}
                       onClick={() => navigate(item.path)}
-                      className={`transition-all duration-200 flex items-center justify-center ${collapsed ? 'h-12 w-12' : 'justify-start'} ${
+                      className={`transition-all duration-200 ${
                         isActive 
                           ? 'text-primary bg-primary/10' 
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
-                      <Icon size={28} className={`${isActive ? 'animate-icon-bounce' : 'hover:animate-float'} ${collapsed ? 'mx-auto' : ''}`} />
+                      <Icon 
+                        size={32} 
+                        className={`!w-8 !h-8 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`} 
+                      />
                       {!collapsed && <span className="ml-3">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
