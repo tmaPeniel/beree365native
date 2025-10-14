@@ -51,33 +51,33 @@ const AppSidebar = () => {
   const visibleItems = navItems.filter(item => item.show);
 
   return (
-    <Sidebar className={collapsed ? "w-16" : "w-60"} collapsible="icon">
-      <SidebarContent>
+    <Sidebar className={collapsed ? "w-20" : "w-60"} collapsible="icon">
+      <SidebarContent className="py-6">
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
+          <SidebarGroupLabel className="sr-only">
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu>
+            <SidebarMenu className="space-y-6 px-0">
               {visibleItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
                 
                 return (
-                  <SidebarMenuItem key={item.path}>
+                  <SidebarMenuItem key={item.path} className="list-none">
                     <SidebarMenuButton
                       size="lg"
-                      tooltip={collapsed ? item.label : undefined}
+                      tooltip={item.label}
                       onClick={() => navigate(item.path)}
-                      className={`transition-all duration-200 ${
+                      className={`w-full h-14 flex items-center justify-center transition-all duration-200 ${
                         isActive 
                           ? 'text-primary bg-primary/10' 
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
                       <Icon 
-                        size={32} 
-                        className={`!w-8 !h-8 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`} 
+                        size={36} 
+                        className={`!w-9 !h-9 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`} 
                       />
                       {!collapsed && <span className="ml-3">{item.label}</span>}
                     </SidebarMenuButton>
