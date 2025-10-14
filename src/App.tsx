@@ -22,6 +22,7 @@ import ProfileSettings from "./pages/ProfileSettings";
 import ProfileNotifications from "./pages/ProfileNotifications";
 import ProfileAbout from "./pages/ProfileAbout";
 import ProfileEdit from "./pages/ProfileEdit";
+import ProfileHelp from "./pages/ProfileHelp";
 import ReadingPlanManagement from "./pages/ReadingPlanManagement";
 import VerseList from "./pages/VerseList";
 import Reading from "./pages/Reading";
@@ -154,6 +155,16 @@ function App() {
                     <ProtectedRoute>
                       <AppLayout>
                         <ProfileAbout />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/help" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProfileHelp />
                       </AppLayout>
                     </ProtectedRoute>
                   } 
