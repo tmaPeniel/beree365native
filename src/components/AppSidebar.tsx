@@ -58,7 +58,7 @@ const AppSidebar = () => {
             Navigation
           </SidebarGroupLabel>
           <SidebarGroupContent>
-            <SidebarMenu className="space-y-6 px-0">
+            <SidebarMenu className="space-y-4 px-0">
               {visibleItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -69,15 +69,15 @@ const AppSidebar = () => {
                       size="lg"
                       tooltip={item.label}
                       onClick={() => navigate(item.path)}
-                      className={`w-full h-14 flex items-center justify-center transition-all duration-200 ${
+                      className={`w-full h-12 flex items-center justify-center transition-all duration-200 ${
                         isActive 
                           ? 'text-primary bg-primary/10' 
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       }`}
                     >
                       <Icon 
-                        size={15} 
-                        className={`!w-8 !h-8 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`}
+                        size={20} 
+                        className={`!w-5 !h-5 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`}
                       />
                       {!collapsed && <span className="ml-3">{item.label}</span>}
                     </SidebarMenuButton>
