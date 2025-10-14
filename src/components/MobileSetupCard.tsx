@@ -20,7 +20,28 @@ export const MobileSetupCard = () => {
     ios: 'npx cap add ios && npx cap sync && npx cap open ios',
     android: 'npx cap add android && npx cap sync && npx cap open android'
   };
-  return;
+  
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Smartphone className="h-5 w-5" />
+          Configuration mobile
+        </CardTitle>
+        <CardDescription>
+          Guide pour installer l'application sur mobile
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert>
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Pour utiliser les notifications push sur mobile, l'application doit être installée nativement.
+          </AlertDescription>
+        </Alert>
+      </CardContent>
+    </Card>
+  );
 };
 const ChecklistItem = ({
   label,

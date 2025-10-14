@@ -105,7 +105,10 @@ serve(async (req) => {
     if (isNativeAndroid) {
       console.log('📱 Envoi via FCM (Android natif)...');
       const result = await supabase.functions.invoke('send-fcm-notification', {
-        body: testNotification
+        body: testNotification,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
       data = result.data;
       error = result.error;
@@ -115,7 +118,10 @@ serve(async (req) => {
     if (isWebPush) {
       console.log('🌐 Envoi via Web Push (PWA)...');
       const result = await supabase.functions.invoke('send-push-notification', {
-        body: testNotification
+        body: testNotification,
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       });
       data = result.data;
       error = result.error;
