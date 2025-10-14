@@ -127,7 +127,7 @@ const MonthlyReadingPlan: React.FC<MonthlyReadingPlanProps> = ({
               variant="link"
               size="sm"
               onClick={goToCurrentMonth}
-              className="text-green-600 p-0 h-auto"
+              className="text-primary p-0 h-auto"
             >
               Aller au mois courant
             </Button>

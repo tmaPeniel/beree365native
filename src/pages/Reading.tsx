@@ -57,10 +57,10 @@ const Reading = React.memo(() => {
       });
       
       // Effet visuel temporaire pour mettre en évidence le jour
-      currentDayRef.current.classList.add('ring-2', 'ring-green-400', 'ring-opacity-75');
+      currentDayRef.current.classList.add('ring-2', 'ring-primary', 'ring-opacity-75');
       setTimeout(() => {
         if (currentDayRef.current) {
-          currentDayRef.current.classList.remove('ring-2', 'ring-green-400', 'ring-opacity-75');
+          currentDayRef.current.classList.remove('ring-2', 'ring-primary', 'ring-opacity-75');
         }
       }, 2000);
       
@@ -145,7 +145,7 @@ const Reading = React.memo(() => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
           <p className="text-muted-foreground">Chargement du plan de lecture...</p>
         </div>
       </div>
@@ -165,7 +165,7 @@ const Reading = React.memo(() => {
         {/* Contenu avec indicateur de chargement */}
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
             <p className="text-muted-foreground">Chargement des passages...</p>
           </div>
         </div>
@@ -183,7 +183,7 @@ const Reading = React.memo(() => {
         </div>
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center py-12">
-            <p className="text-red-600 mb-4">Impossible de charger le plan de lecture</p>
+            <p className="text-destructive mb-4">Impossible de charger le plan de lecture</p>
             <button 
               onClick={() => refetch()} 
               className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
