@@ -54,11 +54,11 @@ const AppSidebar = () => {
     <Sidebar className={collapsed ? "w-16" : "w-60"} collapsible="icon">
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className={collapsed ? "sr-only" : "px-4 py-2"}>
+          <SidebarGroupLabel className={collapsed ? "sr-only" : ""}>
             Navigation
           </SidebarGroupLabel>
-          <SidebarGroupContent className="px-2">
-            <SidebarMenu className="space-y-1">
+          <SidebarGroupContent>
+            <SidebarMenu>
               {visibleItems.map((item) => {
                 const Icon = item.icon;
                 const isActive = location.pathname === item.path;
@@ -70,10 +70,6 @@ const AppSidebar = () => {
                       tooltip={collapsed ? item.label : undefined}
                       onClick={() => navigate(item.path)}
                       className={`transition-all duration-200 ${
-                        collapsed 
-                          ? 'justify-center w-12 mx-auto' 
-                          : 'justify-start px-4'
-                      } ${
                         isActive 
                           ? 'text-primary bg-primary/10' 
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
@@ -83,7 +79,7 @@ const AppSidebar = () => {
                         size={32} 
                         className={`!w-8 !h-8 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`} 
                       />
-                      {!collapsed && <span className="ml-3 text-base font-medium">{item.label}</span>}
+                      {!collapsed && <span className="ml-3">{item.label}</span>}
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 );
