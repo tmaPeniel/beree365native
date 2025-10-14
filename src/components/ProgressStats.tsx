@@ -107,7 +107,7 @@ const ProgressStats = () => {
             <CircularProgress 
               progress={stats.progressPercentage} 
               size={isMobile ? 120 : 140}
-              className="text-green-500"
+              className="text-primary"
               isInitialLoad={isInitialLoad}
             />
           </div>

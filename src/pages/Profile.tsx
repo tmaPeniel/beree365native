@@ -68,21 +68,21 @@ const Profile = () => {
       description: 'Voir vos progrès',
       icon: BarChart3,
       to: '/profile/statistics',
-      color: 'text-blue-500'
+      color: 'text-primary'
     },
     {
       label: 'Badges',
       description: 'Vos récompenses et accomplissements',
       icon: Award,
       to: '/profile/badges',
-      color: 'text-yellow-500'
+      color: 'text-accent'
     },
     {
       label: 'Verset du jour',
       description: 'Méditer sur la Parole',
       icon: Heart,
       to: '/verses',
-      color: 'text-red-500'
+      color: 'text-primary'
     },
     {
       label: 'Paramètres',
@@ -114,7 +114,7 @@ const Profile = () => {
           toast.success('Lien copié dans le presse-papiers');
         }
       },
-      color: 'text-green-500'
+      color: 'text-primary'
     }
   ];
 

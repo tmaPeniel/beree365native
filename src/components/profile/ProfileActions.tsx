@@ -96,7 +96,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
       <EditProfileDialog>
         <Button 
           variant="outline" 
-          className={`h-12 rounded-xl border-green-500 text-green-500 hover:bg-green-50 ${isMobile ? "w-full" : "w-48"}`}
+          className={`h-12 rounded-xl border-primary text-primary hover:bg-primary/10 ${isMobile ? "w-full" : "w-48"}`}
         >
           Modifier le profil
         </Button>
@@ -106,7 +106,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
         <AlertDialogTrigger asChild>
           <Button 
             variant="outline" 
-            className={`h-12 rounded-xl border-red-500 text-red-500 hover:bg-red-50 ${isMobile ? "w-full" : "w-48"}`}
+            className={`h-12 rounded-xl border-destructive text-destructive hover:bg-destructive/10 ${isMobile ? "w-full" : "w-48"}`}
             disabled={isResetting}
           >
             {isResetting ? "Réinitialisation..." : "Réinitialiser mon plan"}
@@ -125,7 +125,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction 
               onClick={handleResetPlan}
-              className="bg-red-500 hover:bg-red-600"
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Réinitialiser
             </AlertDialogAction>
@@ -135,7 +135,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
 
       <Button 
         variant="outline" 
-        className={`h-12 rounded-xl border-gray-300 text-gray-700 hover:bg-gray-100 ${isMobile ? "w-full" : "w-48"}`}
+        className={`h-12 rounded-xl border-border text-foreground hover:bg-muted ${isMobile ? "w-full" : "w-48"}`}
         onClick={handleLogout}
       >
         Déconnexion

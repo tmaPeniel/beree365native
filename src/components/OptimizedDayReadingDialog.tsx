@@ -217,9 +217,9 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
                       item.completed ? 'bg-primary animate-scale-fade-in' : 'border-2 border-primary/30 hover:border-primary'
                     }`}>
                       {processingIds.includes(item.id) ? (
-                        <Loader2 className="h-4 w-4 text-white animate-gentle-spin" />
+                        <Loader2 className="h-4 w-4 text-primary-foreground animate-gentle-spin" />
                       ) : (
-                        item.completed && <Check className="h-4 w-4 text-white animate-success-bounce" />
+                        item.completed && <Check className="h-4 w-4 text-primary-foreground animate-success-bounce" />
                       )}
                     </div>
                     <span className={`transition-all duration-300 ${item.completed ? 'line-through' : ''}`}>

@@ -250,9 +250,9 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
                 } ${processingIds.includes(chapter.id) ? 'opacity-70' : ''}`}
               >
                 {processingIds.includes(chapter.id) ? (
-                  <Loader2 className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-white animate-gentle-spin`} />
+                  <Loader2 className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-primary-foreground animate-gentle-spin`} />
                 ) : (
-                  chapter.completed && <Check className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-white`} />
+                  chapter.completed && <Check className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-primary-foreground`} />
                 )}
               </button>
               

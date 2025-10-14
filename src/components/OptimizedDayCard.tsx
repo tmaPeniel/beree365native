@@ -61,7 +61,7 @@ const OptimizedDayCard = React.memo<OptimizedDayCardProps>(({
       isToday 
         ? 'bg-primary text-primary-foreground shadow-lg border-2 border-primary/50 animate-badge-glow' // Style pour le jour actuel avec animation
         : completed 
-          ? 'bg-green-400 text-white shadow-sm hover:bg-green-600 hover:shadow-lg' // Style pour jour complété
+          ? 'bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 hover:shadow-lg' // Style pour jour complété
           : 'bg-card border border-border text-muted-foreground hover:bg-muted hover:shadow-md' // Style par défaut
     }`, [isToday, completed]
   );

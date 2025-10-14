@@ -179,14 +179,14 @@ const Reading = React.memo(() => {
       <div className="min-h-screen bg-background">
         <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-          <p className="text-red-500">Une erreur est survenue</p>
+          <p className="text-destructive">Une erreur est survenue</p>
         </div>
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center py-12">
             <p className="text-red-600 mb-4">Impossible de charger le plan de lecture</p>
             <button 
               onClick={() => refetch()} 
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
             >
               Réessayer
             </button>
