@@ -76,7 +76,7 @@ const AppSidebar = () => {
                       }`}
                     >
                       <Icon 
-                        size={32} 
+                        size={28} 
                         className={`!w-8 !h-8 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`}
                       />
                       {!collapsed && <span className="ml-3">{item.label}</span>}
