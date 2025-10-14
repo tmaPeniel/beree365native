@@ -13,7 +13,6 @@ import { preferencesService } from '@/services/notifications/preferencesService'
 import { notificationTestService } from '@/services/notifications/testService';
 import { NotificationStatusCard } from '@/components/notifications/NotificationStatusCard';
 import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
-import { MobileSetupCard } from '@/components/MobileSetupCard';
 import { NotificationPreferences, NotificationStatusInfo } from '@/types/notifications';
 import { DEFAULT_NOTIFICATION_PREFS, NOTIFICATION_MESSAGES } from '@/constants/notifications';
 import { toast } from 'sonner';
@@ -174,9 +173,6 @@ const ProfileNotifications = () => {
           onTest={handleTest}
           isTesting={isTesting}
         />
-
-        {/* Carte de setup mobile (si en mode web) */}
-        {!isNative && <MobileSetupCard />}
 
         <NotificationPreferencesCard
           preferences={preferences}
