@@ -1,13 +1,16 @@
 /**
- * Service de notifications push natives (Capacitor)
+ * Service de notifications push unifié (Capacitor + Firebase)
+ * Supporte native (iOS/Android) et web via Firebase Cloud Messaging
  */
 
 import { PushNotifications, PushNotificationSchema, Token } from '@capacitor/push-notifications';
 import { Capacitor } from '@capacitor/core';
+import { getToken, onMessage } from 'firebase/messaging';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 import { errorHandler, ErrorCode } from '@/utils/errorHandler';
 import { toast } from 'sonner';
+import { getFirebaseMessaging, isFirebaseConfigured } from '@/config/firebase';
 
 export interface NativePushSubscription {
   token: string;
@@ -18,29 +21,46 @@ export class NativeNotificationService {
   private isNative = Capacitor.isNativePlatform();
 
   /**
-   * Vérifie si les notifications natives sont supportées
+   * Vérifie si les notifications sont supportées (native ou web)
    */
   isSupported(): boolean {
-    return this.isNative;
+    // Native
+    if (this.isNative) {
+      return true;
+    }
+    
+    // Web via Firebase
+    return isFirebaseConfigured() && 
+           'Notification' in window && 
+           'serviceWorker' in navigator;
   }
 
   /**
-   * Demande la permission pour les notifications
+   * Demande la permission pour les notifications (native ou web)
    */
   async requestPermission(): Promise<boolean> {
-    if (!this.isNative) {
-      logger.warn('Native notifications not supported on web');
-      return false;
-    }
-
     try {
-      const result = await PushNotifications.requestPermissions();
-      
-      if (result.receive === 'granted') {
-        logger.success('Push notification permission granted');
+      // Native
+      if (this.isNative) {
+        const result = await PushNotifications.requestPermissions();
+        
+        if (result.receive === 'granted') {
+          logger.success('Native notification permission granted');
+          return true;
+        } else {
+          logger.warn('Native notification permission denied');
+          toast.error('Permission refusée pour les notifications');
+          return false;
+        }
+      }
+
+      // Web
+      const permission = await Notification.requestPermission();
+      if (permission === 'granted') {
+        logger.success('Web notification permission granted');
         return true;
       } else {
-        logger.warn('Push notification permission denied');
+        logger.warn('Web notification permission denied');
         toast.error('Permission refusée pour les notifications');
         return false;
       }
@@ -52,13 +72,9 @@ export class NativeNotificationService {
   }
 
   /**
-   * Enregistre l'appareil pour les notifications push
+   * Enregistre l'appareil pour les notifications push (native ou web)
    */
   async register(): Promise<NativePushSubscription | null> {
-    if (!this.isNative) {
-      return null;
-    }
-
     try {
       // Demander la permission d'abord
       const hasPermission = await this.requestPermission();
@@ -66,27 +82,61 @@ export class NativeNotificationService {
         return null;
       }
 
-      // Enregistrer l'appareil
-      await PushNotifications.register();
-      
-      return new Promise((resolve) => {
-        // Attendre le token
-        PushNotifications.addListener('registration', (token: Token) => {
-          logger.success('Push registration success', { token: token.value });
-          
-          const platform = Capacitor.getPlatform() as 'ios' | 'android';
-          resolve({
-            token: token.value,
-            platform
+      // Native (iOS/Android)
+      if (this.isNative) {
+        await PushNotifications.register();
+        
+        return new Promise((resolve) => {
+          PushNotifications.addListener('registration', (token: Token) => {
+            logger.success('Native push registration success', { token: token.value });
+            
+            const platform = Capacitor.getPlatform() as 'ios' | 'android';
+            resolve({
+              token: token.value,
+              platform
+            });
+          });
+
+          PushNotifications.addListener('registrationError', (error: any) => {
+            logger.error('Native push registration error', error);
+            toast.error('Erreur lors de l\'enregistrement des notifications');
+            resolve(null);
           });
         });
+      }
 
-        PushNotifications.addListener('registrationError', (error: any) => {
-          logger.error('Push registration error', error);
-          toast.error('Erreur lors de l\'enregistrement des notifications');
-          resolve(null);
-        });
+      // Web via Firebase Cloud Messaging
+      const messaging = await getFirebaseMessaging();
+      if (!messaging) {
+        toast.error('Firebase non configuré. Consultez la documentation.');
+        return null;
+      }
+
+      // Enregistrer le Service Worker Firebase
+      const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      logger.debug('Firebase Service Worker registered');
+
+      // Obtenir le token FCM
+      // IMPORTANT: Remplacez "VOTRE_VAPID_KEY" par votre vraie clé VAPID depuis Firebase Console
+      const token = await getToken(messaging, {
+        vapidKey: 'VOTRE_VAPID_KEY',
+        serviceWorkerRegistration: registration
       });
+
+      if (!token) {
+        logger.error('No FCM token received');
+        toast.error('Erreur lors de l\'obtention du token de notification');
+        return null;
+      }
+
+      logger.success('Web push registration success via Firebase', { 
+        token: token.substring(0, 20) + '...' 
+      });
+
+      return {
+        token,
+        platform: 'web'
+      };
     } catch (error) {
       logger.error('Failed to register for push', error);
       errorHandler.handle(error as Error);
@@ -136,29 +186,51 @@ export class NativeNotificationService {
   }
 
   /**
-   * Configure les listeners pour les notifications
+   * Configure les listeners pour les notifications (native ou web)
    */
-  setupListeners(
+  async setupListeners(
     onNotificationReceived?: (notification: PushNotificationSchema) => void,
     onNotificationAction?: (notification: PushNotificationSchema) => void
   ) {
-    if (!this.isNative) {
+    // Native
+    if (this.isNative) {
+      PushNotifications.addListener('pushNotificationReceived', (notification) => {
+        logger.info('Native notification received', notification);
+        if (onNotificationReceived) {
+          onNotificationReceived(notification);
+        }
+      });
+
+      PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
+        logger.info('Native notification action', action);
+        if (onNotificationAction) {
+          onNotificationAction(action.notification);
+        }
+      });
       return;
     }
 
-    // Notification reçue en foreground
-    PushNotifications.addListener('pushNotificationReceived', (notification) => {
-      logger.info('Push notification received', notification);
+    // Web via Firebase
+    const messaging = await getFirebaseMessaging();
+    if (!messaging) {
+      logger.warn('Cannot setup listeners: Firebase not configured');
+      return;
+    }
+
+    // Écouter les messages en foreground
+    onMessage(messaging, (payload) => {
+      logger.info('Web notification received via Firebase', payload);
+      
+      // Convertir le format Firebase en format Capacitor
+      const notification: PushNotificationSchema = {
+        id: Date.now().toString(),
+        title: payload.notification?.title || '',
+        body: payload.notification?.body || '',
+        data: payload.data || {}
+      };
+      
       if (onNotificationReceived) {
         onNotificationReceived(notification);
-      }
-    });
-
-    // Action sur la notification
-    PushNotifications.addListener('pushNotificationActionPerformed', (action) => {
-      logger.info('Push notification action', action);
-      if (onNotificationAction) {
-        onNotificationAction(action.notification);
       }
     });
   }

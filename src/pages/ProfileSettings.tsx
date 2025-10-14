@@ -6,7 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { useTheme } from '@/providers/ThemeProvider';
-import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
 import { preferencesService } from '@/services/notifications/preferencesService';
 import { NotificationPreferences } from '@/types/notifications';
 
@@ -15,7 +15,7 @@ import { NotificationPreferences } from '@/types/notifications';
  */
 const ProfileSettings = () => {
   const { theme, setTheme } = useTheme();
-  const { isSupported, isSubscribed, permission, subscribe, unsubscribe } = usePushNotifications();
+  const { isSupported, isSubscribed, permission } = useUnifiedPushNotifications();
   const [preferences, setPreferences] = useState<NotificationPreferences>({});
   const [isLoading, setIsLoading] = useState(true);
 
