@@ -1,14 +1,14 @@
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle } from 'lucide-react';
-import { Link } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { useTheme } from '@/providers/ThemeProvider';
-import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
-import { preferencesService } from '@/services/notifications/preferencesService';
-import { NotificationPreferences } from '@/types/notifications';
+import React, { useState, useEffect } from "react";
+import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { useTheme } from "@/providers/ThemeProvider";
+import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
+import { preferencesService } from "@/services/notifications/preferencesService";
+import { NotificationPreferences } from "@/types/notifications";
 
 /**
  * Page des paramètres utilisateur
@@ -39,105 +39,81 @@ const ProfileSettings = () => {
   // Obtenir le statut des notifications push
   const getNotificationStatus = () => {
     if (!isSupported) {
-      return { status: 'unsupported', label: 'Non supporté', variant: 'secondary' as const };
+      return { status: "unsupported", label: "Non supporté", variant: "secondary" as const };
     }
-    if (permission === 'denied') {
-      return { status: 'denied', label: 'Refusé', variant: 'destructive' as const };
+    if (permission === "denied") {
+      return { status: "denied", label: "Refusé", variant: "destructive" as const };
     }
     if (isSubscribed) {
-      return { status: 'active', label: 'Actif', variant: 'default' as const };
+      return { status: "active", label: "Actif", variant: "default" as const };
     }
-    return { status: 'inactive', label: 'Inactif', variant: 'outline' as const };
+    return { status: "inactive", label: "Inactif", variant: "outline" as const };
   };
 
   const notificationStatus = getNotificationStatus();
   const settingsGroups = [
     {
-      title: 'Profil',
+      title: "Profil",
       options: [
         {
-          label: 'Informations personnelles',
-          description: 'Nom, email, photo de profil',
+          label: "Informations personnelles",
+          description: "Nom, email, photo de profil",
           icon: User,
-          action: 'navigate',
-          to: '/profile/edit'
-        }
-      ]
+          action: "navigate",
+          to: "/profile/edit",
+        },
+      ],
     },
     {
-      title: 'Notifications',
+      title: "Notifications",
       status: notificationStatus,
       options: [
         {
-          label: 'Notifications push',
+          label: "Notifications push",
           description: `Statut: ${notificationStatus.label}`,
           icon: Bell,
-          action: 'navigate',
-          to: '/profile/notifications',
-          badge: notificationStatus
+          action: "navigate",
+          to: "/profile/notifications",
+          badge: notificationStatus,
         },
-        {
-          label: 'Rappels de lecture',
-          description: 'Recevoir des rappels quotidiens',
-          icon: Bell,
-          action: 'toggle',
-          key: 'reading_reminder_enabled',
-          value: preferences.reading_reminder_enabled ?? true
-        },
-        {
-          label: 'Versets du jour',
-          description: 'Notifications pour le verset quotidien',
-          icon: Bell,
-          action: 'toggle',
-          key: 'daily_verse_enabled',
-          value: preferences.daily_verse_enabled ?? true
-        },
-        {
-          label: 'Encouragements badges',
-          description: 'Notifications pour les nouveaux badges',
-          icon: Bell,
-          action: 'toggle',
-          key: 'badge_encouragement_enabled',
-          value: preferences.badge_encouragement_enabled ?? true
-        }
-      ]
+      ],
     },
     {
-      title: 'Apparence',
+      title: "Apparence",
       options: [
         {
-          label: 'Mode sombre',
-          description: 'Activer le thème sombre',
+          label: "Mode sombre",
+          description: "Activer le thème sombre",
           icon: Moon,
-          action: 'toggle',
-          defaultValue: theme === 'dark'
-        }
-      ]
+          action: "toggle",
+          defaultValue: theme === "dark",
+        },
+      ],
     },
     {
-      title: 'Confidentialité',
+      title: "Confidentialité",
       options: [
         {
-          label: 'Données et confidentialité',
-          description: 'Gérer vos données personnelles',
+          label: "Données et confidentialité",
+          description: "Gérer vos données personnelles",
           icon: Shield,
-          action: 'navigate',
-          to: '/profile/privacy'
-        }
-      ]
+          action: "navigate",
+          to: "/profile/privacy",
+        },
+      ],
     },
     {
-      title: 'Support',
+      title: "Support",
       options: [
         {
-          label: 'Aide et support',
-          description: 'FAQ et centre d\'aide',
+          label: "Aide et support",
+          description: "FAQ et centre d'aide",
           icon: HelpCircle,
-          action: 'navigate',
-          to: '/profile/help'
-        }
-      ]
-    }
+          action: "navigate",
+          to: "/profile/help",
+        },
+      ],
+    },
   ];
 
   return (
@@ -161,9 +137,7 @@ const ProfileSettings = () => {
         {settingsGroups.map((group, groupIndex) => (
           <Card key={groupIndex}>
             <CardContent className="p-6">
-              <h2 className="text-lg font-semibold text-foreground mb-4">
-                {group.title}
-              </h2>
+              <h2 className="text-lg font-semibold text-foreground mb-4">{group.title}</h2>
               <div className="space-y-4">
                 {group.options.map((option, optionIndex) => (
                   <div key={optionIndex} className="flex items-center justify-between">
@@ -174,9 +148,9 @@ const ProfileSettings = () => {
                           <p className="font-medium text-foreground">{option.label}</p>
                           {option.badge && (
                             <Badge variant={option.badge.variant}>
-                              {option.badge.status === 'active' && <Check className="h-3 w-3 mr-1" />}
-                              {option.badge.status === 'denied' && <X className="h-3 w-3 mr-1" />}
-                              {option.badge.status === 'unsupported' && <AlertCircle className="h-3 w-3 mr-1" />}
+                              {option.badge.status === "active" && <Check className="h-3 w-3 mr-1" />}
+                              {option.badge.status === "denied" && <X className="h-3 w-3 mr-1" />}
+                              {option.badge.status === "unsupported" && <AlertCircle className="h-3 w-3 mr-1" />}
                               {option.badge.label}
                             </Badge>
                           )}
@@ -184,18 +158,18 @@ const ProfileSettings = () => {
                         <p className="text-sm text-muted-foreground">{option.description}</p>
                       </div>
                     </div>
-                    {option.action === 'toggle' && (
-                      <Switch 
+                    {option.action === "toggle" && (
+                      <Switch
                         checked={
-                          option.label === 'Mode sombre' 
-                            ? theme === 'dark' 
-                            : option.key 
-                              ? option.value 
+                          option.label === "Mode sombre"
+                            ? theme === "dark"
+                            : option.key
+                              ? option.value
                               : option.defaultValue
                         }
                         onCheckedChange={async (checked) => {
-                          if (option.label === 'Mode sombre') {
-                            setTheme(checked ? 'dark' : 'light');
+                          if (option.label === "Mode sombre") {
+                            setTheme(checked ? "dark" : "light");
                           } else if (option.key) {
                             await updatePreference(option.key as keyof NotificationPreferences, checked);
                           }
@@ -203,8 +177,8 @@ const ProfileSettings = () => {
                         disabled={isLoading}
                       />
                     )}
-                    {option.action === 'navigate' && (
-                      <Link to={option.to || '#'}>
+                    {option.action === "navigate" && (
+                      <Link to={option.to || "#"}>
                         <Button variant="ghost" size="sm">
                           Gérer
                         </Button>
