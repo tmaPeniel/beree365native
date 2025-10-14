@@ -126,7 +126,21 @@ export const getBadgeProgress = async (userId: string): Promise<{
   required: number;
 }[]> => {
   try {
-    // 1) Récupérer badges et ceux déjà débloqués
+    // 1) Récupérer le plan de l'utilisateur
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('selected_plan_id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    const userPlanId = profile?.selected_plan_id;
+
+    if (!userPlanId) {
+      console.warn('User has no selected plan');
+      return [];
+    }
+
+    // 2) Récupérer badges et ceux déjà débloqués
     const [allBadges, userBadges] = await Promise.all([
       getAllBadges(),
       getUserBadges(userId),
@@ -285,6 +299,7 @@ export const getBadgeProgress = async (userId: string): Promise<{
       const { data: bookChapters } = await supabase
         .from('reading_plan_chapters')
         .select('id, reference')
+        .eq('plan_id', userPlanId)
         .or(orFilter);
 
       const map: Record<string, string[]> = {};
