@@ -83,22 +83,27 @@ export const NotificationStatusCard: React.FC<NotificationStatusCardProps> = ({
           </Alert>
         )}
 
-        {isSubscribed && (
-          <div className="pt-2">
-            <Button
-              onClick={onTest}
-              disabled={isTesting}
-              variant="outline"
-              className="w-full"
-            >
-              <TestTube className="h-4 w-4 mr-2" />
-              {isTesting ? 'Envoi en cours...' : 'Tester les notifications'}
-            </Button>
+        <div className="pt-2">
+          <Button
+            onClick={onTest}
+            disabled={isTesting || !isSubscribed}
+            variant="outline"
+            className="w-full"
+          >
+            <TestTube className="h-4 w-4 mr-2" />
+            {isTesting ? 'Envoi en cours...' : 'Tester les notifications'}
+          </Button>
+          {!isSubscribed && (
+            <p className="text-xs text-muted-foreground mt-2 text-center">
+              Activez d'abord les notifications pour pouvoir les tester
+            </p>
+          )}
+          {isSubscribed && (
             <p className="text-xs text-muted-foreground mt-2 text-center">
               Envoyez une notification de test pour vérifier que tout fonctionne
             </p>
-          </div>
-        )}
+          )}
+        </div>
       </CardContent>
     </Card>
   );

@@ -10,7 +10,11 @@ import { errorHandler, ErrorCode } from '@/utils/errorHandler';
 export class SubscriptionService {
   async save(subscriptionData: PushSubscriptionData): Promise<boolean> {
     try {
-      logger.debug('Saving subscription...');
+      logger.info('Saving subscription to database...', {
+        endpoint: subscriptionData.endpoint.substring(0, 50) + '...',
+        hasP256dh: !!subscriptionData.p256dh,
+        hasAuth: !!subscriptionData.auth
+      });
       
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -29,11 +33,11 @@ export class SubscriptionService {
         });
 
       if (error) {
-        logger.error('Failed to save subscription', error);
+        logger.error('Failed to save subscription to database', error);
         return false;
       }
 
-      logger.success('Subscription saved');
+      logger.success('Subscription saved to database successfully');
       return true;
     } catch (error) {
       logger.error('Save subscription error', error);

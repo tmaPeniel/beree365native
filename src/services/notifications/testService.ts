@@ -30,6 +30,19 @@ export class NotificationTestService {
         return false;
       }
 
+      // Vérifier si l'utilisateur n'a pas d'abonnement
+      if (data && !data.success && data.reason === 'no_subscription') {
+        logger.warn('No active subscription', data);
+        toast.info(data.message || 'Activez d\'abord les notifications pour les tester');
+        return false;
+      }
+
+      if (!data?.success) {
+        logger.error('Test notification failed', data);
+        toast.error('Échec de l\'envoi de la notification de test');
+        return false;
+      }
+
       logger.success('Test notification sent', data);
       toast.success('Notification de test envoyée ! Vérifiez vos notifications.');
       return true;

@@ -56,10 +56,11 @@ serve(async (req) => {
       console.warn('⚠️ Pas d\'abonnement push actif');
       return new Response(
         JSON.stringify({ 
-          error: 'Aucun abonnement push actif trouvé',
-          message: 'Veuillez d\'abord activer les notifications dans les paramètres'
+          success: false,
+          reason: 'no_subscription',
+          message: 'Vous devez d\'abord activer les notifications dans les paramètres pour pouvoir les tester.'
         }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
