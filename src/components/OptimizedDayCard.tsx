@@ -77,7 +77,7 @@ const OptimizedDayCard = React.memo<OptimizedDayCardProps>(({
       {/* Indicateur de progression si > 0% */}
       {progressPercentage > 0 && (
         <div className="absolute bottom-1 left-0 right-0 flex justify-center">
-          <span className="text-xs font-medium bg-card/80 text-green-800 dark:text-green-400 px-1 rounded-sm">
+          <span className="text-xs font-medium bg-card/80 text-primary px-1 rounded-sm">
             {progressPercentage}%
           </span>
         </div>

@@ -201,7 +201,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       isMobile ? 'p-3' : 'p-4'
     } ${
       isToday 
-        ? 'bg-green-50 border-green-200 shadow-md' 
+        ? 'bg-primary/10 border-primary/30 shadow-md' 
         : 'bg-card border-border hover:shadow-sm'
     }`, [isToday, isMobile]
   );
@@ -212,7 +212,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
         <div className="flex flex-col">
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold ${
-            isToday ? 'text-green-700 dark:text-green-400' : 'text-foreground'
+            isToday ? 'text-primary' : 'text-foreground'
           }`}>
             Jour {day}
           </span>
@@ -245,8 +245,8 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
                   isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'
                 } rounded border-2 flex items-center justify-center transition-colors ${
                   chapter.completed 
-                    ? 'bg-green-500 border-green-500' 
-                    : 'border-green-300 hover:border-green-400'
+                    ? 'bg-primary border-primary' 
+                    : 'border-primary/30 hover:border-primary'
                 } ${processingIds.includes(chapter.id) ? 'opacity-70' : ''}`}
               >
                 {processingIds.includes(chapter.id) ? (
@@ -278,7 +278,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
             size="sm"
             onClick={handleMarkAllRead}
             disabled={isMarkingAll}
-            className={`${isMobile ? 'h-6 px-2 text-xs' : 'h-7 px-3 text-xs'} border-green-200 hover:border-green-300 hover:bg-green-50`}
+            className={`${isMobile ? 'h-6 px-2 text-xs' : 'h-7 px-3 text-xs'} border-primary/20 hover:border-primary/30 hover:bg-primary/10`}
           >
             {isMarkingAll ? (
               <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin mr-1`} />
