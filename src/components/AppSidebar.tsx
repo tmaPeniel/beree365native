@@ -76,8 +76,8 @@ const AppSidebar = () => {
                       }`}
                     >
                       <Icon 
-                        size={36} 
-                        className={`!w-9 !h-9 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`} 
+                        size={32} 
+                        className={`!w-8 !h-8 flex-shrink-0 ${isActive ? 'animate-icon-bounce' : 'hover:animate-float'}`}
                       />
                       {!collapsed && <span className="ml-3">{item.label}</span>}
                     </SidebarMenuButton>
