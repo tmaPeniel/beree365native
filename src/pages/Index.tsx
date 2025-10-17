@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import Logo from '@/components/Logo';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import bereeHero from '@/assets/beree-hero.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -85,8 +86,8 @@ const Index = () => {
       
       <div className="mt-16 mb-8">
         <img 
-          src="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" 
-          alt="Bible ouverte" 
+          src={bereeHero}
+          alt="Bérée - Bible ouverte avec croix" 
           className="w-full max-w-md rounded-2xl shadow-md"
         />
       </div>
