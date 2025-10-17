@@ -122,18 +122,35 @@ const ProfileNotifications = () => {
   const handleToggleNotifications = async () => {
     if (isSubscribed) {
       await unsubscribe();
-    } else {
-      if (permission === 'denied') {
-        toast.error('Les permissions ont été refusées. Veuillez les autoriser dans les paramètres de votre navigateur.');
+      return;
+    }
+
+    // Vérifier et demander la permission si nécessaire
+    if (permission === 'denied') {
+      toast.error('Les permissions ont été refusées. Veuillez les autoriser dans les paramètres de votre navigateur.');
+      return;
+    }
+
+    // Si permission par défaut ou inconnue, demander
+    if (permission === 'default' || permission === 'unknown') {
+      const granted = await requestPermission();
+      
+      if (!granted) {
+        toast.error('Vous devez autoriser les notifications pour continuer');
         return;
       }
-      if (permission === 'default') {
-        const newPermission = await requestPermission();
-        if (newPermission !== 'granted') {
-          return;
-        }
-      }
-      await subscribe();
+    }
+
+    // À ce stade, permission devrait être 'granted'
+    // Le hook aura mis à jour l'état après requestPermission()
+    // On attend un peu pour que l'état se propage
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Tenter l'inscription
+    const success = await subscribe();
+    
+    if (!success) {
+      toast.error('Erreur lors de l\'activation des notifications');
     }
   };
 
