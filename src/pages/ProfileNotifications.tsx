@@ -1,213 +1,114 @@
 /**
- * Page de gestion des notifications - Version simplifiée
+ * Page de gestion des notifications (version simplifiée)
+ * Les notifications ne sont pas encore configurées
  */
 
-import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Bell, AlertCircle, Check, X } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { Capacitor } from '@capacitor/core';
+import { useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowLeft, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
-import { preferencesService } from '@/services/notifications/preferencesService';
-import { notificationTestService } from '@/services/notifications/testService';
-import { NotificationStatusCard } from '@/components/notifications/NotificationStatusCard';
-import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
-import { NotificationPreferences, NotificationStatusInfo } from '@/types/notifications';
-import { DEFAULT_NOTIFICATION_PREFS, NOTIFICATION_MESSAGES } from '@/constants/notifications';
-import { toast } from 'sonner';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 
-const ProfileNotifications = () => {
+export default function ProfileNotifications() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const isNative = Capacitor.isNativePlatform();
-  
-  const pushNotifications = useUnifiedPushNotifications();
-  const { 
-    isSupported, 
-    isSubscribed, 
-    isLoading: pushLoading, 
-    permission, 
-    subscribe, 
-    unsubscribe,
-    requestPermission
-  } = pushNotifications;
-  
-  const [preferences, setPreferences] = useState<NotificationPreferences>(DEFAULT_NOTIFICATION_PREFS);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
 
-  // Vérifier l'authentification
   useEffect(() => {
     if (!user) {
-      toast.error('Vous devez être connecté pour gérer les notifications');
       navigate('/login');
     }
   }, [user, navigate]);
 
-  // Charger les préférences
-  useEffect(() => {
-    const loadPreferences = async () => {
-      const prefs = await preferencesService.get();
-      setPreferences(prefs);
-      setIsLoading(false);
-    };
-    loadPreferences();
-  }, []);
-
-  // Mettre à jour une préférence
-  const updatePreference = async (key: keyof NotificationPreferences, value: boolean | string) => {
-    setIsUpdating(true);
-    const newPrefs = { ...preferences, [key]: value };
-    setPreferences(newPrefs);
-    
-    const success = await preferencesService.update(newPrefs);
-    if (success) {
-      toast.success(NOTIFICATION_MESSAGES.PREFERENCES_UPDATED);
-    } else {
-      toast.error(NOTIFICATION_MESSAGES.PREFERENCES_ERROR);
-      setPreferences(preferences);
-    }
-    setIsUpdating(false);
-  };
-
-  // Tester les notifications
-  const handleTest = async () => {
-    setIsTesting(true);
-    await notificationTestService.sendTest();
-    setIsTesting(false);
-  };
-
-  // Obtenir le statut global
-  const getGlobalStatus = (): NotificationStatusInfo => {
-    if (!isSupported) {
-      return { 
-        status: 'unsupported', 
-        label: 'Non supporté', 
-        variant: 'secondary',
-        icon: AlertCircle,
-        description: 'Votre navigateur ne supporte pas les notifications push'
-      };
-    }
-    if (permission === 'denied') {
-      return { 
-        status: 'denied', 
-        label: 'Permissions refusées', 
-        variant: 'destructive',
-        icon: X,
-        description: 'Les permissions pour les notifications ont été refusées'
-      };
-    }
-    if (isSubscribed) {
-      return { 
-        status: 'active', 
-        label: 'Notifications actives', 
-        variant: 'default',
-        icon: Check,
-        description: 'Vous recevrez les notifications selon vos préférences'
-      };
-    }
-    return { 
-      status: 'inactive', 
-      label: 'Notifications inactives', 
-      variant: 'outline',
-      icon: Bell,
-      description: 'Activez les notifications pour recevoir les rappels'
-    };
-  };
-
-  // Gérer l'activation/désactivation
-  const handleToggleNotifications = async () => {
-    if (isSubscribed) {
-      await unsubscribe();
-      return;
-    }
-
-    // Vérifier et demander la permission si nécessaire
-    if (permission === 'denied') {
-      toast.error('Les permissions ont été refusées. Veuillez les autoriser dans les paramètres de votre navigateur.');
-      return;
-    }
-
-    // Si permission par défaut ou inconnue, demander
-    if (permission === 'default' || permission === 'unknown') {
-      const granted = await requestPermission();
-      
-      if (!granted) {
-        toast.error('Vous devez autoriser les notifications pour continuer');
-        return;
-      }
-    }
-
-    // À ce stade, permission devrait être 'granted'
-    // Le hook aura mis à jour l'état après requestPermission()
-    // On attend un peu pour que l'état se propage
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    // Tenter l'inscription
-    const success = await subscribe();
-    
-    if (!success) {
-      toast.error('Erreur lors de l\'activation des notifications');
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen bg-background">
+    <div className="container mx-auto p-4 max-w-2xl space-y-6">
       {/* Header */}
-      <div className="bg-card border-b">
-        <div className="px-6 py-4">
-          <div className="flex items-center space-x-4">
-            <Link to="/profile/settings">
-              <Button variant="ghost" size="sm">
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-            </Link>
-            <h1 className="text-xl font-bold text-foreground">Notifications</h1>
-          </div>
+      <div className="flex items-center gap-4">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/profile/settings')}
+        >
+          <ArrowLeft className="h-5 w-5" />
+        </Button>
+        <div>
+          <h1 className="text-2xl font-bold">Notifications</h1>
+          <p className="text-muted-foreground">
+            Gérez vos préférences de notifications
+          </p>
         </div>
       </div>
 
-      {/* Contenu */}
-      <div className="px-6 py-6 space-y-6">
-        <NotificationStatusCard
-          status={getGlobalStatus()}
-          isSubscribed={isSubscribed}
-          isSupported={isSupported}
-          permission={permission}
-          isLoading={pushLoading}
-          onToggle={handleToggleNotifications}
-          onTest={handleTest}
-          isTesting={isTesting}
-        />
+      {/* Alert d'information */}
+      <Alert>
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Fonctionnalité en développement</AlertTitle>
+        <AlertDescription>
+          Les notifications push ne sont pas encore configurées pour cette application.
+          Cette fonctionnalité sera disponible dans une prochaine version.
+        </AlertDescription>
+      </Alert>
 
-        <NotificationPreferencesCard
-          preferences={preferences}
-          isSubscribed={isSubscribed}
-          isUpdating={isUpdating}
-          onUpdate={updatePreference}
-        />
+      {/* Card de statut */}
+      <Card>
+        <CardHeader>
+          <CardTitle>📱 Notifications Push</CardTitle>
+          <CardDescription>
+            Recevez des rappels pour vos lectures quotidiennes
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg bg-muted p-4 text-center">
+            <p className="text-sm text-muted-foreground">
+              Les notifications ne sont pas encore disponibles
+            </p>
+          </div>
+        </CardContent>
+      </Card>
 
-        <Alert>
-          <Bell className="h-4 w-4" />
-          <AlertDescription>
-            Les notifications ne seront envoyées que si vous avez activé les notifications push 
-            et accordé les permissions nécessaires à votre navigateur.
-          </AlertDescription>
-        </Alert>
-      </div>
+      {/* Card de préférences */}
+      <Card>
+        <CardHeader>
+          <CardTitle>⚙️ Préférences</CardTitle>
+          <CardDescription>
+            Configurez vos préférences de notifications (bientôt disponible)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 opacity-50">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Rappels de lecture quotidiens</p>
+                <p className="text-sm text-muted-foreground">
+                  Recevez un rappel pour votre lecture quotidienne
+                </p>
+              </div>
+              <div className="h-6 w-11 rounded-full bg-muted" />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Verset du jour</p>
+                <p className="text-sm text-muted-foreground">
+                  Recevez le verset quotidien le matin
+                </p>
+              </div>
+              <div className="h-6 w-11 rounded-full bg-muted" />
+            </div>
+            
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Encouragements badges</p>
+                <p className="text-sm text-muted-foreground">
+                  Recevez des félicitations quand vous obtenez un nouveau badge
+                </p>
+              </div>
+              <div className="h-6 w-11 rounded-full bg-muted" />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
-};
-
-export default ProfileNotifications;
+}

@@ -1,27 +1,13 @@
 /**
- * Carte de préférences de notifications
+ * Carte de préférences de notifications (version simplifiée)
  */
 
 import React from 'react';
 import { Settings, Bell, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
 import { Separator } from '@/components/ui/separator';
-import { NotificationPreferences } from '@/types/notifications';
 
-interface NotificationPreferencesCardProps {
-  preferences: NotificationPreferences;
-  isSubscribed: boolean;
-  isUpdating: boolean;
-  onUpdate: (key: keyof NotificationPreferences, value: boolean | string) => void;
-}
-
-export const NotificationPreferencesCard: React.FC<NotificationPreferencesCardProps> = ({
-  preferences,
-  isSubscribed,
-  isUpdating,
-  onUpdate
-}) => {
+export const NotificationPreferencesCard: React.FC = () => {
   return (
     <Card>
       <CardHeader>
@@ -30,7 +16,7 @@ export const NotificationPreferencesCard: React.FC<NotificationPreferencesCardPr
           <span>Préférences de notifications</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6">
+      <CardContent className="space-y-6 opacity-50">
         {/* Rappels de lecture */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -43,26 +29,16 @@ export const NotificationPreferencesCard: React.FC<NotificationPreferencesCardPr
                 </p>
               </div>
             </div>
-            <Switch
-              checked={preferences.reading_reminder_enabled ?? true}
-              onCheckedChange={(checked) => onUpdate('reading_reminder_enabled', checked)}
-              disabled={isUpdating || !isSubscribed}
-            />
+            <div className="h-6 w-11 rounded-full bg-muted" />
           </div>
           
-          {preferences.reading_reminder_enabled && (
-            <div className="ml-8 flex items-center space-x-3">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Heure:</span>
-              <input
-                type="time"
-                value={preferences.reading_reminder_time || '20:00'}
-                onChange={(e) => onUpdate('reading_reminder_time', e.target.value)}
-                className="px-2 py-1 text-sm border rounded bg-background"
-                disabled={isUpdating || !isSubscribed}
-              />
+          <div className="ml-8 flex items-center space-x-3">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Heure:</span>
+            <div className="px-2 py-1 text-sm border rounded bg-muted">
+              20:00
             </div>
-          )}
+          </div>
         </div>
 
         <Separator />
@@ -79,26 +55,16 @@ export const NotificationPreferencesCard: React.FC<NotificationPreferencesCardPr
                 </p>
               </div>
             </div>
-            <Switch
-              checked={preferences.daily_verse_enabled ?? true}
-              onCheckedChange={(checked) => onUpdate('daily_verse_enabled', checked)}
-              disabled={isUpdating || !isSubscribed}
-            />
+            <div className="h-6 w-11 rounded-full bg-muted" />
           </div>
           
-          {preferences.daily_verse_enabled && (
-            <div className="ml-8 flex items-center space-x-3">
-              <Clock className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm text-muted-foreground">Heure:</span>
-              <input
-                type="time"
-                value={preferences.daily_verse_time || '07:00'}
-                onChange={(e) => onUpdate('daily_verse_time', e.target.value)}
-                className="px-2 py-1 text-sm border rounded bg-background"
-                disabled={isUpdating || !isSubscribed}
-              />
+          <div className="ml-8 flex items-center space-x-3">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">Heure:</span>
+            <div className="px-2 py-1 text-sm border rounded bg-muted">
+              07:00
             </div>
-          )}
+          </div>
         </div>
 
         <Separator />
@@ -114,11 +80,7 @@ export const NotificationPreferencesCard: React.FC<NotificationPreferencesCardPr
               </p>
             </div>
           </div>
-          <Switch
-            checked={preferences.badge_encouragement_enabled ?? true}
-            onCheckedChange={(checked) => onUpdate('badge_encouragement_enabled', checked)}
-            disabled={isUpdating || !isSubscribed}
-          />
+          <div className="h-6 w-11 rounded-full bg-muted" />
         </div>
       </CardContent>
     </Card>

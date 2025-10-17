@@ -1,156 +1,55 @@
 /**
- * Hook unifié pour les notifications push via Capacitor (native + web)
- * Utilise Firebase Cloud Messaging sur toutes les plateformes
+ * Hook de notifications push unifié (version mock)
+ * Les notifications ne sont pas encore configurées
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { Capacitor } from '@capacitor/core';
-import { PushNotifications } from '@capacitor/push-notifications';
-import { nativeNotificationService } from '@/services/notifications/nativeNotificationService';
 import { logger } from '@/utils/logger';
+import { toast } from 'sonner';
 
-interface UseUnifiedPushNotificationsReturn {
+export type UseUnifiedPushNotificationsReturn = {
   isSupported: boolean;
   isSubscribed: boolean;
   isLoading: boolean;
   permission: NotificationPermission | 'unknown';
-  platform: 'native' | 'web';
+  platform: 'native' | 'web' | 'unknown';
   subscribe: () => Promise<boolean>;
   unsubscribe: () => Promise<boolean>;
-  requestPermission: () => Promise<NotificationPermission | boolean>;
-}
+  requestPermission: () => Promise<boolean>;
+};
 
 export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn => {
-  // États unifiés pour toutes les plateformes
-  const [state, setState] = useState({
-    isSupported: false,
-    isSubscribed: false,
-    isLoading: false,
-    permission: 'unknown' as NotificationPermission | 'unknown'
-  });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const checkPermission = useCallback(async (): Promise<NotificationPermission> => {
-    if (Capacitor.isNativePlatform()) {
-      try {
-        const status = await PushNotifications.checkPermissions();
-        return status.receive === 'granted' ? 'granted' : 
-               status.receive === 'denied' ? 'denied' : 'default';
-      } catch (error) {
-        logger.error('Error checking native permissions', error);
-        return 'default';
-      }
-    } else {
-      return typeof Notification !== 'undefined' 
-        ? Notification.permission 
-        : 'default';
-    }
-  }, []);
-
-  // Initialisation
   useEffect(() => {
-    const initialize = async () => {
-      const supported = nativeNotificationService.isSupported();
-      const currentPermission = await checkPermission();
-      const hasToken = await nativeNotificationService.hasActiveToken();
-      
-      setState({
-        isSupported: supported,
-        isSubscribed: hasToken,
-        isLoading: false,
-        permission: currentPermission
-      });
-      
-      // Configurer les listeners
-      nativeNotificationService.setupListeners(
-        (notification) => {
-          logger.info('Notification received', notification);
-        },
-        (notification) => {
-          logger.info('Notification action performed', notification);
-        }
-      );
-    };
-    
-    initialize();
-  }, [checkPermission]);
-
-  const checkSubscription = useCallback(async () => {
-    const hasToken = await nativeNotificationService.hasActiveToken();
-    setState(prev => ({ ...prev, isSubscribed: hasToken }));
+    logger.info("📵 Notifications non configurées");
   }, []);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
-    setState(prev => ({ ...prev, isLoading: true }));
-    
-    try {
-      const subscription = await nativeNotificationService.register();
-      
-      if (!subscription) {
-        return false;
-      }
-      
-      const saved = await nativeNotificationService.saveToken(subscription);
-      
-      if (saved) {
-        const currentPermission = await checkPermission();
-        setState(prev => ({ 
-          ...prev, 
-          isSubscribed: true,
-          permission: currentPermission
-        }));
-      }
-      
-      return saved;
-    } catch (error) {
-      logger.error('Subscription failed', error);
-      return false;
-    } finally {
-      setState(prev => ({ ...prev, isLoading: false }));
-    }
-  }, [checkPermission]);
+    logger.info("📵 Notifications non configurées - abonnement impossible");
+    toast.info("Les notifications ne sont pas encore configurées");
+    return false;
+  }, []);
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
-    setState(prev => ({ ...prev, isLoading: true }));
-    
-    try {
-      const removed = await nativeNotificationService.removeToken();
-      
-      if (removed) {
-        setState(prev => ({ 
-          ...prev, 
-          isSubscribed: false 
-        }));
-      }
-      
-      return removed;
-    } catch (error) {
-      logger.error('Unsubscription failed', error);
-      return false;
-    } finally {
-      setState(prev => ({ ...prev, isLoading: false }));
-    }
+    logger.info("📵 Notifications non configurées - désabonnement impossible");
+    return false;
   }, []);
 
   const requestPermission = useCallback(async (): Promise<boolean> => {
-    const granted = await nativeNotificationService.requestPermission();
-    
-    const currentPermission = await checkPermission();
-    setState(prev => ({
-      ...prev,
-      permission: currentPermission
-    }));
-    
-    return granted;
-  }, [checkPermission]);
+    logger.info("📵 Notifications non configurées - permission non demandée");
+    toast.info("Les notifications ne sont pas encore configurées");
+    return false;
+  }, []);
 
   return {
-    isSupported: state.isSupported,
-    isSubscribed: state.isSubscribed,
-    isLoading: state.isLoading,
-    permission: state.permission,
-    platform: 'web', // Toujours 'web' pour l'interface, même si c'est natif en arrière-plan
+    isSupported: false,
+    isSubscribed: false,
+    isLoading,
+    permission: 'default',
+    platform: 'unknown',
     subscribe,
     unsubscribe,
-    requestPermission
+    requestPermission,
   };
 };
