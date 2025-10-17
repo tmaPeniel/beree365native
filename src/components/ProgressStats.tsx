@@ -117,7 +117,7 @@ const ProgressStats = () => {
         <div className="flex justify-center mt-3 md:mt-4">
           <div className="flex items-center space-x-3 md:space-x-4">
             <div className="flex items-center">
-              <div className="w-3 h-3 bg-green-500 rounded-full mr-1"></div>
+              <div className="w-3 h-3 bg-primary rounded-full mr-1"></div>
               <span className="text-xs text-muted-foreground">Passages Lus</span>
             </div>
             <div className="flex items-center">
