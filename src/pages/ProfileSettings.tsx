@@ -4,8 +4,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
 import { preferencesService } from "@/services/notifications/preferencesService";
@@ -159,30 +158,19 @@ const ProfileSettings = () => {
                       </div>
                     </div>
                     {option.action === "theme-selector" && (
-                      <RadioGroup
+                      <Select
                         value={theme}
                         onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}
-                        className="flex flex-col space-y-2"
                       >
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="light" id="theme-light" />
-                          <Label htmlFor="theme-light" className="font-normal cursor-pointer">
-                            Clair
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="dark" id="theme-dark" />
-                          <Label htmlFor="theme-dark" className="font-normal cursor-pointer">
-                            Sombre
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="system" id="theme-system" />
-                          <Label htmlFor="theme-system" className="font-normal cursor-pointer">
-                            Système
-                          </Label>
-                        </div>
-                      </RadioGroup>
+                        <SelectTrigger className="w-[180px]">
+                          <SelectValue placeholder="Sélectionner un thème" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="light">Clair</SelectItem>
+                          <SelectItem value="dark">Sombre</SelectItem>
+                          <SelectItem value="system">Système</SelectItem>
+                        </SelectContent>
+                      </Select>
                     )}
                     {option.action === "navigate" && (
                       <Link to={option.to || "#"}>
