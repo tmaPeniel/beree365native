@@ -4,7 +4,7 @@ import './index.css'
 import { ThemeProvider } from './providers/ThemeProvider'
 
 createRoot(document.getElementById("root")!).render(
-  <ThemeProvider defaultTheme="system" storageKey="beree-theme">
+  <ThemeProvider defaultTheme="light" storageKey="beree-theme">
     <App />
   </ThemeProvider>
 );

@@ -3,8 +3,9 @@ import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Label } from "@/components/ui/label";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
 import { preferencesService } from "@/services/notifications/preferencesService";
@@ -82,11 +83,10 @@ const ProfileSettings = () => {
       title: "Apparence",
       options: [
         {
-          label: "Mode sombre",
-          description: "Activer le thème sombre",
+          label: "Thème de l'application",
+          description: "Choisir le thème d'affichage",
           icon: Moon,
-          action: "toggle",
-          defaultValue: theme === "dark",
+          action: "theme-selector",
         },
       ],
     },
@@ -158,24 +158,31 @@ const ProfileSettings = () => {
                         <p className="text-sm text-muted-foreground">{option.description}</p>
                       </div>
                     </div>
-                    {option.action === "toggle" && (
-                      <Switch
-                        checked={
-                          option.label === "Mode sombre"
-                            ? theme === "dark"
-                            : option.key
-                              ? option.value
-                              : option.defaultValue
-                        }
-                        onCheckedChange={async (checked) => {
-                          if (option.label === "Mode sombre") {
-                            setTheme(checked ? "dark" : "light");
-                          } else if (option.key) {
-                            await updatePreference(option.key as keyof NotificationPreferences, checked);
-                          }
-                        }}
-                        disabled={isLoading}
-                      />
+                    {option.action === "theme-selector" && (
+                      <RadioGroup
+                        value={theme}
+                        onValueChange={(value) => setTheme(value as "light" | "dark" | "system")}
+                        className="flex flex-col space-y-2"
+                      >
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="light" id="theme-light" />
+                          <Label htmlFor="theme-light" className="font-normal cursor-pointer">
+                            Clair
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="dark" id="theme-dark" />
+                          <Label htmlFor="theme-dark" className="font-normal cursor-pointer">
+                            Sombre
+                          </Label>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <RadioGroupItem value="system" id="theme-system" />
+                          <Label htmlFor="theme-system" className="font-normal cursor-pointer">
+                            Système
+                          </Label>
+                        </div>
+                      </RadioGroup>
                     )}
                     {option.action === "navigate" && (
                       <Link to={option.to || "#"}>
