@@ -4,6 +4,8 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { Capacitor } from '@capacitor/core';
+import { PushNotifications } from '@capacitor/push-notifications';
 import { nativeNotificationService } from '@/services/notifications/nativeNotificationService';
 import { logger } from '@/utils/logger';
 
@@ -27,26 +29,50 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     permission: 'unknown' as NotificationPermission | 'unknown'
   });
 
+  const checkPermission = useCallback(async (): Promise<NotificationPermission> => {
+    if (Capacitor.isNativePlatform()) {
+      try {
+        const status = await PushNotifications.checkPermissions();
+        return status.receive === 'granted' ? 'granted' : 
+               status.receive === 'denied' ? 'denied' : 'default';
+      } catch (error) {
+        logger.error('Error checking native permissions', error);
+        return 'default';
+      }
+    } else {
+      return typeof Notification !== 'undefined' 
+        ? Notification.permission 
+        : 'default';
+    }
+  }, []);
+
   // Initialisation
   useEffect(() => {
-    setState(prev => ({
-      ...prev,
-      isSupported: nativeNotificationService.isSupported()
-    }));
+    const initialize = async () => {
+      const supported = nativeNotificationService.isSupported();
+      const currentPermission = await checkPermission();
+      const hasToken = await nativeNotificationService.hasActiveToken();
+      
+      setState({
+        isSupported: supported,
+        isSubscribed: hasToken,
+        isLoading: false,
+        permission: currentPermission
+      });
+      
+      // Configurer les listeners
+      nativeNotificationService.setupListeners(
+        (notification) => {
+          logger.info('Notification received', notification);
+        },
+        (notification) => {
+          logger.info('Notification action performed', notification);
+        }
+      );
+    };
     
-    // Vérifier le statut de l'abonnement
-    checkSubscription();
-    
-    // Configurer les listeners
-    nativeNotificationService.setupListeners(
-      (notification) => {
-        logger.info('Notification received', notification);
-      },
-      (notification) => {
-        logger.info('Notification action performed', notification);
-      }
-    );
-  }, []);
+    initialize();
+  }, [checkPermission]);
 
   const checkSubscription = useCallback(async () => {
     const hasToken = await nativeNotificationService.hasActiveToken();
@@ -66,10 +92,11 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
       const saved = await nativeNotificationService.saveToken(subscription);
       
       if (saved) {
+        const currentPermission = await checkPermission();
         setState(prev => ({ 
           ...prev, 
           isSubscribed: true,
-          permission: 'granted'
+          permission: currentPermission
         }));
       }
       
@@ -80,7 +107,7 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     } finally {
       setState(prev => ({ ...prev, isLoading: false }));
     }
-  }, []);
+  }, [checkPermission]);
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
     setState(prev => ({ ...prev, isLoading: true }));
@@ -107,13 +134,14 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
   const requestPermission = useCallback(async (): Promise<boolean> => {
     const granted = await nativeNotificationService.requestPermission();
     
+    const currentPermission = await checkPermission();
     setState(prev => ({
       ...prev,
-      permission: granted ? 'granted' : 'denied'
+      permission: currentPermission
     }));
     
     return granted;
-  }, []);
+  }, [checkPermission]);
 
   return {
     isSupported: state.isSupported,
