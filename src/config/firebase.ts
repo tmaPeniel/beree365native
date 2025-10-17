@@ -3,19 +3,20 @@
  * IMPORTANT: Remplacez ces valeurs par vos vraies clés Firebase
  */
 
-import { initializeApp, getApps, FirebaseApp } from 'firebase/app';
-import { getMessaging, Messaging, isSupported } from 'firebase/messaging';
-import { logger } from '@/utils/logger';
+import { initializeApp, getApps, FirebaseApp } from "firebase/app";
+import { getMessaging, Messaging, isSupported } from "firebase/messaging";
+import { logger } from "@/utils/logger";
 
 // Configuration Firebase - À REMPLACER avec vos vraies valeurs
 // Récupérez-les depuis Firebase Console > Project Settings > Your apps
 const firebaseConfig = {
-  apiKey: "VOTRE_API_KEY",
-  authDomain: "VOTRE_PROJECT_ID.firebaseapp.com",
-  projectId: "VOTRE_PROJECT_ID",
-  storageBucket: "VOTRE_PROJECT_ID.appspot.com",
-  messagingSenderId: "VOTRE_SENDER_ID",
-  appId: "VOTRE_APP_ID"
+  apiKey: "AIzaSyDRNkKd1Qg3AbbZIhfxNRrlyLoik5Ij5Q4",
+  authDomain: "beree-73dde.firebaseapp.com",
+  projectId: "beree-73dde",
+  storageBucket: "beree-73dde.firebasestorage.app",
+  messagingSenderId: "191782078647",
+  appId: "1:191782078647:web:ae992b6c615035249c6532",
+  measurementId: "G-6RHCEFKTSS",
 };
 
 let app: FirebaseApp | null = null;
@@ -29,16 +30,16 @@ export const initializeFirebase = async (): Promise<FirebaseApp | null> => {
     // Vérifier si déjà initialisé
     if (getApps().length > 0) {
       app = getApps()[0];
-      logger.debug('Firebase already initialized');
+      logger.debug("Firebase already initialized");
       return app;
     }
 
     // Initialiser Firebase
     app = initializeApp(firebaseConfig);
-    logger.success('Firebase initialized');
+    logger.success("Firebase initialized");
     return app;
   } catch (error) {
-    logger.error('Firebase initialization failed', error);
+    logger.error("Firebase initialization failed", error);
     return null;
   }
 };
@@ -51,7 +52,7 @@ export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
     // Vérifier si les notifications sont supportées
     const messagingSupported = await isSupported();
     if (!messagingSupported) {
-      logger.warn('Firebase Messaging not supported');
+      logger.warn("Firebase Messaging not supported");
       return null;
     }
 
@@ -64,12 +65,12 @@ export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
     // Récupérer ou créer l'instance messaging
     if (!messaging) {
       messaging = getMessaging(app);
-      logger.debug('Firebase Messaging instance created');
+      logger.debug("Firebase Messaging instance created");
     }
 
     return messaging;
   } catch (error) {
-    logger.error('Failed to get Firebase Messaging', error);
+    logger.error("Failed to get Firebase Messaging", error);
     return null;
   }
 };
@@ -78,6 +79,5 @@ export const getFirebaseMessaging = async (): Promise<Messaging | null> => {
  * Vérifie si Firebase est correctement configuré
  */
 export const isFirebaseConfigured = (): boolean => {
-  return firebaseConfig.apiKey !== "VOTRE_API_KEY" && 
-         firebaseConfig.projectId !== "VOTRE_PROJECT_ID";
+  return firebaseConfig.apiKey !== "VOTRE_API_KEY" && firebaseConfig.projectId !== "VOTRE_PROJECT_ID";
 };
