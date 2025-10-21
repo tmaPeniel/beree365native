@@ -43,14 +43,3 @@ enable_confirmations = false
 enabled = true
 port = 54325
 
-[functions]
-verify_jwt = false
-
-[functions.check-scheduled-notifications]
-verify_jwt = false
-
-[functions.test-push-notification]
-verify_jwt = true
-
-[functions.send-fcm-notification]
-verify_jwt = false
