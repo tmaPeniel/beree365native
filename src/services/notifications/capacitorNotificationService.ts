@@ -26,6 +26,7 @@ class CapacitorNotificationService {
   private deviceToken: string | null = null;
   private oneSignalPlayerId: string | null = null;
   private isInitialized = false;
+  private tokenResolvers: Array<(token: string) => void> = [];
 
   /**
    * Vérifie si on est sur une plateforme native
@@ -68,55 +69,57 @@ class CapacitorNotificationService {
 
   /**
    * Initialise les notifications Capacitor (iOS/Android)
+   * N'enregistre PAS automatiquement l'appareil - cela sera fait explicitement
    */
   private async initializeCapacitorPush(): Promise<boolean> {
     try {
-      // Vérifier les permissions
-      const permStatus = await PushNotifications.checkPermissions();
-      logger.info("📋 Statut des permissions:", permStatus);
-
-      if (permStatus.receive === 'prompt' || permStatus.receive === 'prompt-with-rationale') {
-        logger.info("🔔 Demande de permissions...");
-        const permResult = await PushNotifications.requestPermissions();
-        
-        if (permResult.receive !== 'granted') {
-          logger.warn("⚠️ Permissions de notification refusées");
-          return false;
-        }
-      } else if (permStatus.receive === 'denied') {
-        logger.warn("⚠️ Permissions de notification refusées");
-        return false;
-      }
-
-      // Enregistrer l'appareil pour les notifications
-      await PushNotifications.register();
-      logger.info("✅ Enregistrement pour les notifications lancé");
+      // Configuration des listeners seulement
+      logger.info("🎧 Configuration des listeners de notifications...");
 
       // Écouter la réception du token
       await PushNotifications.addListener('registration', async (token: Token) => {
-        logger.success("✅ Token reçu:", token.value);
-        this.deviceToken = token.value;
-        
-        // Enregistrer l'appareil sur OneSignal
-        await this.registerDeviceWithOneSignal(token.value);
+        try {
+          logger.success("✅ Token reçu:", token.value);
+          this.deviceToken = token.value;
+          
+          // Résoudre toutes les promesses en attente
+          this.tokenResolvers.forEach(resolve => resolve(token.value));
+          this.tokenResolvers = [];
+          
+          // Enregistrer l'appareil sur OneSignal
+          await this.registerDeviceWithOneSignal(token.value);
+        } catch (error) {
+          logger.error("❌ Erreur dans le listener registration:", error);
+        }
       });
 
       // Écouter les erreurs d'enregistrement
       await PushNotifications.addListener('registrationError', (error: any) => {
         logger.error("❌ Erreur d'enregistrement:", error);
+        // Rejeter toutes les promesses en attente
+        this.tokenResolvers = [];
       });
 
       // Écouter la réception des notifications
       await PushNotifications.addListener('pushNotificationReceived', (notification: PushNotificationSchema) => {
-        logger.info("📬 Notification reçue:", notification);
+        try {
+          logger.info("📬 Notification reçue:", notification);
+        } catch (error) {
+          logger.error("❌ Erreur dans le listener pushNotificationReceived:", error);
+        }
       });
 
       // Écouter les actions sur les notifications
       await PushNotifications.addListener('pushNotificationActionPerformed', (notification: ActionPerformed) => {
-        logger.info("👆 Action sur notification:", notification);
+        try {
+          logger.info("👆 Action sur notification:", notification);
+        } catch (error) {
+          logger.error("❌ Erreur dans le listener pushNotificationActionPerformed:", error);
+        }
       });
 
       this.isInitialized = true;
+      logger.success("✅ Listeners Capacitor configurés");
       return true;
     } catch (error) {
       logger.error("❌ Erreur lors de l'initialisation Capacitor:", error);
@@ -201,6 +204,78 @@ class CapacitorNotificationService {
     } catch (error) {
       logger.error("❌ Erreur lors de la vérification des permissions:", error);
       return 'denied';
+    }
+  }
+
+  /**
+   * Attend la réception du token avec timeout
+   */
+  private waitForToken(timeoutMs: number): Promise<string | null> {
+    return new Promise((resolve) => {
+      // Si le token existe déjà, le retourner immédiatement
+      if (this.deviceToken) {
+        logger.debug("🔑 Token déjà disponible");
+        resolve(this.deviceToken);
+        return;
+      }
+
+      // Sinon, attendre l'événement avec timeout
+      const timeout = setTimeout(() => {
+        logger.warn("⏱️ Timeout lors de l'attente du token");
+        // Retirer le resolver de la liste
+        const index = this.tokenResolvers.indexOf(tokenResolver);
+        if (index > -1) {
+          this.tokenResolvers.splice(index, 1);
+        }
+        resolve(null);
+      }, timeoutMs);
+
+      const tokenResolver = (token: string) => {
+        clearTimeout(timeout);
+        resolve(token);
+      };
+
+      this.tokenResolvers.push(tokenResolver);
+    });
+  }
+
+  /**
+   * Enregistre l'appareil pour recevoir des notifications
+   * À appeler APRÈS l'acceptation des permissions
+   */
+  async registerDevice(): Promise<boolean> {
+    try {
+      logger.info("📱 Enregistrement de l'appareil...");
+      
+      // Enregistrer l'appareil
+      await PushNotifications.register();
+      logger.info("✅ Demande d'enregistrement envoyée");
+
+      // Attendre le token avec timeout de 10 secondes
+      const token = await this.waitForToken(10000);
+      if (!token) {
+        logger.error("❌ Token non reçu dans le délai imparti");
+        return false;
+      }
+
+      logger.success("✅ Token reçu:", token);
+
+      // Vérifier que OneSignal a bien été enregistré
+      if (!this.oneSignalPlayerId) {
+        logger.warn("⚠️ OneSignal Player ID non disponible, nouvelle tentative...");
+        await this.registerDeviceWithOneSignal(token);
+        
+        if (!this.oneSignalPlayerId) {
+          logger.error("❌ Échec de l'enregistrement sur OneSignal");
+          return false;
+        }
+      }
+
+      logger.success("✅ Appareil enregistré avec succès");
+      return true;
+    } catch (error) {
+      logger.error("❌ Erreur lors de l'enregistrement de l'appareil:", error);
+      return false;
     }
   }
 

@@ -101,27 +101,43 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     setIsLoading(true);
     try {
       if (platform === 'capacitor') {
-        // Demander les permissions si nécessaire
+        // Étape 1 : Demander les permissions
+        logger.info("1️⃣ Demande des permissions...");
         const hasPermission = await capacitorNotificationService.requestPermissions();
         if (!hasPermission) {
           toast.error("Permissions de notification refusées");
+          setPermission('denied');
           return false;
         }
 
-        // Récupérer les infos de l'appareil
+        setPermission('granted');
+        toast.info("Configuration en cours...", { duration: 2000 });
+
+        // Étape 2 : Enregistrer l'appareil (NOUVEAU - séquentiel)
+        logger.info("2️⃣ Enregistrement de l'appareil...");
+        const registered = await capacitorNotificationService.registerDevice();
+        if (!registered) {
+          toast.error("Impossible d'enregistrer l'appareil");
+          logger.error("❌ Échec de l'enregistrement");
+          return false;
+        }
+
+        // Étape 3 : Récupérer les infos de l'appareil
+        logger.info("3️⃣ Récupération des informations...");
         const deviceInfo = await capacitorNotificationService.getDeviceInfo();
         
         if (!deviceInfo.deviceToken) {
-          toast.error("Impossible de récupérer le token de l'appareil");
+          toast.error("Token de l'appareil manquant");
           return false;
         }
 
         if (!deviceInfo.oneSignalPlayerId) {
-          toast.error("Impossible de s'enregistrer sur OneSignal");
+          toast.error("Enregistrement OneSignal manquant");
           return false;
         }
 
-        // Sauvegarder dans la base de données
+        // Étape 4 : Sauvegarder dans la base de données
+        logger.info("4️⃣ Sauvegarde dans la base de données...");
         const success = await capacitorNotificationService.saveDeviceInfo(
           user.id, 
           deviceInfo.deviceToken, 
@@ -133,11 +149,11 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
           setDeviceToken(deviceInfo.deviceToken);
           setOneSignalPlayerId(deviceInfo.oneSignalPlayerId);
           setPermission('granted');
-          toast.success("Notifications activées avec succès !");
-          logger.success("✅ Abonnement aux notifications réussi (Capacitor)");
+          toast.success("✅ Notifications activées avec succès !");
+          logger.success("✅ Abonnement complet (Capacitor)");
           return true;
         } else {
-          toast.error("Erreur lors de la sauvegarde des informations");
+          toast.error("Erreur lors de la sauvegarde");
           return false;
         }
       } else if (platform === 'despia') {
