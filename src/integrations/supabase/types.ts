@@ -72,6 +72,8 @@ export type Database = {
         Row: {
           created_at: string | null
           current_day_number: number
+          device_platform: string | null
+          device_token: string | null
           full_name: string | null
           id: string
           is_active: boolean | null
@@ -83,6 +85,8 @@ export type Database = {
         Insert: {
           created_at?: string | null
           current_day_number?: number
+          device_platform?: string | null
+          device_token?: string | null
           full_name?: string | null
           id: string
           is_active?: boolean | null
@@ -94,6 +98,8 @@ export type Database = {
         Update: {
           created_at?: string | null
           current_day_number?: number
+          device_platform?: string | null
+          device_token?: string | null
           full_name?: string | null
           id?: string
           is_active?: boolean | null
