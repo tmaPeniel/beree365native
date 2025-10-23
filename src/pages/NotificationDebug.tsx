@@ -2,23 +2,68 @@
  * Page de débogage des notifications (version simplifiée)
  */
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Send } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
+import { despiaNotificationService } from '@/services/notifications/despiaNotificationService';
+import { toast } from 'sonner';
+import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
 
 export default function NotificationDebug() {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { isSubscribed } = useUnifiedPushNotifications();
+  const [title, setTitle] = useState('📖 Notification de test');
+  const [message, setMessage] = useState('Ceci est une notification de test depuis Beree');
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (!user) {
       navigate('/login');
     }
   }, [user, navigate]);
+
+  const handleSendTest = async () => {
+    if (!user) {
+      toast.error('Vous devez être connecté');
+      return;
+    }
+
+    if (!isSubscribed) {
+      toast.error('Vous devez être abonné aux notifications');
+      return;
+    }
+
+    if (!title.trim() || !message.trim()) {
+      toast.error('Le titre et le message sont requis');
+      return;
+    }
+
+    setIsSending(true);
+    try {
+      const success = await despiaNotificationService.sendNotification({
+        userId: user.id,
+        title: title.trim(),
+        message: message.trim()
+      });
+
+      if (success) {
+        toast.success('Notification envoyée avec succès !');
+      } else {
+        toast.error('Erreur lors de l\'envoi de la notification');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de l\'envoi de la notification');
+    } finally {
+      setIsSending(false);
+    }
+  };
 
   return (
     <div className="container mx-auto p-4 max-w-4xl space-y-6">
@@ -37,44 +82,52 @@ export default function NotificationDebug() {
         </div>
       </div>
 
-      {/* Alert principal */}
-      <Alert>
-        <AlertCircle className="h-4 w-4" />
-        <AlertTitle>Fonctionnalité non configurée</AlertTitle>
-        <AlertDescription>
-          Les notifications push ne sont pas encore configurées pour cette application.
-          Cette page de débogage sera disponible une fois les notifications activées.
-        </AlertDescription>
-      </Alert>
-
-      {/* Statut de l'abonnement */}
+      {/* Test Form */}
       <Card>
         <CardHeader>
-          <CardTitle>Statut de l'abonnement</CardTitle>
-          <CardDescription>Informations sur votre abonnement push</CardDescription>
+          <CardTitle>Envoyer une notification de test</CardTitle>
+          <CardDescription>
+            Testez l'envoi de notifications push sur votre appareil
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="rounded-lg bg-muted p-8 text-center">
-            <p className="text-muted-foreground">
-              Aucune configuration de notification disponible
-            </p>
+          <div className="space-y-2">
+            <Label htmlFor="title">Titre de la notification</Label>
+            <Input
+              id="title"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Entrez le titre"
+              maxLength={100}
+            />
           </div>
-        </CardContent>
-      </Card>
+          
+          <div className="space-y-2">
+            <Label htmlFor="message">Message</Label>
+            <Textarea
+              id="message"
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Entrez le message de la notification"
+              rows={4}
+              maxLength={200}
+            />
+          </div>
 
-      {/* Historique */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Historique récent</CardTitle>
-          <CardDescription>Les dernières tentatives d'envoi</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Alert>
-            <AlertCircle className="h-4 w-4" />
-            <AlertDescription>
-              Aucune notification envoyée pour le moment.
-            </AlertDescription>
-          </Alert>
+          <Button 
+            onClick={handleSendTest} 
+            disabled={isSending || !isSubscribed}
+            className="w-full"
+          >
+            <Send className="h-4 w-4 mr-2" />
+            {isSending ? 'Envoi en cours...' : 'Envoyer la notification'}
+          </Button>
+
+          {!isSubscribed && (
+            <p className="text-sm text-muted-foreground text-center">
+              Vous devez d'abord activer les notifications dans les paramètres
+            </p>
+          )}
         </CardContent>
       </Card>
     </div>
