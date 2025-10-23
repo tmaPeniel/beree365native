@@ -183,10 +183,9 @@ export default function ProfileNotifications() {
         </CardContent>
       </Card>
 
-      {/* Card de test de notification - visible uniquement si activé */}
-      {isSubscribed && (
-        <Card>
-          <CardHeader>
+      {/* Card de test de notification */}
+      <Card>
+        <CardHeader>
             <CardTitle>🧪 Tester les notifications</CardTitle>
             <CardDescription>
               Envoyez-vous une notification de test pour vérifier que tout fonctionne
@@ -227,9 +226,8 @@ export default function ProfileNotifications() {
               <Send className="h-4 w-4 mr-2" />
               {isSending ? 'Envoi en cours...' : 'Envoyer la notification test'}
             </Button>
-          </CardContent>
-        </Card>
-      )}
+        </CardContent>
+      </Card>
 
       {/* Card de préférences futures */}
       <Card>
