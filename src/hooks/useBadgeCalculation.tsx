@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useOptimizedAuth } from './useOptimizedAuth';
 import { calculateUserBadges, getUserBadges } from '@/services/badgeService';
-import { notificationService } from '@/services/notificationService';
+import { despiaNotificationService } from '@/services/notifications/despiaNotificationService';
 import { toast } from 'sonner';
 
 /**
@@ -28,7 +28,7 @@ export const useBadgeCalculation = () => {
       
       // Envoyer des notifications pour les nouveaux badges
       for (const newBadge of newBadges) {
-        await notificationService.sendBadgeEncouragement(user.id, newBadge.badge.name);
+        await despiaNotificationService.sendBadgeEncouragement(user.id, newBadge.badge.name);
         toast.success(`🎉 Nouveau badge débloqué: ${newBadge.badge.name}!`);
       }
     } catch (error) {

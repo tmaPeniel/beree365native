@@ -68,94 +68,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notification_logs: {
-        Row: {
-          body: string
-          error_message: string | null
-          id: string
-          notification_type: string
-          push_subscription_id: string | null
-          sent_at: string
-          success: boolean
-          title: string
-          user_id: string
-        }
-        Insert: {
-          body: string
-          error_message?: string | null
-          id?: string
-          notification_type: string
-          push_subscription_id?: string | null
-          sent_at?: string
-          success?: boolean
-          title: string
-          user_id: string
-        }
-        Update: {
-          body?: string
-          error_message?: string | null
-          id?: string
-          notification_type?: string
-          push_subscription_id?: string | null
-          sent_at?: string
-          success?: boolean
-          title?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notification_logs_push_subscription_id_fkey"
-            columns: ["push_subscription_id"]
-            isOneToOne: false
-            referencedRelation: "push_subscriptions"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notification_preferences: {
-        Row: {
-          badge_encouragement_enabled: boolean
-          created_at: string
-          daily_verse_enabled: boolean
-          daily_verse_time: string
-          id: string
-          reading_reminder_enabled: boolean
-          reading_reminder_time: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          badge_encouragement_enabled?: boolean
-          created_at?: string
-          daily_verse_enabled?: boolean
-          daily_verse_time?: string
-          id?: string
-          reading_reminder_enabled?: boolean
-          reading_reminder_time?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          badge_encouragement_enabled?: boolean
-          created_at?: string
-          daily_verse_enabled?: boolean
-          daily_verse_time?: string
-          id?: string
-          reading_reminder_enabled?: boolean
-          reading_reminder_time?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "fk_notification_preferences_user"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           created_at: string | null
@@ -164,6 +76,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_login_at: string | null
+          onesignal_player_id: string | null
           selected_plan_id: string
           start_date: string | null
         }
@@ -174,6 +87,7 @@ export type Database = {
           id: string
           is_active?: boolean | null
           last_login_at?: string | null
+          onesignal_player_id?: string | null
           selected_plan_id: string
           start_date?: string | null
         }
@@ -184,6 +98,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login_at?: string | null
+          onesignal_player_id?: string | null
           selected_plan_id?: string
           start_date?: string | null
         }
@@ -196,36 +111,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      push_subscriptions: {
-        Row: {
-          auth_key: string
-          created_at: string
-          endpoint: string
-          id: string
-          is_active: boolean
-          p256dh_key: string
-          user_id: string
-        }
-        Insert: {
-          auth_key: string
-          created_at?: string
-          endpoint: string
-          id?: string
-          is_active?: boolean
-          p256dh_key: string
-          user_id: string
-        }
-        Update: {
-          auth_key?: string
-          created_at?: string
-          endpoint?: string
-          id?: string
-          is_active?: boolean
-          p256dh_key?: string
-          user_id?: string
-        }
-        Relationships: []
       }
       reading_plan_chapters: {
         Row: {
@@ -383,20 +268,11 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      calculate_user_badges: {
-        Args: { _user_id: string }
-        Returns: undefined
-      }
-      change_user_plan: {
-        Args: { new_plan_id: string }
-        Returns: undefined
-      }
-      get_completed_days_count: {
-        Args: { p_user_id: string }
-        Returns: number
-      }
+      calculate_user_badges: { Args: { _user_id: string }; Returns: undefined }
+      change_user_plan: { Args: { new_plan_id: string }; Returns: undefined }
+      get_completed_days_count: { Args: { p_user_id: string }; Returns: number }
       get_user_notification_history: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           id: string
           notification_type: string
@@ -406,7 +282,7 @@ export type Database = {
         }[]
       }
       get_user_push_subscription_status: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           created_at: string
           endpoint_preview: string
@@ -415,7 +291,7 @@ export type Database = {
         }[]
       }
       get_user_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           completed_chapters_count: number
           email: string
@@ -434,18 +310,12 @@ export type Database = {
         }
         Returns: boolean
       }
-      is_admin: {
-        Args: Record<PropertyKey, never>
-        Returns: boolean
-      }
+      is_admin: { Args: never; Returns: boolean }
       is_user_active: {
         Args: { days_threshold?: number; p_user_id: string }
         Returns: boolean
       }
-      update_user_activity: {
-        Args: { p_user_id: string }
-        Returns: undefined
-      }
+      update_user_activity: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "user"

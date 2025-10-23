@@ -43,3 +43,6 @@ enable_confirmations = false
 enabled = true
 port = 54325
 
+[functions.send-push-notification]
+verify_jwt = true
+

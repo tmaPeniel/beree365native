@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -7,8 +7,6 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
-import { preferencesService } from "@/services/notifications/preferencesService";
-import { NotificationPreferences } from "@/types/notifications";
 
 /**
  * Page des paramètres utilisateur
@@ -16,25 +14,6 @@ import { NotificationPreferences } from "@/types/notifications";
 const ProfileSettings = () => {
   const { theme, setTheme } = useTheme();
   const { isSupported, isSubscribed, permission } = useUnifiedPushNotifications();
-  const [preferences, setPreferences] = useState<NotificationPreferences>({});
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Charger les préférences au montage
-  useEffect(() => {
-    const loadPreferences = async () => {
-      const prefs = await preferencesService.get();
-      setPreferences(prefs);
-      setIsLoading(false);
-    };
-    loadPreferences();
-  }, []);
-
-  // Mettre à jour les préférences
-  const updatePreference = async (key: keyof NotificationPreferences, value: boolean) => {
-    const newPrefs = { ...preferences, [key]: value };
-    setPreferences(newPrefs);
-    await preferencesService.update(newPrefs);
-  };
 
   // Obtenir le statut des notifications push
   const getNotificationStatus = () => {
