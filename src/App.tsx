@@ -20,6 +20,7 @@ import ProfileStatistics from "./pages/ProfileStatistics";
 import ProfileBadges from "./pages/ProfileBadges";
 import ProfileSettings from "./pages/ProfileSettings";
 import ProfileNotifications from "./pages/ProfileNotifications";
+import CapacitorDebug from "./pages/CapacitorDebug";
 import ProfileAbout from "./pages/ProfileAbout";
 import ProfileEdit from "./pages/ProfileEdit";
 import ProfileHelp from "./pages/ProfileHelp";
@@ -135,6 +136,16 @@ function App() {
                     <ProtectedRoute>
                       <AppLayout>
                         <ProfileNotifications />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/capacitor-debug" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <CapacitorDebug />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

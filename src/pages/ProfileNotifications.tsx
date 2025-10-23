@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, Send } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, Send, RefreshCw, Bug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,23 +13,30 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
+import { capacitorNotificationService } from '@/services/notifications/capacitorNotificationService';
 import { despiaNotificationService } from '@/services/notifications/despiaNotificationService';
 import { toast } from '@/hooks/use-toast';
 
 export default function ProfileNotifications() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { isSubscribed, isLoading, subscribe, unsubscribe } = useUnifiedPushNotifications();
+  const { 
+    isSubscribed, 
+    isLoading, 
+    isInitializing,
+    platform, 
+    platformName,
+    permission,
+    deviceToken,
+    oneSignalPlayerId,
+    subscribe, 
+    unsubscribe,
+    reinitialize
+  } = useUnifiedPushNotifications();
 
   const [title, setTitle] = useState('📖 Rappel de lecture');
   const [message, setMessage] = useState("N'oubliez pas votre lecture quotidienne !");
   const [isSending, setIsSending] = useState(false);
-  const [playerId, setPlayerId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const id = despiaNotificationService.getPlayerID();
-    setPlayerId(id);
-  }, [isSubscribed]);
 
   useEffect(() => {
     if (!user) {
@@ -67,7 +74,11 @@ export default function ProfileNotifications() {
 
     setIsSending(true);
     try {
-      const success = await despiaNotificationService.sendNotification({
+      const notificationService = platform === 'capacitor' 
+        ? capacitorNotificationService 
+        : despiaNotificationService;
+
+      const success = await notificationService.sendNotification({
         title: title.trim(),
         message: message.trim(),
         userId: user.id,
@@ -105,6 +116,41 @@ export default function ProfileNotifications() {
     }
   };
 
+  const handleReinitialize = async () => {
+    const success = await reinitialize();
+    if (success) {
+      toast({
+        title: 'Réinitialisé',
+        description: 'Les notifications ont été réinitialisées',
+      });
+    }
+  };
+
+  const getPlatformBadgeVariant = () => {
+    if (platform === 'capacitor') return 'default';
+    if (platform === 'despia') return 'secondary';
+    return 'outline';
+  };
+
+  const getPlatformIcon = () => {
+    if (platform === 'capacitor') return '📱';
+    if (platform === 'despia') return '🔷';
+    return '🌐';
+  };
+
+  const getPlatformLabel = () => {
+    if (platform === 'capacitor') return `Capacitor Native (${platformName.toUpperCase()})`;
+    if (platform === 'despia') return 'Despia Native';
+    return 'Web PWA';
+  };
+
+  const getPermissionLabel = () => {
+    if (permission === 'granted') return '✅ Accordées';
+    if (permission === 'denied') return '❌ Refusées';
+    if (permission === 'prompt' || permission === 'prompt-with-rationale') return '⏳ En attente';
+    return '❓ Inconnues';
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-2xl space-y-6">
       {/* Header */}
@@ -116,25 +162,30 @@ export default function ProfileNotifications() {
         >
           <ArrowLeft className="h-5 w-5" />
         </Button>
-        <div>
+        <div className="flex-1">
           <h1 className="text-2xl font-bold">Notifications</h1>
           <p className="text-muted-foreground">
             Gérez vos préférences de notifications push
           </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/capacitor-debug')}
+          title="Page de diagnostic"
+        >
+          <Bug className="h-5 w-5" />
+        </Button>
       </div>
 
-      {/* Debug: OneSignal Player ID */}
-      <div className="space-y-2">
-        <Label htmlFor="player-id" className="text-red-500">
-          Debug - OneSignal Player ID
-        </Label>
-        <Input
-          id="player-id"
-          value={playerId || 'Non disponible'}
-          readOnly
-          className="font-mono text-sm border-red-500 text-red-500 bg-red-50 dark:bg-red-950/20"
-        />
-      </div>
+      {/* Platform Badge */}
+      <div className="flex items-center gap-2">
+        <Badge variant={getPlatformBadgeVariant()}>
+          {getPlatformIcon()} {getPlatformLabel()}
+        </Badge>
+        <Badge variant="outline">
+          Permissions: {getPermissionLabel()}
+        </Badge>
       </div>
 
       {/* Card de statut des notifications */}
@@ -144,7 +195,7 @@ export default function ProfileNotifications() {
             <div className="flex items-center gap-2">
               <CardTitle>📱 Notifications Push</CardTitle>
               <Badge variant={isSubscribed ? 'default' : 'secondary'}>
-                {isSubscribed ? 'Activées' : 'Désactivées'}
+                {isInitializing ? 'Initialisation...' : (isSubscribed ? 'Activées' : 'Désactivées')}
               </Badge>
             </div>
           </div>
@@ -162,7 +213,7 @@ export default function ProfileNotifications() {
               )}
               <div>
                 <p className="font-medium">
-                  {isSubscribed ? 'Notifications activées' : 'Notifications désactivées'}
+                  {isInitializing ? 'Initialisation en cours...' : (isSubscribed ? 'Notifications activées' : 'Notifications désactivées')}
                 </p>
                 <p className="text-sm text-muted-foreground">
                   {isSubscribed 
@@ -172,14 +223,56 @@ export default function ProfileNotifications() {
                 </p>
               </div>
             </div>
-            <Button 
-              onClick={handleToggleNotifications}
-              variant={isSubscribed ? 'outline' : 'default'}
-              disabled={isLoading}
-            >
-              {isLoading ? 'Chargement...' : (isSubscribed ? 'Désactiver' : 'Activer')}
-            </Button>
+            <div className="flex gap-2">
+              <Button 
+                onClick={handleToggleNotifications}
+                variant={isSubscribed ? 'outline' : 'default'}
+                disabled={isLoading || isInitializing}
+              >
+                {isLoading ? 'Chargement...' : (isSubscribed ? 'Désactiver' : 'Activer')}
+              </Button>
+              {platform === 'capacitor' && (
+                <Button
+                  onClick={handleReinitialize}
+                  variant="ghost"
+                  size="icon"
+                  disabled={isInitializing}
+                  title="Réinitialiser"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
+
+          {/* Debug Info */}
+          {(deviceToken || oneSignalPlayerId) && (
+            <div className="space-y-3 pt-4 border-t">
+              <p className="text-sm font-medium text-muted-foreground">Informations de diagnostic</p>
+              
+              {oneSignalPlayerId && (
+                <div className="space-y-1">
+                  <Label className="text-xs">OneSignal Player ID</Label>
+                  <Input
+                    value={oneSignalPlayerId}
+                    readOnly
+                    className="font-mono text-xs"
+                  />
+                </div>
+              )}
+
+              {deviceToken && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Device Token ({platformName.toUpperCase()})</Label>
+                  <Input
+                    value={deviceToken.substring(0, 40) + '...'}
+                    readOnly
+                    className="font-mono text-xs"
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
