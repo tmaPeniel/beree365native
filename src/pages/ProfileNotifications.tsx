@@ -22,8 +22,14 @@ export default function ProfileNotifications() {
   const { isSubscribed, isLoading, subscribe, unsubscribe } = useUnifiedPushNotifications();
 
   const [title, setTitle] = useState('📖 Rappel de lecture');
-  const [message, setMessage] = useState('N\'oubliez pas votre lecture quotidienne !');
+  const [message, setMessage] = useState("N'oubliez pas votre lecture quotidienne !");
   const [isSending, setIsSending] = useState(false);
+  const [playerId, setPlayerId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const id = despiaNotificationService.getPlayerID();
+    setPlayerId(id);
+  }, [isSubscribed]);
 
   useEffect(() => {
     if (!user) {
@@ -115,7 +121,20 @@ export default function ProfileNotifications() {
           <p className="text-muted-foreground">
             Gérez vos préférences de notifications push
           </p>
-        </div>
+      </div>
+
+      {/* Debug: OneSignal Player ID */}
+      <div className="space-y-2">
+        <Label htmlFor="player-id" className="text-red-500">
+          Debug - OneSignal Player ID
+        </Label>
+        <Input
+          id="player-id"
+          value={playerId || 'Non disponible'}
+          readOnly
+          className="font-mono text-sm border-red-500 text-red-500 bg-red-50 dark:bg-red-950/20"
+        />
+      </div>
       </div>
 
       {/* Card de statut des notifications */}
