@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Calendar, Clock, CheckCircle } from 'lucide-react';
+import { BookOpen, Calendar, Clock, CheckCircle, BookMarked } from 'lucide-react';
 import type { ReadingPlan } from '@/types/supabase';
 
 interface PlanDetailsDialogProps {
@@ -13,6 +13,7 @@ interface PlanDetailsDialogProps {
   onSelectPlan: (planId: string) => void;
   isCurrentPlan: boolean;
   isChanging: boolean;
+  passageCount: number;
 }
 
 const PlanDetailsDialog: React.FC<PlanDetailsDialogProps> = ({
@@ -22,6 +23,7 @@ const PlanDetailsDialog: React.FC<PlanDetailsDialogProps> = ({
   onSelectPlan,
   isCurrentPlan,
   isChanging,
+  passageCount,
 }) => {
   const [showConfirmation, setShowConfirmation] = useState(false);
 
@@ -89,11 +91,11 @@ const PlanDetailsDialog: React.FC<PlanDetailsDialogProps> = ({
             
             <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
               <div className="flex items-center gap-2">
-                <BookOpen className="h-4 w-4 text-primary" />
-                <span className="text-sm font-medium">Lectures par jour</span>
+                <BookMarked className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium">Passages à lire</span>
               </div>
               <span className="text-sm text-muted-foreground">
-                Variable selon le jour
+                {passageCount} passages
               </span>
             </div>
           </div>

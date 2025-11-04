@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ArrowLeft, BookOpen, Calendar, CheckCircle, Clock, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, BookOpen, Calendar, CheckCircle, Clock, RotateCcw, Trash2, BookMarked } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
@@ -32,10 +32,30 @@ const ReadingPlanManagement = () => {
     enabled: !!user,
   });
 
-  // Récupérer tous les plans disponibles
+  // Récupérer tous les plans disponibles avec le nombre de passages
   const { data: availablePlans, isLoading: plansLoading } = useQuery({
     queryKey: ['available-plans'],
     queryFn: getAvailablePlans,
+  });
+
+  // Récupérer le nombre de passages pour chaque plan
+  const { data: passageCounts } = useQuery({
+    queryKey: ['passage-counts'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('reading_plan_chapters')
+        .select('plan_id');
+      
+      if (error) throw error;
+      
+      // Compter les passages par plan_id
+      const counts = data.reduce((acc, chapter) => {
+        acc[chapter.plan_id] = (acc[chapter.plan_id] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      return counts;
+    },
   });
 
   // Mutation pour changer de plan
@@ -188,8 +208,8 @@ const ReadingPlanManagement = () => {
                     {currentPlan.duration_days} jours
                   </div>
                   <div className="flex items-center gap-1">
-                    <Clock className="h-4 w-4" />
-                    Environ {Math.ceil(currentPlan.duration_days / 30)} mois
+                    <BookMarked className="h-4 w-4" />
+                    {passageCounts?.[currentPlan.id] || 0} passages
                   </div>
                 </div>
               </div>
@@ -254,8 +274,8 @@ const ReadingPlanManagement = () => {
                           {plan.duration_days} jours
                         </div>
                         <div className="flex items-center gap-1">
-                          <Clock className="h-4 w-4" />
-                          ~{Math.ceil(plan.duration_days / 30)} mois
+                          <BookMarked className="h-4 w-4" />
+                          {passageCounts?.[plan.id] || 0} passages
                         </div>
                       </div>
                       
@@ -387,6 +407,7 @@ const ReadingPlanManagement = () => {
           onSelectPlan={handleChangePlan}
           isCurrentPlan={selectedPlanForDetails?.id === currentPlan?.id}
           isChanging={changePlanMutation.isPending && selectedPlanId === selectedPlanForDetails?.id}
+          passageCount={selectedPlanForDetails ? (passageCounts?.[selectedPlanForDetails.id] || 0) : 0}
         />
       </div>
     </div>
