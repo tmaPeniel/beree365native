@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -20,7 +20,6 @@ import ProfileStatistics from "./pages/ProfileStatistics";
 import ProfileBadges from "./pages/ProfileBadges";
 import ProfileSettings from "./pages/ProfileSettings";
 import ProfileNotifications from "./pages/ProfileNotifications";
-import CapacitorDebug from "./pages/CapacitorDebug";
 import ProfileAbout from "./pages/ProfileAbout";
 import ProfileEdit from "./pages/ProfileEdit";
 import ProfileHelp from "./pages/ProfileHelp";
@@ -34,10 +33,18 @@ import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
+import { oneSignalService } from './onesignal';
+
 const queryClient = new QueryClient();
 
 function App() {
   const { isVisible: splashVisible, isComplete: splashComplete } = useSplashScreen();
+
+  // Initialiser OneSignal au démarrage
+  useEffect(() => {
+    const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '2f59f2b6-e89a-4e05-bbe4-00ad3bded2ba';
+    oneSignalService.initialize({ appId: ONESIGNAL_APP_ID, allowLocalhostAsSecureOrigin: true });
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -136,16 +143,6 @@ function App() {
                     <ProtectedRoute>
                       <AppLayout>
                         <ProfileNotifications />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
-                  path="/capacitor-debug" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <CapacitorDebug />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

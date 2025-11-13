@@ -1,14 +1,12 @@
 /**
- * Hook de notifications push unifié avec Capacitor, Despia et OneSignal
- * Supporte Android, iOS et Web (PWA)
+ * Hook de notifications push avec OneSignal Web
+ * Version simplifiée pour le web uniquement
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
-import { capacitorNotificationService } from '@/services/notifications/capacitorNotificationService';
-import { despiaNotificationService } from '@/services/notifications/despiaNotificationService';
-import { getPlatform, getPlatformName } from '@/utils/platformDetection';
+import { oneSignalService } from '@/onesignal';
 import { useAuth } from './useAuth';
 
 export type UseUnifiedPushNotificationsReturn = {
@@ -16,9 +14,9 @@ export type UseUnifiedPushNotificationsReturn = {
   isSubscribed: boolean;
   isLoading: boolean;
   isInitializing: boolean;
-  permission: 'granted' | 'denied' | 'prompt' | 'default' | 'prompt-with-rationale' | 'unknown';
-  platform: 'despia' | 'capacitor' | 'web';
-  platformName: 'ios' | 'android' | 'web';
+  permission: 'granted' | 'denied' | 'prompt' | 'default' | 'unknown';
+  platform: 'web';
+  platformName: 'web';
   deviceToken: string | null;
   oneSignalPlayerId: string | null;
   subscribe: () => Promise<boolean>;
@@ -31,286 +29,199 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
-  const [platform] = useState<'despia' | 'capacitor' | 'web'>(getPlatform());
-  const [platformName] = useState<'ios' | 'android' | 'web'>(getPlatformName());
-  const [permission, setPermission] = useState<'granted' | 'denied' | 'prompt' | 'default' | 'prompt-with-rationale' | 'unknown'>('unknown');
-  const [deviceToken, setDeviceToken] = useState<string | null>(null);
+  const [permission, setPermission] = useState<'granted' | 'denied' | 'prompt' | 'default' | 'unknown'>('unknown');
   const [oneSignalPlayerId, setOneSignalPlayerId] = useState<string | null>(null);
   const { user } = useAuth();
+
+  // Vérifier si les notifications sont supportées
+  const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
 
   // Initialisation au montage du composant
   useEffect(() => {
     const initialize = async () => {
+      if (!isSupported) {
+        logger.warn('⚠️ Notifications non supportées dans ce navigateur');
+        setIsInitializing(false);
+        return;
+      }
+
       setIsInitializing(true);
       try {
-        logger.info(`🚀 Initialisation des notifications sur ${platform} (${platformName})`);
+        logger.info('🚀 Initialisation de OneSignal Web Push');
 
-        if (platform === 'capacitor') {
-          // Initialiser Capacitor
-          const success = await capacitorNotificationService.initializePushNotifications();
-          if (success) {
-            logger.success("✅ Capacitor initialisé avec succès");
-            
-            // Récupérer les infos de l'appareil
-            const deviceInfo = await capacitorNotificationService.getDeviceInfo();
-            setDeviceToken(deviceInfo.deviceToken);
-            setOneSignalPlayerId(deviceInfo.oneSignalPlayerId);
-            
-            // Vérifier les permissions
-            const perm = await capacitorNotificationService.checkPermissions();
-            setPermission(perm);
-            
-            // Si on a un Player ID, on est abonné
-            if (deviceInfo.oneSignalPlayerId) {
-              setIsSubscribed(true);
-            }
-          }
-        } else if (platform === 'despia') {
-          // Utiliser Despia (fallback)
-          const playerId = despiaNotificationService.getPlayerID();
-          if (playerId) {
-            setIsSubscribed(true);
-            setOneSignalPlayerId(playerId);
-            setPermission('granted');
-            logger.info("✅ Utilisateur déjà abonné via Despia");
-          }
-        } else {
-          // Mode Web
-          logger.info("🌐 Mode Web - initialisation des Web Push Notifications");
-          const success = await capacitorNotificationService.initializePushNotifications();
-          if (success && 'Notification' in window) {
-            setPermission(Notification.permission === 'default' ? 'prompt' : Notification.permission);
-          }
+        // Initialiser OneSignal avec l'App ID depuis les variables d'environnement
+        const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '2f59f2b6-e89a-4e05-bbe4-00ad3bded2ba';
+        
+        const success = await oneSignalService.initialize({
+          appId: ONESIGNAL_APP_ID,
+          allowLocalhostAsSecureOrigin: true, // Pour tester en local
+        });
+
+        if (success) {
+          logger.success('✅ OneSignal initialisé avec succès');
+          
+          // Récupérer l'état actuel
+          const state = await oneSignalService.getPermissionState();
+          setPermission(state.permission);
+          setIsSubscribed(state.isSubscribed);
+          setOneSignalPlayerId(state.playerId);
         }
       } catch (error) {
-        logger.error("❌ Erreur lors de l'initialisation:", error);
+        logger.error('❌ Erreur lors de l\'initialisation:', error);
       } finally {
         setIsInitializing(false);
       }
     };
 
     initialize();
-  }, [platform, platformName]);
+  }, [isSupported]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     if (!user) {
-      toast.error("Vous devez être connecté pour vous abonner aux notifications");
+      toast.error('Vous devez être connecté pour vous abonner aux notifications');
+      return false;
+    }
+
+    if (!isSupported) {
+      toast.error('Les notifications ne sont pas supportées sur ce navigateur');
       return false;
     }
 
     setIsLoading(true);
     try {
-      if (platform === 'capacitor') {
-        // Étape 1 : Demander les permissions
-        logger.info("1️⃣ Demande des permissions...");
-        const hasPermission = await capacitorNotificationService.requestPermissions();
-        if (!hasPermission) {
-          toast.error("Permissions de notification refusées");
-          setPermission('denied');
-          return false;
-        }
+      logger.info('📝 Abonnement aux notifications...');
 
-        setPermission('granted');
-        toast.info("Configuration en cours...", { duration: 2000 });
+      const success = await oneSignalService.subscribe();
 
-        // Étape 2 : Enregistrer l'appareil (NOUVEAU - séquentiel)
-        logger.info("2️⃣ Enregistrement de l'appareil...");
-        const registered = await capacitorNotificationService.registerDevice();
-        if (!registered) {
-          toast.error("Impossible d'enregistrer l'appareil");
-          logger.error("❌ Échec de l'enregistrement");
-          return false;
-        }
-
-        // Étape 3 : Récupérer les infos de l'appareil
-        logger.info("3️⃣ Récupération des informations...");
-        const deviceInfo = await capacitorNotificationService.getDeviceInfo();
+      if (success) {
+        const state = await oneSignalService.getPermissionState();
+        setPermission(state.permission);
+        setIsSubscribed(state.isSubscribed);
+        setOneSignalPlayerId(state.playerId);
         
-        if (!deviceInfo.deviceToken) {
-          toast.error("Token de l'appareil manquant");
-          return false;
-        }
-
-        if (!deviceInfo.oneSignalPlayerId) {
-          toast.error("Enregistrement OneSignal manquant");
-          return false;
-        }
-
-        // Étape 4 : Sauvegarder dans la base de données
-        logger.info("4️⃣ Sauvegarde dans la base de données...");
-        const success = await capacitorNotificationService.saveDeviceInfo(
-          user.id, 
-          deviceInfo.deviceToken, 
-          deviceInfo.oneSignalPlayerId
-        );
-
-        if (success) {
-          setIsSubscribed(true);
-          setDeviceToken(deviceInfo.deviceToken);
-          setOneSignalPlayerId(deviceInfo.oneSignalPlayerId);
-          setPermission('granted');
-          toast.success("✅ Notifications activées avec succès !");
-          logger.success("✅ Abonnement complet (Capacitor)");
-          return true;
-        } else {
-          toast.error("Erreur lors de la sauvegarde");
-          return false;
-        }
-      } else if (platform === 'despia') {
-        // Fallback Despia
-        const playerId = despiaNotificationService.getPlayerID();
-        
-        if (!playerId) {
-          toast.error("Impossible de récupérer l'ID du joueur OneSignal");
-          return false;
-        }
-
-        const success = await despiaNotificationService.savePlayerID(user.id, playerId);
-        
-        if (success) {
-          setIsSubscribed(true);
-          setOneSignalPlayerId(playerId);
-          toast.success("Abonnement aux notifications réussi !");
-          logger.success("✅ Abonnement aux notifications réussi (Despia)");
-          return true;
-        } else {
-          toast.error("Erreur lors de l'abonnement");
-          return false;
-        }
-      } else {
-        // Mode Web
-        toast.info("Pour les notifications web, utilisez la version PWA installable");
-        return false;
-      }
-    } catch (error) {
-      logger.error("❌ Erreur lors de l'abonnement:", error);
-      toast.error("Erreur lors de l'abonnement aux notifications");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, platform]);
-
-  const unsubscribe = useCallback(async (): Promise<boolean> => {
-    if (!user) {
-      return false;
-    }
-
-    setIsLoading(true);
-    try {
-      if (platform === 'capacitor') {
-        const success = await capacitorNotificationService.clearDeviceInfo(user.id);
-        
-        if (success) {
-          setIsSubscribed(false);
-          setDeviceToken(null);
-          setOneSignalPlayerId(null);
-          toast.success("Notifications désactivées");
-          logger.success("✅ Désabonnement réussi (Capacitor)");
-          return true;
-        } else {
-          toast.error("Erreur lors du désabonnement");
-          return false;
-        }
-      } else if (platform === 'despia') {
-        const success = await despiaNotificationService.savePlayerID(user.id, '');
-        
-        if (success) {
-          setIsSubscribed(false);
-          setOneSignalPlayerId(null);
-          toast.success("Désabonnement réussi");
-          logger.success("✅ Désabonnement réussi (Despia)");
-          return true;
-        } else {
-          toast.error("Erreur lors du désabonnement");
-          return false;
-        }
-      } else {
-        toast.info("Aucune notification à désactiver");
-        return false;
-      }
-    } catch (error) {
-      logger.error("❌ Erreur lors du désabonnement:", error);
-      toast.error("Erreur lors du désabonnement");
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [user, platform]);
-
-  const requestPermission = useCallback(async (): Promise<boolean> => {
-    try {
-      if (platform === 'capacitor') {
-        const granted = await capacitorNotificationService.requestPermissions();
-        const perm = await capacitorNotificationService.checkPermissions();
-        setPermission(perm);
-        
-        if (granted) {
-          toast.success("Permissions accordées");
-          return true;
-        } else {
-          toast.error("Permissions refusées");
-          return false;
-        }
-      } else if (platform === 'despia') {
-        toast.info("Les permissions sont gérées automatiquement par l'application");
+        toast.success('✅ Abonné aux notifications avec succès');
         return true;
       } else {
-        // Mode Web
-        if ('Notification' in window) {
-          const perm = await Notification.requestPermission();
-          setPermission(perm === 'default' ? 'prompt' : perm);
-          return perm === 'granted';
-        }
+        toast.error('❌ Échec de l\'abonnement aux notifications');
         return false;
       }
     } catch (error) {
-      logger.error("❌ Erreur lors de la demande de permissions:", error);
+      logger.error('❌ Erreur lors de l\'abonnement:', error);
+      toast.error('Une erreur est survenue lors de l\'abonnement');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user, isSupported]);
+
+  const unsubscribe = useCallback(async (): Promise<boolean> => {
+    if (!isSupported) {
+      toast.error('Les notifications ne sont pas supportées sur ce navigateur');
       return false;
     }
-  }, [platform]);
+
+    setIsLoading(true);
+    try {
+      logger.info('🔕 Désabonnement des notifications...');
+
+      const success = await oneSignalService.unsubscribe();
+
+      if (success) {
+        setIsSubscribed(false);
+        setOneSignalPlayerId(null);
+        
+        toast.success('✅ Désabonné des notifications avec succès');
+        return true;
+      } else {
+        toast.error('❌ Échec du désabonnement');
+        return false;
+      }
+    } catch (error) {
+      logger.error('❌ Erreur lors du désabonnement:', error);
+      toast.error('Une erreur est survenue lors du désabonnement');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported]);
+
+  const requestPermission = useCallback(async (): Promise<boolean> => {
+    if (!isSupported) {
+      toast.error('Les notifications ne sont pas supportées sur ce navigateur');
+      return false;
+    }
+
+    setIsLoading(true);
+    try {
+      logger.info('🔔 Demande de permission...');
+
+      const perm = await oneSignalService.requestPermission();
+      setPermission(perm);
+
+      if (perm === 'granted') {
+        const state = await oneSignalService.getPermissionState();
+        setIsSubscribed(state.isSubscribed);
+        setOneSignalPlayerId(state.playerId);
+        
+        toast.success('✅ Permission accordée');
+        return true;
+      } else {
+        toast.error('❌ Permission refusée');
+        return false;
+      }
+    } catch (error) {
+      logger.error('❌ Erreur lors de la demande de permission:', error);
+      toast.error('Une erreur est survenue');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isSupported]);
 
   const reinitialize = useCallback(async (): Promise<boolean> => {
+    if (!isSupported) {
+      return false;
+    }
+
     setIsInitializing(true);
     try {
-      logger.info("🔄 Réinitialisation des notifications...");
+      logger.info('🔄 Réinitialisation de OneSignal...');
+
+      const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '2f59f2b6-e89a-4e05-bbe4-00ad3bded2ba';
       
-      if (platform === 'capacitor') {
-        const success = await capacitorNotificationService.initializePushNotifications();
-        if (success) {
-          const deviceInfo = await capacitorNotificationService.getDeviceInfo();
-          setDeviceToken(deviceInfo.deviceToken);
-          setOneSignalPlayerId(deviceInfo.oneSignalPlayerId);
-          
-          const perm = await capacitorNotificationService.checkPermissions();
-          setPermission(perm);
-          
-          toast.success("Notifications réinitialisées");
-          logger.success("✅ Réinitialisation réussie");
-          return true;
-        }
+      const success = await oneSignalService.initialize({
+        appId: ONESIGNAL_APP_ID,
+        allowLocalhostAsSecureOrigin: true,
+      });
+
+      if (success) {
+        const state = await oneSignalService.getPermissionState();
+        setPermission(state.permission);
+        setIsSubscribed(state.isSubscribed);
+        setOneSignalPlayerId(state.playerId);
+        
+        toast.success('✅ OneSignal réinitialisé');
+        return true;
       }
       
-      toast.error("Impossible de réinitialiser");
       return false;
     } catch (error) {
-      logger.error("❌ Erreur lors de la réinitialisation:", error);
-      toast.error("Erreur lors de la réinitialisation");
+      logger.error('❌ Erreur lors de la réinitialisation:', error);
       return false;
     } finally {
       setIsInitializing(false);
     }
-  }, [platform]);
+  }, [isSupported]);
 
   return {
-    isSupported: platform === 'capacitor' || platform === 'despia',
+    isSupported,
     isSubscribed,
     isLoading,
     isInitializing,
     permission,
-    platform,
-    platformName,
-    deviceToken,
+    platform: 'web',
+    platformName: 'web',
+    deviceToken: null, // OneSignal Web n'utilise pas de device token explicite
     oneSignalPlayerId,
     subscribe,
     unsubscribe,

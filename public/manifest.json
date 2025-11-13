@@ -1,0 +1,24 @@
+{
+  "name": "Bérée 365 - Lisez la Bible en un an",
+  "short_name": "Bérée 365",
+  "description": "Application de suivi de lecture de la Bible en un an",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "gcm_sender_id": "482941778795",
+  "icons": [
+    {
+      "src": "/beree-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable any"
+    },
+    {
+      "src": "/beree-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable any"
+    }
+  ]
+}
