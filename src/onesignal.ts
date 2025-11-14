@@ -1,16 +1,18 @@
 /**
  * OneSignal Web Push Integration
- * Gère l'initialisation et les événements de notifications push avec OneSignal
+ * Service simplifié utilisant l'instance globale window.OneSignal
+ * L'initialisation se fait automatiquement via le script dans index.html
  */
 
-import OneSignal from 'react-onesignal';
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
-// Types
-export interface OneSignalConfig {
-  appId: string;
-  allowLocalhostAsSecureOrigin?: boolean;
+// Déclaration des types globaux OneSignal
+declare global {
+  interface Window {
+    OneSignal: any;
+    OneSignalDeferred: any[];
+  }
 }
 
 export interface NotificationPermissionState {
@@ -20,47 +22,22 @@ export interface NotificationPermissionState {
 }
 
 class OneSignalService {
-  private isInitialized = false;
   private playerId: string | null = null;
 
   /**
-   * Initialise OneSignal avec la configuration
+   * Attend que OneSignal soit initialisé
    */
-  async initialize(config: OneSignalConfig): Promise<boolean> {
-    if (this.isInitialized) {
-      logger.info('OneSignal déjà initialisé');
-      return true;
-    }
-
-    try {
-      logger.info('🚀 Initialisation de OneSignal...');
-
-      await OneSignal.init({
-        appId: config.appId,
-        allowLocalhostAsSecureOrigin: config.allowLocalhostAsSecureOrigin || false,
-        serviceWorkerParam: {
-          scope: '/',
-        },
-        serviceWorkerPath: '/OneSignalSDKWorker.js',
-      });
-
-      // Écouter les changements de subscription
-      OneSignal.User.PushSubscription.addEventListener('change', (event) => {
-        logger.info('📬 Changement de subscription OneSignal:', event);
-        this.handleSubscriptionChange();
-      });
-
-      this.isInitialized = true;
-      logger.success('✅ OneSignal initialisé avec succès');
-
-      // Récupérer le Player ID si déjà abonné
-      await this.updatePlayerId();
-
-      return true;
-    } catch (error) {
-      logger.error('❌ Erreur lors de l\'initialisation de OneSignal:', error);
-      return false;
-    }
+  private async waitForOneSignal(): Promise<any> {
+    return new Promise((resolve) => {
+      if (window.OneSignal) {
+        resolve(window.OneSignal);
+      } else {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push((OneSignal: any) => {
+          resolve(OneSignal);
+        });
+      }
+    });
   }
 
   /**
@@ -70,6 +47,7 @@ class OneSignalService {
     try {
       logger.info('🔔 Demande de permission de notifications...');
       
+      const OneSignal = await this.waitForOneSignal();
       const permission = await OneSignal.Notifications.requestPermission();
       logger.info('Permission:', permission);
 
@@ -89,6 +67,7 @@ class OneSignalService {
    */
   async isSubscribed(): Promise<boolean> {
     try {
+      const OneSignal = await this.waitForOneSignal();
       const optedIn = await OneSignal.User.PushSubscription.optedIn;
       return optedIn;
     } catch (error) {
@@ -102,6 +81,7 @@ class OneSignalService {
    */
   async getPlayerId(): Promise<string | null> {
     try {
+      const OneSignal = await this.waitForOneSignal();
       const id = await OneSignal.User.PushSubscription.id;
       this.playerId = id;
       return id;
@@ -147,10 +127,7 @@ class OneSignalService {
 
       const { error } = await supabase
         .from('profiles')
-        .update({
-          onesignal_player_id: playerId,
-          device_platform: 'web',
-        })
+        .update({ onesignal_player_id: playerId })
         .eq('id', user.id);
 
       if (error) {
@@ -167,7 +144,7 @@ class OneSignalService {
   }
 
   /**
-   * Supprime le Player ID du profil
+   * Supprime le Player ID du profil Supabase
    */
   async clearPlayerIdFromProfile(): Promise<boolean> {
     try {
@@ -180,10 +157,7 @@ class OneSignalService {
 
       const { error } = await supabase
         .from('profiles')
-        .update({
-          onesignal_player_id: null,
-          device_platform: null,
-        })
+        .update({ onesignal_player_id: null })
         .eq('id', user.id);
 
       if (error) {
@@ -200,38 +174,45 @@ class OneSignalService {
   }
 
   /**
-   * Gère les changements de subscription
-   */
-  private async handleSubscriptionChange(): Promise<void> {
-    try {
-      const subscribed = await this.isSubscribed();
-      
-      if (subscribed) {
-        await this.updatePlayerId();
-      } else {
-        await this.clearPlayerIdFromProfile();
-      }
-    } catch (error) {
-      logger.error('❌ Erreur lors du changement de subscription:', error);
-    }
-  }
-
-  /**
    * S'abonner aux notifications
    */
   async subscribe(): Promise<boolean> {
     try {
       logger.info('📝 Abonnement aux notifications...');
       
-      const permission = await this.requestPermission();
+      const OneSignal = await this.waitForOneSignal();
       
-      if (permission !== 'granted') {
-        logger.warn('⚠️ Permission refusée');
+      // Vérifier d'abord la permission
+      const currentPermission = Notification.permission;
+      
+      if (currentPermission === 'denied') {
+        logger.error('❌ Permission de notifications refusée');
         return false;
       }
 
+      // Si permission pas encore demandée, la demander
+      if (currentPermission === 'default') {
+        await this.requestPermission();
+      }
+
+      // S'abonner
+      await OneSignal.User.PushSubscription.optIn();
+      
+      // Attendre un peu pour que OneSignal traite l'abonnement
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Récupérer et sauvegarder le Player ID
       await this.updatePlayerId();
-      return true;
+      
+      const isNowSubscribed = await this.isSubscribed();
+      
+      if (isNowSubscribed) {
+        logger.success('✅ Abonné aux notifications avec succès');
+        return true;
+      } else {
+        logger.error('❌ Échec de l\'abonnement');
+        return false;
+      }
     } catch (error) {
       logger.error('❌ Erreur lors de l\'abonnement:', error);
       return false;
@@ -245,16 +226,52 @@ class OneSignalService {
     try {
       logger.info('🔕 Désabonnement des notifications...');
       
+      const OneSignal = await this.waitForOneSignal();
       await OneSignal.User.PushSubscription.optOut();
-      await this.clearPlayerIdFromProfile();
       
+      // Supprimer le Player ID du profil
+      await this.clearPlayerIdFromProfile();
       this.playerId = null;
       
-      logger.success('✅ Désabonné avec succès');
+      logger.success('✅ Désabonné des notifications avec succès');
       return true;
     } catch (error) {
       logger.error('❌ Erreur lors du désabonnement:', error);
       return false;
+    }
+  }
+
+  /**
+   * Gère le changement de subscription
+   */
+  private async handleSubscriptionChange(): Promise<void> {
+    try {
+      const isSubscribed = await this.isSubscribed();
+      
+      if (isSubscribed) {
+        await this.updatePlayerId();
+      } else {
+        await this.clearPlayerIdFromProfile();
+        this.playerId = null;
+      }
+    } catch (error) {
+      logger.error('❌ Erreur lors du traitement du changement de subscription:', error);
+    }
+  }
+
+  /**
+   * Configure l'écoute des changements de subscription
+   */
+  async setupSubscriptionListener(): Promise<void> {
+    try {
+      const OneSignal = await this.waitForOneSignal();
+      
+      OneSignal.User.PushSubscription.addEventListener('change', () => {
+        logger.info('📬 Changement de subscription OneSignal');
+        this.handleSubscriptionChange();
+      });
+    } catch (error) {
+      logger.error('❌ Erreur lors de la configuration du listener:', error);
     }
   }
 
@@ -275,7 +292,7 @@ class OneSignalService {
     } catch (error) {
       logger.error('❌ Erreur lors de la récupération de l\'état:', error);
       return {
-        permission: 'default',
+        permission: 'denied',
         isSubscribed: false,
         playerId: null,
       };
@@ -283,8 +300,7 @@ class OneSignalService {
   }
 
   /**
-   * Envoie une notification via l'API OneSignal
-   * Utilise la fonction edge de Supabase pour sécuriser la clé API
+   * Envoie une notification push via l'edge function Supabase
    */
   async sendNotification(params: {
     title: string;
@@ -293,23 +309,18 @@ class OneSignalService {
     userIds?: string[];
   }): Promise<boolean> {
     try {
-      logger.info('📤 Envoi de notification:', params);
+      logger.info('📤 Envoi de notification push...', params);
 
       const { data, error } = await supabase.functions.invoke('send-push-notification', {
-        body: {
-          title: params.title,
-          message: params.message,
-          userId: params.userId,
-          userIds: params.userIds,
-        },
+        body: params,
       });
 
       if (error) {
-        logger.error('❌ Erreur lors de l\'envoi:', error);
+        logger.error('❌ Erreur lors de l\'envoi de la notification:', error);
         return false;
       }
 
-      logger.success('✅ Notification envoyée:', data);
+      logger.success('✅ Notification envoyée avec succès:', data);
       return true;
     } catch (error) {
       logger.error('❌ Erreur lors de l\'envoi de la notification:', error);
@@ -318,6 +329,5 @@ class OneSignalService {
   }
 }
 
-// Export singleton
+// Instance singleton
 export const oneSignalService = new OneSignalService();
-export default oneSignalService;
