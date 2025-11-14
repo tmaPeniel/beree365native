@@ -33,18 +33,10 @@ import NotFound from "./pages/NotFound";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 
-import { oneSignalService } from './onesignal';
-
 const queryClient = new QueryClient();
 
 function App() {
   const { isVisible: splashVisible, isComplete: splashComplete } = useSplashScreen();
-
-  // Initialiser OneSignal au démarrage
-  useEffect(() => {
-    const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '2f59f2b6-e89a-4e05-bbe4-00ad3bded2ba';
-    oneSignalService.initialize({ appId: ONESIGNAL_APP_ID, allowLocalhostAsSecureOrigin: true });
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -28,6 +28,19 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@beree365" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- OneSignal Web Push SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "eaa6638c-ee99-4197-b3dd-ecaf01ba8e44",
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: '/OneSignalSDKWorker.js'
+        });
+      });
+    </script>
   </head>
 
   <body>

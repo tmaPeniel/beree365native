@@ -1,6 +1,6 @@
 /**
  * Hook de notifications push avec OneSignal Web
- * Version simplifiée pour le web uniquement
+ * Utilise l'instance globale window.OneSignal initialisée via le script dans index.html
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -36,6 +36,20 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
   // Vérifier si les notifications sont supportées
   const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
 
+  // Attendre que OneSignal soit initialisé
+  const waitForOneSignal = useCallback(async (): Promise<boolean> => {
+    return new Promise((resolve) => {
+      if (window.OneSignal) {
+        resolve(true);
+      } else {
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(() => {
+          resolve(true);
+        });
+      }
+    });
+  }, []);
+
   // Initialisation au montage du composant
   useEffect(() => {
     const initialize = async () => {
@@ -47,25 +61,21 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
 
       setIsInitializing(true);
       try {
-        logger.info('🚀 Initialisation de OneSignal Web Push');
+        logger.info('🚀 Attente de l\'initialisation de OneSignal...');
 
-        // Initialiser OneSignal avec l'App ID depuis les variables d'environnement
-        const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '2f59f2b6-e89a-4e05-bbe4-00ad3bded2ba';
+        // Attendre que OneSignal soit prêt (initialisé via le script dans index.html)
+        await waitForOneSignal();
+
+        logger.success('✅ OneSignal prêt');
         
-        const success = await oneSignalService.initialize({
-          appId: ONESIGNAL_APP_ID,
-          allowLocalhostAsSecureOrigin: true, // Pour tester en local
-        });
-
-        if (success) {
-          logger.success('✅ OneSignal initialisé avec succès');
-          
-          // Récupérer l'état actuel
-          const state = await oneSignalService.getPermissionState();
-          setPermission(state.permission);
-          setIsSubscribed(state.isSubscribed);
-          setOneSignalPlayerId(state.playerId);
-        }
+        // Configurer le listener pour les changements de subscription
+        await oneSignalService.setupSubscriptionListener();
+        
+        // Récupérer l'état actuel
+        const state = await oneSignalService.getPermissionState();
+        setPermission(state.permission);
+        setIsSubscribed(state.isSubscribed);
+        setOneSignalPlayerId(state.playerId);
       } catch (error) {
         logger.error('❌ Erreur lors de l\'initialisation:', error);
       } finally {
@@ -74,7 +84,7 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     };
 
     initialize();
-  }, [isSupported]);
+  }, [isSupported, waitForOneSignal]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     if (!user) {
@@ -127,6 +137,7 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
       const success = await oneSignalService.unsubscribe();
 
       if (success) {
+        setPermission(Notification.permission);
         setIsSubscribed(false);
         setOneSignalPlayerId(null);
         
@@ -155,18 +166,22 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     try {
       logger.info('🔔 Demande de permission...');
 
-      const perm = await oneSignalService.requestPermission();
-      setPermission(perm);
+      const result = await oneSignalService.requestPermission();
+      setPermission(result);
 
-      if (perm === 'granted') {
+      if (result === 'granted') {
+        // Récupérer l'état mis à jour
         const state = await oneSignalService.getPermissionState();
         setIsSubscribed(state.isSubscribed);
         setOneSignalPlayerId(state.playerId);
         
         toast.success('✅ Permission accordée');
         return true;
-      } else {
+      } else if (result === 'denied') {
         toast.error('❌ Permission refusée');
+        return false;
+      } else {
+        toast.info('ℹ️ Permission non accordée');
         return false;
       }
     } catch (error) {
@@ -180,38 +195,38 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
 
   const reinitialize = useCallback(async (): Promise<boolean> => {
     if (!isSupported) {
+      toast.error('Les notifications ne sont pas supportées sur ce navigateur');
       return false;
     }
 
+    setIsLoading(true);
     setIsInitializing(true);
     try {
       logger.info('🔄 Réinitialisation de OneSignal...');
 
-      const ONESIGNAL_APP_ID = import.meta.env.VITE_ONESIGNAL_APP_ID || '2f59f2b6-e89a-4e05-bbe4-00ad3bded2ba';
+      // Attendre que OneSignal soit prêt
+      await waitForOneSignal();
       
-      const success = await oneSignalService.initialize({
-        appId: ONESIGNAL_APP_ID,
-        allowLocalhostAsSecureOrigin: true,
-      });
+      // Configurer le listener
+      await oneSignalService.setupSubscriptionListener();
+      
+      // Récupérer l'état actuel
+      const state = await oneSignalService.getPermissionState();
+      setPermission(state.permission);
+      setIsSubscribed(state.isSubscribed);
+      setOneSignalPlayerId(state.playerId);
 
-      if (success) {
-        const state = await oneSignalService.getPermissionState();
-        setPermission(state.permission);
-        setIsSubscribed(state.isSubscribed);
-        setOneSignalPlayerId(state.playerId);
-        
-        toast.success('✅ OneSignal réinitialisé');
-        return true;
-      }
-      
-      return false;
+      toast.success('✅ OneSignal réinitialisé');
+      return true;
     } catch (error) {
       logger.error('❌ Erreur lors de la réinitialisation:', error);
+      toast.error('Erreur lors de la réinitialisation');
       return false;
     } finally {
+      setIsLoading(false);
       setIsInitializing(false);
     }
-  }, [isSupported]);
+  }, [isSupported, waitForOneSignal]);
 
   return {
     isSupported,
@@ -221,7 +236,7 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     permission,
     platform: 'web',
     platformName: 'web',
-    deviceToken: null, // OneSignal Web n'utilise pas de device token explicite
+    deviceToken: oneSignalPlayerId,
     oneSignalPlayerId,
     subscribe,
     unsubscribe,
