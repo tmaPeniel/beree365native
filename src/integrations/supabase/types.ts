@@ -409,6 +409,7 @@ export type Database = {
         Args: { days_threshold?: number; p_user_id: string }
         Returns: boolean
       }
+      sync_current_day_numbers: { Args: never; Returns: undefined }
       update_user_activity: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {
