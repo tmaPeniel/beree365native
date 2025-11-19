@@ -67,10 +67,8 @@ export const useNotificationPreferences = () => {
 
       const { error } = await supabase
         .from('notification_preferences')
-        .upsert({
-          user_id: user.id,
-          ...updatedPrefs,
-        });
+        .update(updatedPrefs)
+        .eq('user_id', user.id);
 
       if (error) {
         console.error('Error updating preferences:', error);
