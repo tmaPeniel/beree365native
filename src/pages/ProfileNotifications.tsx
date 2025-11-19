@@ -15,6 +15,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
 import { oneSignalService } from '@/onesignal';
 import { toast } from '@/hooks/use-toast';
+import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
 
 export default function ProfileNotifications() {
   const navigate = useNavigate();
@@ -141,6 +142,8 @@ export default function ProfileNotifications() {
           </Button>
         </CardContent>
       </Card>
+
+      <NotificationPreferencesCard />
     </div>
   );
 }
