@@ -1,17 +1,19 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface NotificationRequest {
-  title: string;
-  message: string;
-  userId?: string;
-  userIds?: string[];
-}
+// Schéma de validation
+const NotificationSchema = z.object({
+  title: z.string().min(1).max(100),
+  message: z.string().min(1).max(500),
+  userId: z.string().uuid().optional(),
+  userIds: z.array(z.string().uuid()).optional(),
+});
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -20,7 +22,10 @@ serve(async (req) => {
   }
 
   try {
-    const { title, message, userId, userIds }: NotificationRequest = await req.json();
+    // Valider les données d'entrée
+    const requestBody = await req.json();
+    const validated = NotificationSchema.parse(requestBody);
+    const { title, message, userId, userIds } = validated;
 
     // Validation
     if (!title || !message) {

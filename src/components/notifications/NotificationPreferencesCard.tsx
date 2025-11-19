@@ -1,13 +1,37 @@
 /**
- * Carte de préférences de notifications (version simplifiée)
+ * Carte de préférences de notifications
  */
 
 import React from 'react';
 import { Settings, Bell, Clock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
+import { Skeleton } from '@/components/ui/skeleton';
 
 export const NotificationPreferencesCard: React.FC = () => {
+  const { preferences, updatePreferences, isLoading, isSaving } = useNotificationPreferences();
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center space-x-2">
+            <Settings className="h-5 w-5" />
+            <span>Préférences de notifications</span>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+          <Skeleton className="h-16 w-full" />
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -16,7 +40,7 @@ export const NotificationPreferencesCard: React.FC = () => {
           <span>Préférences de notifications</span>
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-6 opacity-50">
+      <CardContent className="space-y-6">
         {/* Rappels de lecture */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
@@ -29,16 +53,30 @@ export const NotificationPreferencesCard: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className="h-6 w-11 rounded-full bg-muted" />
+            <Switch
+              checked={preferences.reading_reminder_enabled}
+              onCheckedChange={(checked) =>
+                updatePreferences({ reading_reminder_enabled: checked })
+              }
+              disabled={isSaving}
+            />
           </div>
           
-          <div className="ml-8 flex items-center space-x-3">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Heure:</span>
-            <div className="px-2 py-1 text-sm border rounded bg-muted">
-              20:00
+          {preferences.reading_reminder_enabled && (
+            <div className="ml-8 flex items-center space-x-3">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Heure:</span>
+              <Input
+                type="time"
+                value={preferences.reading_reminder_time}
+                onChange={(e) =>
+                  updatePreferences({ reading_reminder_time: e.target.value })
+                }
+                disabled={isSaving}
+                className="w-32"
+              />
             </div>
-          </div>
+          )}
         </div>
 
         <Separator />
@@ -55,16 +93,30 @@ export const NotificationPreferencesCard: React.FC = () => {
                 </p>
               </div>
             </div>
-            <div className="h-6 w-11 rounded-full bg-muted" />
+            <Switch
+              checked={preferences.daily_verse_enabled}
+              onCheckedChange={(checked) =>
+                updatePreferences({ daily_verse_enabled: checked })
+              }
+              disabled={isSaving}
+            />
           </div>
           
-          <div className="ml-8 flex items-center space-x-3">
-            <Clock className="h-4 w-4 text-muted-foreground" />
-            <span className="text-sm text-muted-foreground">Heure:</span>
-            <div className="px-2 py-1 text-sm border rounded bg-muted">
-              07:00
+          {preferences.daily_verse_enabled && (
+            <div className="ml-8 flex items-center space-x-3">
+              <Clock className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm text-muted-foreground">Heure:</span>
+              <Input
+                type="time"
+                value={preferences.daily_verse_time}
+                onChange={(e) =>
+                  updatePreferences({ daily_verse_time: e.target.value })
+                }
+                disabled={isSaving}
+                className="w-32"
+              />
             </div>
-          </div>
+          )}
         </div>
 
         <Separator />
@@ -80,7 +132,13 @@ export const NotificationPreferencesCard: React.FC = () => {
               </p>
             </div>
           </div>
-          <div className="h-6 w-11 rounded-full bg-muted" />
+          <Switch
+            checked={preferences.badge_encouragement_enabled}
+            onCheckedChange={(checked) =>
+              updatePreferences({ badge_encouragement_enabled: checked })
+            }
+            disabled={isSaving}
+          />
         </div>
       </CardContent>
     </Card>
