@@ -114,7 +114,7 @@ class OneSignalService {
   }
 
   /**
-   * Sauvegarde le Player ID dans le profil Supabase
+   * Sauvegarde le Player ID dans la table user_devices (support multi-appareils)
    */
   async savePlayerIdToProfile(playerId: string): Promise<boolean> {
     try {
@@ -126,16 +126,22 @@ class OneSignalService {
       }
 
       const { error } = await supabase
-        .from('profiles')
-        .update({ onesignal_player_id: playerId })
-        .eq('id', user.id);
+        .from('user_devices')
+        .upsert({
+          user_id: user.id,
+          onesignal_player_id: playerId,
+          device_platform: 'web',
+          last_seen_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id,onesignal_player_id'
+        });
 
       if (error) {
         logger.error('❌ Erreur lors de la sauvegarde du Player ID:', error);
         return false;
       }
 
-      logger.success('✅ Player ID sauvegardé dans le profil');
+      logger.success('✅ Player ID sauvegardé dans user_devices');
       return true;
     } catch (error) {
       logger.error('❌ Erreur lors de la sauvegarde du Player ID:', error);
@@ -144,7 +150,7 @@ class OneSignalService {
   }
 
   /**
-   * Supprime le Player ID du profil Supabase
+   * Marque l'appareil comme inactif dans user_devices
    */
   async clearPlayerIdFromProfile(): Promise<boolean> {
     try {
@@ -155,20 +161,28 @@ class OneSignalService {
         return false;
       }
 
+      const playerId = await this.getPlayerId();
+      
+      if (!playerId) {
+        logger.warn('⚠️ Aucun Player ID à supprimer');
+        return true;
+      }
+
       const { error } = await supabase
-        .from('profiles')
-        .update({ onesignal_player_id: null })
-        .eq('id', user.id);
+        .from('user_devices')
+        .update({ is_active: false })
+        .eq('user_id', user.id)
+        .eq('onesignal_player_id', playerId);
 
       if (error) {
-        logger.error('❌ Erreur lors de la suppression du Player ID:', error);
+        logger.error('❌ Erreur lors de la désactivation de l\'appareil:', error);
         return false;
       }
 
-      logger.success('✅ Player ID supprimé du profil');
+      logger.success('✅ Appareil marqué comme inactif');
       return true;
     } catch (error) {
-      logger.error('❌ Erreur lors de la suppression du Player ID:', error);
+      logger.error('❌ Erreur lors de la désactivation de l\'appareil:', error);
       return false;
     }
   }

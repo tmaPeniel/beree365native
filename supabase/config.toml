@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.send-daily-reminders]
 verify_jwt = false
+
+[functions.send-daily-verse]
+verify_jwt = false

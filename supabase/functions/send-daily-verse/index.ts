@@ -14,10 +14,8 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 interface UserToNotify {
   id: string;
   full_name: string | null;
-  start_date: string;
   current_day_number: number;
-  selected_plan_id: string;
-  reading_reminder_time: string;
+  daily_verse_time: string;
 }
 
 interface UserDevice {
@@ -25,8 +23,9 @@ interface UserDevice {
   onesignal_player_id: string;
 }
 
-interface Chapter {
+interface DailyVerse {
   reference: string;
+  text: string;
 }
 
 serve(async (req) => {
@@ -35,9 +34,8 @@ serve(async (req) => {
   }
 
   try {
-    console.log('🔔 Starting daily reminders job...');
+    console.log('📖 Starting daily verse notifications job...');
     
-    // Créer le client Supabase avec le service role key
     const supabase = createClient(
       SUPABASE_URL!,
       SUPABASE_SERVICE_ROLE_KEY!,
@@ -49,34 +47,31 @@ serve(async (req) => {
       }
     );
 
-    // Obtenir l'heure actuelle en UTC
     const now = new Date();
     const currentHour = now.getUTCHours();
     const currentMinute = now.getUTCMinutes();
     console.log(`⏰ Current UTC time: ${currentHour}:${currentMinute}`);
 
-    // Récupérer tous les utilisateurs avec les rappels activés
+    // Récupérer les utilisateurs avec daily_verse activé
     const { data: users, error: usersError } = await supabase
       .from('profiles')
       .select(`
         id,
         full_name,
-        start_date,
         current_day_number,
-        selected_plan_id,
         notification_preferences!inner(
-          reading_reminder_enabled,
-          reading_reminder_time
+          daily_verse_enabled,
+          daily_verse_time
         )
       `)
-      .eq('notification_preferences.reading_reminder_enabled', true);
+      .eq('notification_preferences.daily_verse_enabled', true);
 
     if (usersError) {
       console.error('❌ Error fetching users:', usersError);
       throw usersError;
     }
 
-    console.log(`📊 Found ${users?.length || 0} users with reminders enabled`);
+    console.log(`📊 Found ${users?.length || 0} users with daily verse enabled`);
 
     if (!users || users.length === 0) {
       return new Response(
@@ -85,8 +80,36 @@ serve(async (req) => {
       );
     }
 
+    // Filtrer les utilisateurs dont l'heure correspond (±30 min)
+    const usersToNotify: UserToNotify[] = users.filter((user: any) => {
+      const prefTime = user.notification_preferences.daily_verse_time;
+      const [prefHour, prefMinute] = prefTime.split(':').map(Number);
+      
+      const prefTimeInMinutes = prefHour * 60 + prefMinute;
+      const currentTimeInMinutes = currentHour * 60 + currentMinute;
+      
+      let diffMinutes = Math.abs(prefTimeInMinutes - currentTimeInMinutes);
+      if (diffMinutes > 720) diffMinutes = 1440 - diffMinutes;
+      
+      return diffMinutes <= 30;
+    }).map((user: any) => ({
+      id: user.id,
+      full_name: user.full_name,
+      current_day_number: user.current_day_number,
+      daily_verse_time: user.notification_preferences.daily_verse_time,
+    }));
+
+    console.log(`🎯 ${usersToNotify.length} users to notify at this hour`);
+
+    if (usersToNotify.length === 0) {
+      return new Response(
+        JSON.stringify({ message: 'No users scheduled for this hour', count: 0 }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Récupérer tous les appareils actifs pour ces utilisateurs
-    const userIds = users.map(u => u.id);
+    const userIds = usersToNotify.map(u => u.id);
     const { data: devices, error: devicesError } = await supabase
       .from('user_devices')
       .select('user_id, onesignal_player_id')
@@ -100,68 +123,26 @@ serve(async (req) => {
 
     console.log(`📱 Found ${devices?.length || 0} active devices`);
 
-    // Filtrer les utilisateurs dont l'heure de rappel correspond à l'heure actuelle (±30 min)
-    const usersToNotify: UserToNotify[] = users.filter((user: any) => {
-      const prefTime = user.notification_preferences.reading_reminder_time;
-      const [prefHour, prefMinute] = prefTime.split(':').map(Number);
-      
-      // Calculer la différence en minutes
-      const prefTimeInMinutes = prefHour * 60 + prefMinute;
-      const currentTimeInMinutes = currentHour * 60 + currentMinute;
-      const diffMinutes = Math.abs(prefTimeInMinutes - currentTimeInMinutes);
-      
-      // Accepter si la différence est <= 30 minutes
-      return diffMinutes <= 30;
-    }).map((user: any) => ({
-      id: user.id,
-      full_name: user.full_name,
-      onesignal_player_id: user.onesignal_player_id,
-      start_date: user.start_date,
-      current_day_number: user.current_day_number,
-      selected_plan_id: user.selected_plan_id,
-      reading_reminder_time: user.notification_preferences.reading_reminder_time,
-    })) as UserToNotify[];
-
-    console.log(`🎯 ${usersToNotify.length} users to notify at this hour`);
-
-    if (usersToNotify.length === 0) {
-      return new Response(
-        JSON.stringify({ message: 'No users scheduled for this hour', count: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
     let successCount = 0;
     let errorCount = 0;
 
-    // Traiter chaque utilisateur
     for (const user of usersToNotify) {
       try {
         console.log(`📖 Processing user ${user.id} (Day ${user.current_day_number})`);
 
-        // Récupérer les chapitres du jour pour cet utilisateur
-        const { data: chapters, error: chaptersError } = await supabase
-          .from('reading_plan_chapters')
-          .select('reference')
-          .eq('plan_id', user.selected_plan_id)
-          .eq('day_number', user.current_day_number);
+        // Récupérer le verset du jour
+        const { data: verse, error: verseError } = await supabase
+          .from('daily_verses')
+          .select('reference, text')
+          .eq('day_number', user.current_day_number)
+          .single();
 
-        if (chaptersError) {
-          console.error(`❌ Error fetching chapters for user ${user.id}:`, chaptersError);
-          throw chaptersError;
-        }
-
-        if (!chapters || chapters.length === 0) {
-          console.log(`⚠️ No chapters found for user ${user.id} on day ${user.current_day_number}`);
+        if (verseError || !verse) {
+          console.log(`⚠️ No verse for day ${user.current_day_number}`);
           continue;
         }
 
-        // Construire le message
-        const chaptersList = (chapters as Chapter[]).map(c => c.reference).join(', ');
-        const title = `📖 Lecture du jour - Jour ${user.current_day_number}`;
-        const message = `Vos chapitres : ${chaptersList}`;
-
-        // Récupérer tous les appareils de l'utilisateur
+        // Récupérer les appareils de l'utilisateur
         const userDevices = (devices as UserDevice[])?.filter(d => d.user_id === user.id) || [];
         const playerIds = userDevices.map(d => d.onesignal_player_id);
 
@@ -170,9 +151,11 @@ serve(async (req) => {
           continue;
         }
 
-        console.log(`📤 Sending notification to ${playerIds.length} device(s)`);
+        const title = `✨ Verset du jour - Jour ${user.current_day_number}`;
+        const message = `${verse.reference}\n\n"${verse.text}"`;
+
+        console.log(`📤 Sending verse to ${playerIds.length} device(s)`);
         console.log(`   Title: ${title}`);
-        console.log(`   Message: ${message}`);
 
         // Envoyer la notification via OneSignal à TOUS les appareils
         const oneSignalResponse = await fetch('https://onesignal.com/api/v1/notifications', {
@@ -187,8 +170,9 @@ serve(async (req) => {
             headings: { en: title },
             contents: { en: message },
             data: {
-              type: 'reading_reminder',
+              type: 'daily_verse',
               day_number: user.current_day_number,
+              reference: verse.reference,
             },
           }),
         });
@@ -200,12 +184,12 @@ serve(async (req) => {
           throw new Error(`OneSignal error: ${JSON.stringify(oneSignalData)}`);
         }
 
-        console.log(`✅ Notification sent successfully:`, oneSignalData);
+        console.log(`✅ Verse notification sent successfully:`, oneSignalData);
 
         // Logger le succès
         await supabase.from('notification_logs').insert({
           user_id: user.id,
-          notification_type: 'reading_reminder',
+          notification_type: 'daily_verse',
           title,
           body: message,
           success: true,
@@ -220,7 +204,7 @@ serve(async (req) => {
         // Logger l'échec
         await supabase.from('notification_logs').insert({
           user_id: user.id,
-          notification_type: 'reading_reminder',
+          notification_type: 'daily_verse',
           title: 'Failed to send',
           body: error.message,
           success: false,
@@ -230,7 +214,7 @@ serve(async (req) => {
     }
 
     const result = {
-      message: 'Daily reminders job completed',
+      message: 'Daily verse notifications job completed',
       totalUsers: usersToNotify.length,
       successCount,
       errorCount,
@@ -244,7 +228,7 @@ serve(async (req) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error: any) {
-    console.error('❌ Fatal error in daily reminders job:', error);
+    console.error('❌ Fatal error in daily verse job:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
