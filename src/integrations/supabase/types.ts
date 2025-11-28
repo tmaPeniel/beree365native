@@ -75,6 +75,7 @@ export type Database = {
           id: string
           notification_type: string
           onesignal_notification_id: string | null
+          onesignal_player_id: string | null
           sent_at: string
           success: boolean
           title: string
@@ -86,6 +87,7 @@ export type Database = {
           id?: string
           notification_type: string
           onesignal_notification_id?: string | null
+          onesignal_player_id?: string | null
           sent_at?: string
           success?: boolean
           title: string
@@ -97,6 +99,7 @@ export type Database = {
           id?: string
           notification_type?: string
           onesignal_notification_id?: string | null
+          onesignal_player_id?: string | null
           sent_at?: string
           success?: boolean
           title?: string
