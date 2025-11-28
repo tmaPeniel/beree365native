@@ -300,6 +300,39 @@ export type Database = {
           },
         ]
       }
+      user_devices: {
+        Row: {
+          created_at: string | null
+          device_platform: string | null
+          device_token: string | null
+          id: string
+          is_active: boolean | null
+          last_seen_at: string | null
+          onesignal_player_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_platform?: string | null
+          device_token?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          onesignal_player_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          device_platform?: string | null
+          device_token?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_seen_at?: string | null
+          onesignal_player_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_progress: {
         Row: {
           chapter_id: string | null
