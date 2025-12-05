@@ -9,6 +9,7 @@ import ProgressStats from '@/components/ProgressStats';
 import ReadingPlan from '@/components/ReadingPlan';
 import VerseOfDay from '@/components/VerseOfDay';
 import TodayDisplay from '@/components/TodayDisplay';
+import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useDateService } from '@/hooks/useDateService';
@@ -42,8 +43,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background pb-20">
       <div className="bg-card p-4 md:p-6 shadow-sm">
-        <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Le Tour de ma Bible en 365 jours</h1>
-        <p className="text-sm md:text-base text-muted-foreground">SISAP Editions Powered</p>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Le Tour de ma Bible en 365 jours</h1>
+            <p className="text-sm md:text-base text-muted-foreground">SISAP Editions Powered</p>
+          </div>
+          <NotificationCenter />
+        </div>
       </div>
 
       <div className="p-4 md:p-6 space-y-4 md:space-y-6">
