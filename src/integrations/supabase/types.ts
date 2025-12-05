@@ -73,9 +73,12 @@ export type Database = {
           body: string
           error_message: string | null
           id: string
+          is_deleted: boolean | null
+          is_read: boolean | null
           notification_type: string
           onesignal_notification_id: string | null
           onesignal_player_id: string | null
+          read_at: string | null
           sent_at: string
           success: boolean
           title: string
@@ -85,9 +88,12 @@ export type Database = {
           body: string
           error_message?: string | null
           id?: string
+          is_deleted?: boolean | null
+          is_read?: boolean | null
           notification_type: string
           onesignal_notification_id?: string | null
           onesignal_player_id?: string | null
+          read_at?: string | null
           sent_at?: string
           success?: boolean
           title: string
@@ -97,9 +103,12 @@ export type Database = {
           body?: string
           error_message?: string | null
           id?: string
+          is_deleted?: boolean | null
+          is_read?: boolean | null
           notification_type?: string
           onesignal_notification_id?: string | null
           onesignal_player_id?: string | null
+          read_at?: string | null
           sent_at?: string
           success?: boolean
           title?: string
