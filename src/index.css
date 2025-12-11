@@ -120,4 +120,16 @@
   .nav-item-active {
     @apply text-beree-500;
   }
+
+  /* Verse gradient background - sunset theme */
+  .bg-verse-gradient {
+    background: linear-gradient(
+      to bottom,
+      hsl(290 30% 25%) 0%,
+      hsl(340 35% 45%) 25%,
+      hsl(10 50% 55%) 50%,
+      hsl(25 65% 65%) 75%,
+      hsl(35 75% 75%) 100%
+    );
+  }
 }
