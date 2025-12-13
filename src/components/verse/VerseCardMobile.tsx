@@ -22,7 +22,7 @@ const VerseCardMobile: React.FC<VerseCardMobileProps> = ({
       {/* Header */}
       <div className="p-5 pb-2">
         <p className="text-white text-sm font-semibold uppercase tracking-wider drop-shadow-md">
-          Verset du jour
+          Sagesse du jour
         </p>
         <p className="text-white text-lg font-bold mt-1 drop-shadow-md">
           {verse.reference}
