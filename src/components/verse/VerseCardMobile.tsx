@@ -18,11 +18,13 @@ const VerseCardMobile: React.FC<VerseCardMobileProps> = ({
   isLoading,
 }) => {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-verse-gradient min-h-[420px] flex flex-col">
+    <div className="relative overflow-hidden rounded-2xl bg-verse-gradient min-h-[380px] flex flex-col shadow-lg">
       {/* Header */}
-      <div className="p-5 pb-0">
-        <p className="text-white/70 text-sm font-medium">Verset du jour</p>
-        <p className="text-white/90 text-base font-semibold mt-0.5">
+      <div className="p-5 pb-2">
+        <p className="text-white text-sm font-semibold uppercase tracking-wider drop-shadow-md">
+          Verset du jour
+        </p>
+        <p className="text-white text-lg font-bold mt-1 drop-shadow-md">
           {verse.reference}
         </p>
       </div>
