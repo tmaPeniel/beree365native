@@ -48,6 +48,7 @@ export type Database = {
         Row: {
           day_number: number
           id: string
+          likes_count: number
           reference: string
           text: string
           wisdomType: string | null
@@ -55,6 +56,7 @@ export type Database = {
         Insert: {
           day_number: number
           id?: string
+          likes_count?: number
           reference: string
           text: string
           wisdomType?: string | null
@@ -62,6 +64,7 @@ export type Database = {
         Update: {
           day_number?: number
           id?: string
+          likes_count?: number
           reference?: string
           text?: string
           wisdomType?: string | null
