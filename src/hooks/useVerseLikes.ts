@@ -20,13 +20,14 @@ export function useVerseLikes(dayNumber: number): UseVerseLikesReturn {
     if (!dayNumber) return;
 
     try {
-      // Get total likes count
-      const { count } = await supabase
-        .from('verse_likes')
-        .select('*', { count: 'exact', head: true })
-        .eq('verse_day_number', dayNumber);
+      // Get likes count directly from daily_verses (optimized)
+      const { data: verseData } = await supabase
+        .from('daily_verses')
+        .select('likes_count')
+        .eq('day_number', dayNumber)
+        .maybeSingle();
 
-      setLikesCount(count || 0);
+      setLikesCount(verseData?.likes_count || 0);
 
       // Check if current user has liked
       if (user) {
