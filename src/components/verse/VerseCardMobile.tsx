@@ -21,23 +21,21 @@ const VerseCardMobile: React.FC<VerseCardMobileProps> = ({
     <div className="relative overflow-hidden rounded-2xl bg-verse-gradient min-h-[380px] flex flex-col shadow-lg">
       {/* Header */}
       <div className="p-5 pb-2">
-        <div className="flex items-center justify-between">
-          <p className="text-white text-sm font-semibold uppercase tracking-wider drop-shadow-md">
-            Verset du jour
-          </p>
-          {verse.wisdomType && (
-            <span className="text-white/80 text-xs font-medium bg-white/20 px-2 py-0.5 rounded-full backdrop-blur-sm">
-              {verse.wisdomType}
-            </span>
-          )}
-        </div>
+        <p className="text-white text-sm font-semibold uppercase tracking-wider drop-shadow-md">
+          Verset du jour
+        </p>
         <p className="text-white text-lg font-bold mt-1 drop-shadow-md">
           {verse.reference}
         </p>
       </div>
 
       {/* Verse content - centered */}
-      <div className="flex-1 flex items-center justify-center px-6 py-8">
+      <div className="flex-1 flex flex-col items-center justify-center px-6 py-8">
+        {verse.wisdomType && (
+          <span className="text-white/80 text-xs font-medium bg-white/20 px-3 py-1 rounded-full backdrop-blur-sm mb-4">
+            {verse.wisdomType}
+          </span>
+        )}
         <blockquote className="text-white text-center text-xl font-medium leading-relaxed italic">
           "{verse.text}"
         </blockquote>
