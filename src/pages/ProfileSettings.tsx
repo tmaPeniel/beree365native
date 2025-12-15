@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
 
@@ -13,7 +14,16 @@ import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications
  */
 const ProfileSettings = () => {
   const { theme, setTheme } = useTheme();
-  const { isSupported, isSubscribed, permission } = useUnifiedPushNotifications();
+  const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe } = useUnifiedPushNotifications();
+
+  // Handler pour le toggle des notifications
+  const handleNotificationToggle = async (checked: boolean) => {
+    if (checked) {
+      await subscribe();
+    } else {
+      await unsubscribe();
+    }
+  };
 
   // Obtenir le statut des notifications push
   const getNotificationStatus = () => {
@@ -27,6 +37,14 @@ const ProfileSettings = () => {
       return { status: "active", label: "Actif", variant: "default" as const };
     }
     return { status: "inactive", label: "Inactif", variant: "outline" as const };
+  };
+
+  // Description dynamique des notifications
+  const getNotificationDescription = () => {
+    if (!isSupported) return "Non disponible sur ce navigateur";
+    if (permission === "denied") return "Autorisation bloquée dans le navigateur";
+    if (isSubscribed) return "Recevez vos rappels quotidiens";
+    return "Activez pour recevoir vos rappels";
   };
 
   const notificationStatus = getNotificationStatus();
@@ -49,10 +67,9 @@ const ProfileSettings = () => {
       options: [
         {
           label: "Notifications push",
-          description: `Statut: ${notificationStatus.label}`,
+          description: getNotificationDescription(),
           icon: Bell,
-          action: "navigate",
-          to: "/profile/notifications",
+          action: "toggle",
           badge: notificationStatus,
         },
       ],
@@ -150,6 +167,13 @@ const ProfileSettings = () => {
                           <SelectItem value="system">Système</SelectItem>
                         </SelectContent>
                       </Select>
+                    )}
+                    {option.action === "toggle" && (
+                      <Switch
+                        checked={isSubscribed}
+                        onCheckedChange={handleNotificationToggle}
+                        disabled={isLoading || !isSupported || permission === "denied"}
+                      />
                     )}
                     {option.action === "navigate" && (
                       <Link to={option.to || "#"}>
