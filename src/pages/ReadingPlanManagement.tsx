@@ -131,6 +131,8 @@ const ReadingPlanManagement = () => {
       queryClient.invalidateQueries({ queryKey: ['user-plan'] });
       queryClient.invalidateQueries({ queryKey: ['user-progress'] });
       queryClient.invalidateQueries({ queryKey: ['user-badges'] });
+      queryClient.invalidateQueries({ queryKey: ['userStats'] });
+      queryClient.invalidateQueries({ queryKey: ['user-plan-duration'] });
     } catch (error) {
       console.error('Erreur lors de la réinitialisation:', error);
       toast.error('Erreur lors de la réinitialisation du plan');
