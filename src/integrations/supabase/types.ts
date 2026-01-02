@@ -228,6 +228,7 @@ export type Database = {
           id: string
           plan_id: string
           reference: string
+          sort_order: number | null
         }
         Insert: {
           day_number: number
@@ -235,6 +236,7 @@ export type Database = {
           id?: string
           plan_id: string
           reference: string
+          sort_order?: number | null
         }
         Update: {
           day_number?: number
@@ -242,6 +244,7 @@ export type Database = {
           id?: string
           plan_id?: string
           reference?: string
+          sort_order?: number | null
         }
         Relationships: [
           {
