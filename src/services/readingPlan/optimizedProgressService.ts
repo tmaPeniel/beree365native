@@ -14,7 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { UserProgress, ReadingPlanChapter } from "@/types/supabase";
 import { invalidateUserCacheSelective, optimizedToggleChapterStatus as newOptimizedToggle } from "./optimizedCacheService";
 import { ActivityService } from '../auth/activityService';
-import { calculateUserBadges } from '../badgeService';
+import { calculateUserBadges, getUserBadges, Badge, UserBadge } from '../badgeService';
 
 const DEBUG_MODE = true; // Activer les logs de debugging
 
@@ -89,26 +89,45 @@ export const invalidateProgressCache = (userId: string, dayNumber?: number) => {
 
 /**
  * Fonction de toggle optimisée avec calcul automatique des badges
+ * Retourne les nouveaux badges débloqués pour affichage
  */
 export const optimizedToggleChapterStatus = async (
   userId: string,
   chapterId: string,
   newStatus: 'completed' | 'pending',
   dayNumber?: number
-) => {
+): Promise<{ success: boolean; error?: string; newBadges?: Badge[] }> => {
   try {
     // Appeler la fonction originale
     const result = await newOptimizedToggle(userId, chapterId, newStatus, dayNumber);
     
     // Si le toggle a réussi et qu'un chapitre a été complété, calculer les badges
     if (result?.success && newStatus === 'completed') {
-      // Calcul des badges en arrière-plan (ne pas attendre)
-      calculateUserBadges(userId).catch(error => {
-        console.error('Erreur lors du calcul des badges:', error);
-      });
+      try {
+        // Récupérer les badges actuels AVANT le calcul
+        const badgesBefore = await getUserBadges(userId);
+        const badgeIdsBefore = new Set(badgesBefore.map(b => b.badge_id));
+        
+        // Calculer les nouveaux badges
+        await calculateUserBadges(userId);
+        
+        // Récupérer les badges APRÈS le calcul
+        const badgesAfter = await getUserBadges(userId);
+        
+        // Identifier les nouveaux badges débloqués
+        const newBadges = badgesAfter
+          .filter(userBadge => !badgeIdsBefore.has(userBadge.badge_id))
+          .map(userBadge => userBadge.badge);
+        
+        return { success: true, newBadges };
+      } catch (badgeError) {
+        console.error('Erreur lors du calcul des badges:', badgeError);
+        // Continuer même si le calcul des badges échoue
+        return { success: true, newBadges: [] };
+      }
     }
     
-    return result;
+    return { success: result?.success ?? false, newBadges: [] };
   } catch (error) {
     console.error('Erreur dans optimizedToggleChapterStatus avec badges:', error);
     return { success: false, error: 'Erreur lors de la mise à jour' };

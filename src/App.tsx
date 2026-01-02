@@ -5,6 +5,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/hooks/useAuth";
+import { BadgeNotificationProvider } from "@/contexts/BadgeNotificationContext";
+import BadgeUnlockPopup from "@/components/notifications/BadgeUnlockPopup";
 import SplashScreen from "./components/SplashScreen";
 import { useSplashScreen } from "./hooks/useSplashScreen";
 import AppLayout from "./components/AppLayout";
@@ -49,7 +51,9 @@ function App() {
         {splashComplete && (
           <BrowserRouter>
             <AuthProvider>
-              <Routes>
+              <BadgeNotificationProvider>
+                <BadgeUnlockPopup />
+                <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
@@ -190,7 +194,8 @@ function App() {
                   } 
                 />
                 <Route path="*" element={<NotFound />} />
-              </Routes>
+                </Routes>
+              </BadgeNotificationProvider>
             </AuthProvider>
           </BrowserRouter>
         )}
