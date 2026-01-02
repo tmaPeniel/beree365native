@@ -9,6 +9,7 @@ import { signOut } from '@/services/authService';
 import { supabase } from '@/integrations/supabase/client';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useQueryClient } from '@tanstack/react-query';
 import EditProfileDialog from './EditProfileDialog';
 
 /**
@@ -19,6 +20,7 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
   const { user } = useOptimizedAuth();
   const [isResetting, setIsResetting] = useState(false);
   const isMobile = useIsMobile();
+  const queryClient = useQueryClient();
   
   /**
    * Gère la déconnexion de l'utilisateur
@@ -80,6 +82,13 @@ const ProfileActions = ({ onEditProfile }: { onEditProfile: () => void }) => {
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+
+      // Invalider le cache React Query
+      queryClient.invalidateQueries({ queryKey: ['user-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['user-badges'] });
+      queryClient.invalidateQueries({ queryKey: ['userStats'] });
+      queryClient.invalidateQueries({ queryKey: ['user-plan'] });
+      queryClient.invalidateQueries({ queryKey: ['user-plan-duration'] });
 
       toast.success("Votre plan de lecture a été réinitialisé !");
       navigate('/dashboard');
