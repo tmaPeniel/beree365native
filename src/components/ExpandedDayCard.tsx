@@ -1,11 +1,13 @@
 import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { optimizedToggleChapterStatus, markAllChaptersAsRead } from '@/services/readingPlan/optimizedCacheService';
+import { markAllChaptersAsRead } from '@/services/readingPlan/optimizedCacheService';
+import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
 import { getCachedUserProgressForDay } from '@/services/readingPlan/optimizedProgressService';
 import { Check, Loader2, CheckCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useBadgeNotification } from '@/contexts/BadgeNotificationContext';
 
 interface Chapter {
   id: string;
@@ -35,6 +37,7 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [isMarkingAll, setIsMarkingAll] = useState(false);
   const queryClient = useQueryClient();
+  const { showBadgeUnlocked } = useBadgeNotification();
   
   // Ajouter le rafraîchissement automatique pour synchroniser les cartes
   const { data: progressData } = useQuery({
@@ -86,6 +89,13 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       );
       
       if (result.success) {
+        // Afficher les nouveaux badges débloqués
+        if (result.newBadges && result.newBadges.length > 0) {
+          for (const badge of result.newBadges) {
+            showBadgeUnlocked(badge);
+          }
+        }
+        
         // Mise à jour optimiste ultra-ciblée du cache global
         queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
           if (!oldData) return oldData;

@@ -8,6 +8,7 @@ import { Check, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import CelebrationEffects from '@/components/animations/CelebrationEffects';
+import { useBadgeNotification } from '@/contexts/BadgeNotificationContext';
 
 interface ReadingItem {
   id: string;
@@ -32,6 +33,7 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [showCelebration, setShowCelebration] = useState(false);
   const queryClient = useQueryClient();
+  const { showBadgeUnlocked } = useBadgeNotification();
   
   const formattedDate = useMemo(() => 
     new Date(date).toLocaleDateString('fr-FR', { 
@@ -113,6 +115,13 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
       );
       
       if (result.success) {
+        // Afficher les nouveaux badges débloqués
+        if (result.newBadges && result.newBadges.length > 0) {
+          for (const badge of result.newBadges) {
+            showBadgeUnlocked(badge);
+          }
+        }
+        
         // Mise à jour optimiste du cache au lieu d'invalidation agressive
         queryClient.setQueryData(['user-progress', user.id, day], (oldData: any[]) => {
           if (!oldData) return oldData;
