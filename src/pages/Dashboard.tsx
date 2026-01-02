@@ -18,16 +18,16 @@ import PlanDates from '@/components/ui/PlanDate';
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const { profile, isLoading } = useAuth();
-  const { currentDayNumber, isLoading: dayLoading, getStats } = useDateService();
+  const { currentDayNumber, isLoading: dayLoading, getStats, planDuration } = useDateService();
   const today = new Date();
   
   // Calculer les statistiques du plan
   const stats = getStats();
   
-  // Calculer les dates du plan
+  // Calculer les dates du plan dynamiquement selon le plan choisi
   const startDate = profile?.start_date ? new Date(profile.start_date) : today;
   const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + 364);
+  endDate.setDate(startDate.getDate() + (planDuration - 1));
   
   if (isLoading || !profile || dayLoading) {
     return (
