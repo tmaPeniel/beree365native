@@ -32,7 +32,7 @@ export async function getChaptersForDay(dayNumber: number, planId: string) {
       .select('*')
       .eq('day_number', dayNumber)
       .eq('plan_id', planId)
-      .order('id');
+      .order('sort_order');
     
     if (error) {
       logger.error(`Failed to get chapters for day ${dayNumber}`, error);
