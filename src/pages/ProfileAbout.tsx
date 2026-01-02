@@ -1,5 +1,5 @@
 import React from 'react';
-import { ArrowLeft, Heart, Github, Mail, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Heart, Mail, ExternalLink } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -58,30 +58,12 @@ const ProfileAbout = () => {
           </CardContent>
         </Card>
 
-        {/* Fonctionnalités */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Fonctionnalités</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-foreground">
-              <li>• Plans de lecture personnalisables</li>
-              <li>• Suivi de progression quotidien</li>
-              <li>• Versets du jour inspirants</li>
-              <li>• Système de badges et récompenses</li>
-              <li>• Interface moderne et intuitive</li>
-              <li>• Mode hors ligne</li>
-              <li>• Synchronisation entre appareils</li>
-            </ul>
-          </CardContent>
-        </Card>
-
         {/* Contact et Support */}
         <Card>
           <CardHeader>
             <CardTitle>Contact & Support</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <Mail className="h-5 w-5 text-muted-foreground" />
@@ -93,20 +75,6 @@ const ProfileAbout = () => {
               <Button variant="outline" size="sm">
                 <ExternalLink className="h-4 w-4 mr-2" />
                 Contacter
-              </Button>
-            </div>
-            
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Github className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Code source</p>
-                  <p className="text-sm text-muted-foreground">Contribuer au projet</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                GitHub
               </Button>
             </div>
           </CardContent>
