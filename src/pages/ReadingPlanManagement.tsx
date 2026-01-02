@@ -65,6 +65,7 @@ const ReadingPlanManagement = () => {
       toast.success('Plan de lecture changé avec succès !');
       queryClient.invalidateQueries({ queryKey: ['user-plan'] });
       queryClient.invalidateQueries({ queryKey: ['user-progress'] });
+      queryClient.invalidateQueries({ queryKey: ['user-plan-duration'] });
       setSelectedPlanId(null);
     },
     onError: (error: any) => {

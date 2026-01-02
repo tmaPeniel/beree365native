@@ -49,6 +49,7 @@ const PlanChangeDialog: React.FC<PlanChangeDialogProps> = ({
         await queryClient.invalidateQueries({ queryKey: ['user-plan'] });
         await queryClient.invalidateQueries({ queryKey: ['reading-plan'] });
         await queryClient.invalidateQueries({ queryKey: ['user-progress'] });
+        await queryClient.invalidateQueries({ queryKey: ['user-plan-duration'] });
         
         setIsOpen(false);
         onPlanChanged?.();

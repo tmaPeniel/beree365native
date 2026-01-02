@@ -13,21 +13,26 @@ import NotificationCenter from '@/components/notifications/NotificationCenter';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAuth } from '@/hooks/useAuth';
 import { useDateService } from '@/hooks/useDateService';
+import { usePlanDuration } from '@/hooks/usePlanDuration';
 import PlanDates from '@/components/ui/PlanDate';
 
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const { profile, isLoading } = useAuth();
   const { currentDayNumber, isLoading: dayLoading, getStats, planDuration } = useDateService();
+  const { planName, planDuration: hookPlanDuration } = usePlanDuration();
   const today = new Date();
   
   // Calculer les statistiques du plan
   const stats = getStats();
   
+  // Utiliser la durée du hook dédié (plus fiable après changement de plan)
+  const effectivePlanDuration = hookPlanDuration || planDuration;
+  
   // Calculer les dates du plan dynamiquement selon le plan choisi
   const startDate = profile?.start_date ? new Date(profile.start_date) : today;
   const endDate = new Date(startDate);
-  endDate.setDate(startDate.getDate() + (planDuration - 1));
+  endDate.setDate(startDate.getDate() + (effectivePlanDuration - 1));
   
   if (isLoading || !profile || dayLoading) {
     return (
@@ -45,7 +50,9 @@ const Dashboard = () => {
       <div className="bg-card p-4 md:p-6 shadow-sm">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">Le Tour de ma Bible en 365 jours</h1>
+            <h1 className="text-xl md:text-2xl font-bold mb-1 md:mb-2">
+              {planName || `Le Tour de ma Bible en ${effectivePlanDuration} jours`}
+            </h1>
             <p className="text-sm md:text-base text-muted-foreground">SISAP Editions Powered</p>
           </div>
           <NotificationCenter />
