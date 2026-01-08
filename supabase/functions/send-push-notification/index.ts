@@ -52,44 +52,62 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get player IDs from database
+    // Get player IDs from database (priorité: user_devices, fallback: profiles)
     let playerIds: string[] = [];
 
     if (userIds && userIds.length > 0) {
-      // Multiple users
-      const { data, error } = await supabase
-        .from('profiles')
+      // Multiple users - chercher dans user_devices d'abord
+      const { data: devicesData, error: devicesError } = await supabase
+        .from('user_devices')
         .select('onesignal_player_id')
-        .in('id', userIds)
+        .in('user_id', userIds)
+        .eq('is_active', true)
         .not('onesignal_player_id', 'is', null);
 
-      if (error) {
-        console.error('Error fetching player IDs:', error);
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch player IDs' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      if (!devicesError && devicesData && devicesData.length > 0) {
+        playerIds = devicesData.map(d => d.onesignal_player_id).filter(Boolean);
+        console.log(`Found ${playerIds.length} player IDs in user_devices`);
+      } else {
+        // Fallback vers profiles
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('onesignal_player_id')
+          .in('id', userIds)
+          .not('onesignal_player_id', 'is', null);
 
-      playerIds = data.map(profile => profile.onesignal_player_id).filter(Boolean);
+        if (profilesError) {
+          console.error('Error fetching player IDs from profiles:', profilesError);
+        } else if (profilesData) {
+          playerIds = profilesData.map(p => p.onesignal_player_id).filter(Boolean);
+          console.log(`Found ${playerIds.length} player IDs in profiles (fallback)`);
+        }
+      }
     } else if (userId) {
-      // Single user
-      const { data, error } = await supabase
-        .from('profiles')
+      // Single user - chercher dans user_devices d'abord
+      const { data: deviceData, error: deviceError } = await supabase
+        .from('user_devices')
         .select('onesignal_player_id')
-        .eq('id', userId)
-        .single();
+        .eq('user_id', userId)
+        .eq('is_active', true)
+        .not('onesignal_player_id', 'is', null);
 
-      if (error) {
-        console.error('Error fetching player ID:', error);
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch player ID' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      if (!deviceError && deviceData && deviceData.length > 0) {
+        playerIds = deviceData.map(d => d.onesignal_player_id).filter(Boolean);
+        console.log(`Found ${playerIds.length} player ID(s) in user_devices for user ${userId}`);
+      } else {
+        // Fallback vers profiles
+        const { data: profileData, error: profileError } = await supabase
+          .from('profiles')
+          .select('onesignal_player_id')
+          .eq('id', userId)
+          .single();
 
-      if (data?.onesignal_player_id) {
-        playerIds = [data.onesignal_player_id];
+        if (profileError) {
+          console.error('Error fetching player ID from profiles:', profileError);
+        } else if (profileData?.onesignal_player_id) {
+          playerIds = [profileData.onesignal_player_id];
+          console.log(`Found player ID in profiles (fallback) for user ${userId}`);
+        }
       }
     }
 

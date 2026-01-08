@@ -114,10 +114,12 @@ class OneSignalService {
   }
 
   /**
-   * Sauvegarde le Player ID dans la table user_devices (support multi-appareils)
+   * Sauvegarde le Player ID dans user_devices ET profiles (compatibilité)
    */
   async savePlayerIdToProfile(playerId: string): Promise<boolean> {
     try {
+      console.log('💾 Tentative de sauvegarde du Player ID:', playerId);
+      
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
@@ -125,26 +127,53 @@ class OneSignalService {
         return false;
       }
 
-      const { error } = await supabase
+      console.log('👤 Utilisateur connecté:', user.id);
+
+      // 1. Sauvegarder dans user_devices (support multi-appareils)
+      const { error: devicesError } = await supabase
         .from('user_devices')
         .upsert({
           user_id: user.id,
           onesignal_player_id: playerId,
           device_platform: 'web',
           last_seen_at: new Date().toISOString(),
+          is_active: true,
         }, {
           onConflict: 'user_id,onesignal_player_id'
         });
 
-      if (error) {
-        logger.error('❌ Erreur lors de la sauvegarde du Player ID:', error);
-        return false;
+      if (devicesError) {
+        logger.error('❌ Erreur user_devices:', devicesError);
+        console.error('❌ Erreur user_devices:', devicesError);
+      } else {
+        console.log('✅ Player ID sauvegardé dans user_devices');
       }
 
-      logger.success('✅ Player ID sauvegardé dans user_devices');
-      return true;
+      // 2. Sauvegarder aussi dans profiles (compatibilité avec send-push-notification)
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          onesignal_player_id: playerId,
+          device_platform: 'web',
+        })
+        .eq('id', user.id);
+
+      if (profileError) {
+        logger.error('❌ Erreur profiles:', profileError);
+        console.error('❌ Erreur profiles:', profileError);
+      } else {
+        console.log('✅ Player ID sauvegardé dans profiles');
+      }
+
+      const success = !devicesError && !profileError;
+      if (success) {
+        logger.success('✅ Player ID sauvegardé dans les deux tables');
+      }
+      
+      return success;
     } catch (error) {
       logger.error('❌ Erreur lors de la sauvegarde du Player ID:', error);
+      console.error('❌ Erreur globale:', error);
       return false;
     }
   }
@@ -212,11 +241,28 @@ class OneSignalService {
       // S'abonner
       await OneSignal.User.PushSubscription.optIn();
       
-      // Attendre un peu pour que OneSignal traite l'abonnement
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Attendre que OneSignal traite l'abonnement (augmenté à 2s)
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
-      // Récupérer et sauvegarder le Player ID
-      await this.updatePlayerId();
+      // Récupérer le Player ID avec retry si nécessaire
+      let playerId = await this.getPlayerId();
+      console.log('🔍 Premier essai - Player ID:', playerId);
+      
+      // Si pas de player ID, réessayer après 1s
+      if (!playerId) {
+        console.log('⏳ Player ID non disponible, retry dans 1s...');
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        playerId = await this.getPlayerId();
+        console.log('🔍 Deuxième essai - Player ID:', playerId);
+      }
+      
+      if (playerId) {
+        await this.savePlayerIdToProfile(playerId);
+        this.playerId = playerId;
+      } else {
+        logger.warn('⚠️ Player ID non disponible après abonnement');
+        console.warn('⚠️ Player ID non disponible après abonnement');
+      }
       
       const isNowSubscribed = await this.isSubscribed();
       
