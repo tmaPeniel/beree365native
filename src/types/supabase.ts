@@ -54,6 +54,7 @@ export type DailyVerse = {
   reference: string;
   text: string;
   wisdomType: string | null;
+  likes_count?: number;
 };
 
 // Nouveaux types pour l'administration
