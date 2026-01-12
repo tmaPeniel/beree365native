@@ -10,7 +10,8 @@ import {
   Info, 
   Share,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  Pencil
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -144,6 +145,15 @@ const Profile = () => {
                 <p className="text-muted-foreground">{user?.email}</p>
               </div>
             </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => navigate('/profile/edit')}
+              className="flex items-center gap-2"
+            >
+              <Pencil className="h-4 w-4" />
+              Éditer
+            </Button>
           </div>
         </div>
       </div>

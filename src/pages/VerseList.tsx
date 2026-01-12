@@ -1,4 +1,5 @@
-import { ArrowLeft, Calendar, BookOpen } from 'lucide-react';
+import { ArrowLeft, Calendar, BookOpen, Heart } from 'lucide-react';
+import { formatNumber } from '@/lib/formatNumber';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
@@ -108,11 +109,19 @@ export default function VerseList() {
             {filteredVerses.map((verse) => (
               <Card key={verse.id} className="transition-colors hover:bg-muted/50">
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calendar className="h-4 w-4 text-primary" />
-                    <span className="text-sm font-medium text-primary">
-                      Jour {verse.day_number}
-                    </span>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium text-primary">
+                        Jour {verse.day_number}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 text-muted-foreground">
+                      <Heart className="h-4 w-4" />
+                      <span className="text-sm">
+                        {formatNumber(verse.likes_count || 0)}
+                      </span>
+                    </div>
                   </div>
                   
                   <div className="space-y-2">
