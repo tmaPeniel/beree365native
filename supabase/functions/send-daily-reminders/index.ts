@@ -202,6 +202,23 @@ serve(async (req) => {
 
         console.log(`✅ Notification sent successfully:`, oneSignalData);
 
+        // Désactiver automatiquement les player IDs invalides retournés par OneSignal
+        if (oneSignalData.errors?.invalid_player_ids && oneSignalData.errors.invalid_player_ids.length > 0) {
+          console.log(`🔕 Deactivating ${oneSignalData.errors.invalid_player_ids.length} invalid player IDs`);
+          for (const invalidId of oneSignalData.errors.invalid_player_ids) {
+            const { error: updateError } = await supabase
+              .from('user_devices')
+              .update({ is_active: false, last_seen_at: new Date().toISOString() })
+              .eq('onesignal_player_id', invalidId);
+            
+            if (updateError) {
+              console.error(`Error deactivating player ${invalidId}:`, updateError);
+            } else {
+              console.log(`✅ Deactivated invalid player ID: ${invalidId}`);
+            }
+          }
+        }
+
         // Logger le succès
         await supabase.from('notification_logs').insert({
           user_id: user.id,
