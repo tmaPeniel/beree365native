@@ -220,8 +220,8 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({
   return <Card className="bg-card border-none shadow-sm">
       <CardContent className="p-6">
         {/* En-tête avec indicateur de rafraîchissement automatique */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-left">Aujourd'hui</h2>
+        <div className="mb-4 flex items-center justify-center">
+          <h2 className="text-xl font-semibold text-center">Aujourd'hui</h2>
           <div className="flex items-center gap-2">
             
           </div>
