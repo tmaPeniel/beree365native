@@ -221,7 +221,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({
       <CardContent className="p-6">
         {/* En-tête avec indicateur de rafraîchissement automatique */}
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Aujourd'hui</h2>
+          <h2 className="text-xl font-semibold text-left">Aujourd'hui</h2>
           <div className="flex items-center gap-2">
             
           </div>
@@ -229,7 +229,7 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({
         
         {/* Section des passages à lire */}
         <div className="mb-6">
-          <h3 className="font-medium text-foreground mb-3">Passages du jour</h3>
+          <h3 className="font-medium text-foreground mb-3 text-center">Passages du jour</h3>
           {readingItems.length > 0 ? <ul className="space-y-2">
               {readingItems.map(item => <ReadingItemRow key={item.id} item={item} isProcessing={processingIds.includes(item.id)} onToggle={event => handleToggleRead(event, item.id)} />)}
             </ul> : <p className="text-center text-muted-foreground my-4">
