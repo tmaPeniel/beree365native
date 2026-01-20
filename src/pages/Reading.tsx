@@ -27,7 +27,9 @@ import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCac
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import ViewModeToggle, { ViewMode } from '@/components/reading/ViewModeToggle';
+import FocusReadingView from '@/components/reading/FocusReadingView';
 /**
  * Composant principal de la page de lecture
  * React.memo pour optimiser les performances
@@ -42,6 +44,9 @@ const Reading = React.memo(() => {
   const currentDayRef = useRef<HTMLDivElement>(null);
   const [hasScrolledToDay, setHasScrolledToDay] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  
+  // Mode d'affichage (focus ou grille) - persisté dans localStorage
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('reading-view-mode', 'focus');
   const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   /**
@@ -201,30 +206,42 @@ const Reading = React.memo(() => {
     <div className="min-h-screen bg-background pb-20">
       {/* En-tête avec titre et contrôles de navigation */}
       <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
-        <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
+          
+          {/* Toggle vue grille/focus - mobile uniquement */}
+          {isMobile && optimizedData.length > 0 && (
+            <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          )}
+        </div>
+        
         {optimizedData.length > 0 ? (
           <>
             <p className="text-muted-foreground">
               Suivez votre progression au fil des jours
             </p>
             
-            {/* Barre de recherche */}
-            <div className="mt-4 max-w-md mx-auto">
-              <SearchBar
-                value={searchQuery}
-                onChange={setSearchQuery}
-                placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
-                className="w-full"
-              />
-            </div>
-            
-            {/* Contrôles de navigation centrés */}
-            <div className="mt-4 flex justify-center">
-              <DayNavigationControls 
-                onCurrentDayClick={scrollToCurrentDay}
-                showNavigationButtons={true}
-              />
-            </div>
+            {/* Barre de recherche et contrôles - seulement en mode grille ou sur desktop */}
+            {(!isMobile || viewMode === 'grid') && (
+              <>
+                <div className="mt-4 max-w-md mx-auto">
+                  <SearchBar
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
+                    className="w-full"
+                  />
+                </div>
+                
+                {/* Contrôles de navigation centrés */}
+                <div className="mt-4 flex justify-center">
+                  <DayNavigationControls 
+                    onCurrentDayClick={scrollToCurrentDay}
+                    showNavigationButtons={true}
+                  />
+                </div>
+              </>
+            )}
           </>
         ) : (
           <p className="text-muted-foreground">
@@ -233,9 +250,10 @@ const Reading = React.memo(() => {
         )}
       </div>
       
-      {/* Contenu principal - grille des jours */}
+      {/* Contenu principal */}
       <div className="container mx-auto px-4 pb-16">
-        {searchQuery && (
+        {/* Affichage des résultats de recherche - mode grille uniquement */}
+        {(!isMobile || viewMode === 'grid') && searchQuery && (
           <div className="mb-4 text-center">
             <p className="text-muted-foreground">
               {filteredData.length} résultat{filteredData.length !== 1 ? 's' : ''} trouvé{filteredData.length !== 1 ? 's' : ''} pour "{searchQuery}"
@@ -264,8 +282,14 @@ const Reading = React.memo(() => {
             <p className="text-muted-foreground">Aucun passage trouvé pour "{searchQuery}"</p>
             <p className="text-muted-foreground text-sm mt-2">Essayez de rechercher par nom de livre (ex: Jean, Psaumes, Genèse...)</p>
           </div>
+        ) : isMobile && viewMode === 'focus' ? (
+          /* Vue Focus - mobile uniquement */
+          <FocusReadingView
+            readingData={optimizedData}
+            currentDayNumber={currentDayNumber}
+          />
         ) : (
-          /* Organisation mensuelle du plan de lecture */
+          /* Vue Grille - organisation mensuelle du plan de lecture */
           <MonthlyReadingPlan
             readingData={filteredData}
             currentDayNumber={currentDayNumber}
