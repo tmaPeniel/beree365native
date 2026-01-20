@@ -68,6 +68,9 @@ const Dashboard = () => {
       
         <VerseOfDay dayNumber={currentDayNumber} />
         
+        {/* Sur mobile: ReadingPlan juste après VerseOfDay */}
+        {isMobile && <ReadingPlan dayNumber={currentDayNumber} />}
+        
         <ProgressStats />
 
         <div className={`${isMobile ? '' : 'grid grid-cols-2 gap-6'}`}>
@@ -77,7 +80,8 @@ const Dashboard = () => {
             remainingDays={stats.remainingDays}
           />
           
-          <ReadingPlan dayNumber={currentDayNumber} />
+          {/* Sur desktop: ReadingPlan dans la grille */}
+          {!isMobile && <ReadingPlan dayNumber={currentDayNumber} />}
         </div>
       </div>
       
