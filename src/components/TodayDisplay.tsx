@@ -21,7 +21,7 @@ const TodayDisplay: React.FC<TodayDisplayProps> = ({
         Bienvenue {userName},
       </h2>
       <br />
-      <div className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-6 rounded-xl shadow-lg mb-6 hover:animate-lift transition-all duration-300 border border-primary/20 py-[15px]">
+      <div className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-6 rounded-xl shadow-lg mb-6 hover:animate-lift transition-all duration-300 border-primary/20 py-[15px] border-0">
         <h3 className="text-base md:text-base mb-1 animate-text-reveal" style={{
         animationDelay: '0.1s'
       }}>

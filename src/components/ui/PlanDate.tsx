@@ -1,18 +1,15 @@
 import React from 'react';
 import { Card, CardContent } from './card';
-
 interface PlanDatesProps {
   startDate: Date;
   endDate: Date;
   remainingDays: number;
 }
-
 const PlanDates: React.FC<PlanDatesProps> = ({
   startDate,
   endDate,
-  remainingDays,
-}) => (
-    <Card className="bg-card border-border shadow-sm">
+  remainingDays
+}) => <Card className="bg-card border-border shadow-sm border-0">
       <CardContent className="p-6">
             <div className="text-sm text-muted-foreground grid grid-cols-2 gap-3 mt-6">
                 <div className="bg-primary/10 p-3 rounded">
@@ -29,7 +26,5 @@ const PlanDates: React.FC<PlanDatesProps> = ({
                 </div>
             </div>
         </CardContent>
-  </Card>
-  );
-
+  </Card>;
 export default PlanDates;

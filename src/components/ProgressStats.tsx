@@ -1,4 +1,3 @@
-
 /**
  * Composant de statistiques de progression
  * Affiche la progression globale de l'utilisateur dans le plan de lecture
@@ -22,26 +21,27 @@ interface ProgressStatsData {
   passagesRemaining: number;
   progressPercentage: number;
 }
-
 const ProgressStats = () => {
   const isMobile = useIsMobile();
-  const { user, progressUpdateCounter } = useAuth();
+  const {
+    user,
+    progressUpdateCounter
+  } = useAuth();
   const isInitialLoad = useInitialPageLoad(user?.id); // Utiliser l'ID utilisateur comme dépendance
-  
+
   // État local pour les statistiques
   const [stats, setStats] = useState<ProgressStatsData>({
     totalPassages: 0,
     passagesRead: 0,
     passagesRemaining: 0,
-    progressPercentage: 0,
+    progressPercentage: 0
   });
   const [isLoading, setIsLoading] = useState(true);
-  
+
   // Effet pour charger les statistiques
   useEffect(() => {
     const fetchStats = async () => {
       if (!user) return;
-      
       setIsLoading(false);
       try {
         const progress = await getOverallProgress(user.id);
@@ -53,26 +53,21 @@ const ProgressStats = () => {
         setIsLoading(false);
       }
     };
-    
     fetchStats();
   }, [user, progressUpdateCounter]);
-  
+
   // Affichage du loader pendant le chargement
   if (isLoading) {
-    return (
-      <Card className="bg-card border-none shadow-sm">
+    return <Card className="bg-card border-none shadow-sm">
         <CardContent className="p-4 md:p-6">
           <div className="flex justify-center items-center h-48">
             <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-green-500"></div>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
-  
-  return (
-    <Card className="bg-card border-border shadow-sm animate-scale-fade-in">
-      <CardContent className="p-4 md:p-6">
+  return <Card className="bg-card border-border shadow-sm animate-scale-fade-in border-0">
+      <CardContent className="p-4 md:p-6 py-[15px] my-0">
         {/* En-tête de la section */}
         <div className="text-center mb-4">
           <h2 className="text-md md:text-lg font-semibold mb-4 text-center text-primary bg-primary/5 py-2 rounded-md animate-text-reveal">
@@ -84,19 +79,25 @@ const ProgressStats = () => {
           {/* Partie gauche - Statistiques textuelles */}
           <div className="w-full md:w-3/5 space-y-2 md:space-y-3">
             {/* Total de passages à lire */}
-            <div className="grid grid-cols-2 items-center bg-secondary/50 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-secondary hover:animate-lift animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <div className="grid grid-cols-2 items-center bg-secondary/50 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-secondary hover:animate-lift animate-fade-in" style={{
+            animationDelay: '0.1s'
+          }}>
               <span className="text-sm md:text-base text-foreground font-medium">Total de Passages à lire</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.totalPassages}</span>
             </div>
             
             {/* Total de passages lus */}
-            <div className="grid grid-cols-2 items-center bg-accent/10 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-accent/20 hover:animate-lift animate-fade-in" style={{ animationDelay: '0.2s' }}>
+            <div className="grid grid-cols-2 items-center bg-accent/10 p-2 md:p-3 rounded-md transition-all duration-300 hover:bg-accent/20 hover:animate-lift animate-fade-in" style={{
+            animationDelay: '0.2s'
+          }}>
               <span className="text-sm md:text-base text-foreground font-medium">Total de Passages lus</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRead}</span>
             </div>
             
             {/* Total passages restants */}
-            <div className="grid grid-cols-2 items-center bg-muted p-2 md:p-3 rounded-md border-r-2 border-muted-foreground/20 transition-all duration-300 hover:bg-muted/80 hover:animate-lift animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div className="grid grid-cols-2 items-center bg-muted p-2 md:p-3 rounded-md border-r-2 border-muted-foreground/20 transition-all duration-300 hover:bg-muted/80 hover:animate-lift animate-fade-in" style={{
+            animationDelay: '0.3s'
+          }}>
               <span className="text-sm md:text-base text-foreground font-medium">Total Passages restants</span>
               <span className="text-right font-bold text-sm md:text-base">{stats.passagesRemaining}</span>
             </div>
@@ -104,12 +105,7 @@ const ProgressStats = () => {
           
           {/* Partie droite - Cercle de progression */}
           <div className="w-full md:w-2/5 flex justify-center">
-            <CircularProgress 
-              progress={stats.progressPercentage} 
-              size={isMobile ? 120 : 140}
-              className="text-primary"
-              isInitialLoad={isInitialLoad}
-            />
+            <CircularProgress progress={stats.progressPercentage} size={isMobile ? 120 : 140} className="text-primary" isInitialLoad={isInitialLoad} />
           </div>
         </div>
 
@@ -127,8 +123,6 @@ const ProgressStats = () => {
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default ProgressStats;

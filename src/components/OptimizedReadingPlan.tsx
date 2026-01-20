@@ -217,8 +217,8 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({
   }
 
   // Rendu principal du composant
-  return <Card className="bg-card border-none shadow-sm">
-      <CardContent className="p-6 py-[15px]">
+  return <Card className="bg-card border-none shadow-sm border-0">
+      <CardContent className="p-6 py-[15px] border-0">
         {/* En-tête avec indicateur de rafraîchissement automatique */}
         
         
