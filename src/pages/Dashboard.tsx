@@ -66,10 +66,10 @@ const Dashboard = () => {
           userName={profile?.full_name || 'Utilisateur'} 
         />
       
-        <VerseOfDay dayNumber={currentDayNumber} />
-        
-        {/* Sur mobile: ReadingPlan juste après VerseOfDay */}
+        {/* Sur mobile: ReadingPlan au-dessus de VerseOfDay */}
         {isMobile && <ReadingPlan dayNumber={currentDayNumber} />}
+        
+        <VerseOfDay dayNumber={currentDayNumber} />
         
         <ProgressStats />
 
