@@ -36,7 +36,7 @@ const VerseCardMobile: React.FC<VerseCardMobileProps> = ({
             {verse.wisdomType}
           </span>
         )}
-        <blockquote className="text-white text-center text-xl font-medium leading-relaxed italic">
+        <blockquote className="text-white text-center text-lg font-medium leading-relaxed italic">
           "{verse.text}"
         </blockquote>
       </div>
