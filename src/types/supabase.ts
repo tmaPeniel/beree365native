@@ -24,6 +24,7 @@ export type ReadingPlan = {
   duration_days: number;
   is_active: boolean;
   created_at: string;
+  image_url: string | null;
 };
 
 // Type pour les chapitres du plan de lecture

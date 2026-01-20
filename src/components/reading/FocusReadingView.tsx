@@ -19,6 +19,7 @@ interface DayData {
 }
 
 interface FocusReadingViewProps {
+  planImageUrl?: string | null;
   readingData: DayData[];
   currentDayNumber: number;
   planName?: string;
@@ -29,7 +30,7 @@ interface FocusReadingViewProps {
  * Avec carrousel horizontal et détail du jour sélectionné
  */
 const FocusReadingView = React.memo<FocusReadingViewProps>(
-  ({ readingData, currentDayNumber, planName = "Défi Bible" }) => {
+  ({ readingData, currentDayNumber, planName = "Défi Bible", planImageUrl }) => {
     const [selectedDay, setSelectedDay] = useState(currentDayNumber);
 
     // S'assurer que le jour sélectionné est valide
@@ -84,26 +85,40 @@ const FocusReadingView = React.memo<FocusReadingViewProps>(
     return (
       <div className="space-y-4">
         {/* Hero Card */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/90 to-primary p-6 text-primary-foreground">
-          {/* Motif décoratif */}
-          <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
-            <BookOpen className="w-full h-full" strokeWidth={0.5} />
-          </div>
-
-          <div className="relative z-10">
-            <h2 className="text-2xl font-bold mb-1">{planName}</h2>
-
-            {/* Barre de progression globale */}
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progression globale</span>
-                <span className="font-semibold">{globalProgress}%</span>
+        <div className="relative overflow-hidden rounded-2xl text-primary-foreground">
+          {/* Image de fond si disponible */}
+          {planImageUrl ? (
+            <img 
+              src={planImageUrl} 
+              alt={planName}
+              className="absolute inset-0 w-full h-full object-cover"
+            />
+          ) : null}
+          
+          {/* Overlay gradient */}
+          <div className={`relative ${planImageUrl ? 'bg-black/50' : 'bg-gradient-to-br from-primary/90 to-primary'} p-6`}>
+            {/* Motif décoratif (seulement si pas d'image) */}
+            {!planImageUrl && (
+              <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
+                <BookOpen className="w-full h-full" strokeWidth={0.5} />
               </div>
-              <div className="h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-primary-foreground rounded-full transition-all duration-500"
-                  style={{ width: `${globalProgress}%` }}
-                />
+            )}
+
+            <div className="relative z-10">
+              <h2 className="text-2xl font-bold mb-1">{planName}</h2>
+
+              {/* Barre de progression globale */}
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Progression globale</span>
+                  <span className="font-semibold">{globalProgress}%</span>
+                </div>
+                <div className="h-2 bg-primary-foreground/20 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-primary-foreground rounded-full transition-all duration-500"
+                    style={{ width: `${globalProgress}%` }}
+                  />
+                </div>
               </div>
             </div>
           </div>

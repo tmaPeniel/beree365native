@@ -241,13 +241,24 @@ const ReadingPlanManagement = () => {
               return (
                 <Card 
                   key={plan.id} 
-                  className={`cursor-pointer transition-all hover:shadow-md ${
+                  className={`cursor-pointer transition-all hover:shadow-md overflow-hidden ${
                     isCurrentPlan 
                       ? 'border-primary/20 bg-primary/5' 
                       : 'hover:border-primary/30 hover:scale-[1.02]'
                   }`}
                   onClick={() => handlePlanCardClick(plan)}
                 >
+                  {/* Image du plan */}
+                  {plan.image_url && (
+                    <div className="h-32 w-full overflow-hidden">
+                      <img 
+                        src={plan.image_url} 
+                        alt={plan.name}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                  )}
+                  
                   <CardContent className="p-6">
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
