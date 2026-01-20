@@ -83,7 +83,18 @@ const PlanCard: React.FC = () => {
   }
 
   return (
-    <Card>
+    <Card className="overflow-hidden">
+      {/* Image du plan */}
+      {currentPlan.image_url && (
+        <div className="h-24 w-full overflow-hidden">
+          <img 
+            src={currentPlan.image_url} 
+            alt={currentPlan.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+      )}
+      
       <CardHeader>
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2">

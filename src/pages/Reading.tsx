@@ -23,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { ChevronUp } from 'lucide-react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useDateService } from '@/hooks/useDateService';
+import { usePlanDuration } from '@/hooks/usePlanDuration';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -39,6 +40,7 @@ const Reading = React.memo(() => {
   const { profile, isLoading: authLoading } = useOptimizedAuth();
   const isMobile = useIsMobile();
   const { currentDayNumber, isLoading: dayLoading } = useDateService();
+  const { planName, planImageUrl } = usePlanDuration();
   
   // Références et état local pour la navigation
   const currentDayRef = useRef<HTMLDivElement>(null);
@@ -287,6 +289,8 @@ const Reading = React.memo(() => {
           <FocusReadingView
             readingData={optimizedData}
             currentDayNumber={currentDayNumber}
+            planName={planName}
+            planImageUrl={planImageUrl}
           />
         ) : (
           /* Vue Grille - organisation mensuelle du plan de lecture */

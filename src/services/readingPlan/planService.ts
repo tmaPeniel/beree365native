@@ -44,7 +44,8 @@ export const getUserPlan = async (userId: string): Promise<ReadingPlan | null> =
           description,
           duration_days,
           is_active,
-          created_at
+          created_at,
+          image_url
         )
       `)
       .eq('id', userId)

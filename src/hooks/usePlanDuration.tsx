@@ -24,6 +24,7 @@ export const usePlanDuration = () => {
     planDuration: planData?.duration_days || 365, // Fallback à 365 si pas de plan
     isLoading: authLoading || planLoading,
     planName: planData?.name,
-    planDescription: planData?.description
+    planDescription: planData?.description,
+    planImageUrl: planData?.image_url
   };
 };

@@ -262,6 +262,7 @@ export type Database = {
           description: string | null
           duration_days: number
           id: string
+          image_url: string | null
           is_active: boolean
           name: string
         }
@@ -270,6 +271,7 @@ export type Database = {
           description?: string | null
           duration_days?: number
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name: string
         }
@@ -278,6 +280,7 @@ export type Database = {
           description?: string | null
           duration_days?: number
           id?: string
+          image_url?: string | null
           is_active?: boolean
           name?: string
         }

@@ -38,6 +38,17 @@ const PlanDetailsDialog: React.FC<PlanDetailsDialogProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
+        {/* Image du plan */}
+        {plan.image_url && (
+          <div className="h-40 w-full -mt-6 -mx-6 mb-4 overflow-hidden rounded-t-lg">
+            <img 
+              src={plan.image_url} 
+              alt={plan.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+        
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <BookOpen className="h-5 w-5 text-primary" />
