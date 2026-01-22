@@ -38,7 +38,22 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
     const [processingIds, setProcessingIds] = useState<string[]>([]);
     const [isMarkingAll, setIsMarkingAll] = useState(false);
 
-    const isComplete = progressPercentage === 100;
+    // État local pour mise à jour optimiste immédiate
+    const [localChapters, setLocalChapters] = useState<Chapter[]>(chapters);
+
+    // Synchroniser avec les props quand elles changent (changement de jour)
+    React.useEffect(() => {
+      setLocalChapters(chapters);
+    }, [chapters]);
+
+    // Calculer la progression localement pour réactivité immédiate
+    const localProgressPercentage = useMemo(() => {
+      if (localChapters.length === 0) return 0;
+      const completedCount = localChapters.filter((ch) => ch.completed).length;
+      return Math.round((completedCount / localChapters.length) * 100);
+    }, [localChapters]);
+
+    const isComplete = localProgressPercentage === 100;
 
     // Formater la date
     const formattedDate = useMemo(() => {
@@ -57,8 +72,16 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
           return;
         }
 
-        const chapter = chapters.find((ch) => ch.id === chapterId);
+        const chapter = localChapters.find((ch) => ch.id === chapterId);
         if (!chapter) return;
+
+        // MISE À JOUR OPTIMISTE LOCALE IMMÉDIATE
+        const previousCompleted = chapter.completed;
+        setLocalChapters((prev) =>
+          prev.map((ch) =>
+            ch.id === chapterId ? { ...ch, completed: !ch.completed } : ch
+          )
+        );
 
         try {
           setProcessingIds((prev) => [...prev, chapterId]);
@@ -66,7 +89,7 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
           const result = await optimizedToggleChapterStatus(
             user.id,
             chapterId,
-            chapter.completed ? "completed" : "pending",
+            previousCompleted ? "completed" : "pending",
             day,
           );
 
@@ -78,7 +101,7 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
               }
             }
 
-            // Mise à jour optimiste du cache
+            // Mise à jour du cache global
             queryClient.setQueryData(["optimized-reading-plan-data", user.id], (oldData: any[]) => {
               if (!oldData) return oldData;
 
@@ -87,7 +110,7 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
 
                 const updatedChapters = dayData.chapters.map((ch: Chapter) => {
                   if (ch.id === chapterId) {
-                    return { ...ch, completed: !ch.completed };
+                    return { ...ch, completed: !previousCompleted };
                   }
                   return ch;
                 });
@@ -106,9 +129,23 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
             });
 
             triggerProgressUpdate();
+          } else {
+            // ROLLBACK en cas d'échec
+            setLocalChapters((prev) =>
+              prev.map((ch) =>
+                ch.id === chapterId ? { ...ch, completed: previousCompleted } : ch
+              )
+            );
+            toast.error("Erreur lors de la mise à jour");
           }
         } catch (error) {
           console.error("Error toggling chapter:", error);
+          // ROLLBACK en cas d'erreur
+          setLocalChapters((prev) =>
+            prev.map((ch) =>
+              ch.id === chapterId ? { ...ch, completed: previousCompleted } : ch
+            )
+          );
           toast.error("Erreur lors de la mise à jour");
           queryClient.invalidateQueries({
             queryKey: ["optimized-reading-plan-data", user.id],
@@ -117,18 +154,24 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
           setProcessingIds((prev) => prev.filter((id) => id !== chapterId));
         }
       },
-      [user, chapters, day, queryClient, triggerProgressUpdate, showBadgeUnlocked],
+      [user, localChapters, day, queryClient, triggerProgressUpdate, showBadgeUnlocked],
     );
 
     // Handler pour marquer tous les passages comme lus
     const handleMarkAllRead = useCallback(async () => {
       if (!user || isMarkingAll) return;
 
-      const uncompletedChapters = chapters.filter((ch) => !ch.completed);
+      const uncompletedChapters = localChapters.filter((ch) => !ch.completed);
       if (uncompletedChapters.length === 0) {
         toast.info("Tous les passages sont déjà lus !");
         return;
       }
+
+      // MISE À JOUR OPTIMISTE LOCALE IMMÉDIATE
+      const previousChapters = [...localChapters];
+      setLocalChapters((prev) =>
+        prev.map((ch) => ({ ...ch, completed: true }))
+      );
 
       setIsMarkingAll(true);
 
@@ -164,9 +207,15 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
           toast.success(
             `${uncompletedChapters.length} passage${uncompletedChapters.length > 1 ? "s" : ""} marqué${uncompletedChapters.length > 1 ? "s" : ""} comme lu${uncompletedChapters.length > 1 ? "s" : ""} !`,
           );
+        } else {
+          // ROLLBACK en cas d'échec
+          setLocalChapters(previousChapters);
+          toast.error("Erreur lors du marquage");
         }
       } catch (error) {
         console.error("Error marking all as read:", error);
+        // ROLLBACK en cas d'erreur
+        setLocalChapters(previousChapters);
         toast.error("Erreur lors du marquage");
         queryClient.invalidateQueries({
           queryKey: ["optimized-reading-plan-data", user.id],
@@ -174,7 +223,7 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
       } finally {
         setIsMarkingAll(false);
       }
-    }, [user, chapters, day, queryClient, triggerProgressUpdate, isMarkingAll]);
+    }, [user, localChapters, day, queryClient, triggerProgressUpdate, isMarkingAll]);
 
     return (
       <div className="bg-card rounded-2xl border border-border p-4 shadow-sm">
@@ -190,15 +239,15 @@ const FocusDayDetail = React.memo<FocusDayDetailProps>(
               </span>
             )}
           </div>
-          <span className="text-sm font-medium text-muted-foreground">{progressPercentage}%</span>
-        </div>
+        <span className="text-sm font-medium text-muted-foreground">{localProgressPercentage}%</span>
+      </div>
 
         {/* Date */}
         <p className="text-sm text-muted-foreground mb-4 capitalize">{formattedDate}</p>
 
         {/* Liste des chapitres */}
         <div className="space-y-3 mb-4">
-          {chapters.map((chapter) => {
+          {localChapters.map((chapter) => {
             const isProcessing = processingIds.includes(chapter.id);
 
             return (
