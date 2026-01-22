@@ -24,6 +24,8 @@ import ProfileNotifications from "./pages/ProfileNotifications";
 import ProfileAbout from "./pages/ProfileAbout";
 import ProfileEdit from "./pages/ProfileEdit";
 import ProfileHelp from "./pages/ProfileHelp";
+import ProfilePrivacy from "./pages/ProfilePrivacy";
+import Terms from "./pages/Terms";
 import ReadingPlanManagement from "./pages/ReadingPlanManagement";
 import VerseList from "./pages/VerseList";
 import Reading from "./pages/Reading";
@@ -61,6 +63,7 @@ function App() {
                 <Route path="/signup/plan" element={<SignupStep2 />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/terms" element={<Terms />} />
                 <Route 
                   path="/dashboard" 
                   element={
@@ -166,7 +169,17 @@ function App() {
                   element={
                     <ProtectedRoute>
                       <AppLayout>
-                        <ProfileHelp />
+                      <ProfileHelp />
+                    </AppLayout>
+                  </ProtectedRoute>
+                } 
+                />
+                <Route 
+                  path="/profile/privacy" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProfilePrivacy />
                       </AppLayout>
                     </ProtectedRoute>
                   } 

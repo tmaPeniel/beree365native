@@ -80,6 +80,36 @@ const ProfileAbout = () => {
           </CardContent>
         </Card>
 
+        {/* Liens légaux */}
+        <Card>
+          <CardContent className="pt-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Conditions Générales d'Utilisation</p>
+                <p className="text-sm text-muted-foreground">Consulter les CGU</p>
+              </div>
+              <Link to="/terms">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Lire
+                </Button>
+              </Link>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Politique de confidentialité</p>
+                <p className="text-sm text-muted-foreground">Gérer vos données (RGPD)</p>
+              </div>
+              <Link to="/profile/privacy">
+                <Button variant="outline" size="sm">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Gérer
+                </Button>
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Remerciements */}
         <Card>
           <CardContent className="pt-6">
