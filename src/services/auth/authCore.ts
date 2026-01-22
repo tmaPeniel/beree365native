@@ -35,8 +35,33 @@ export const signUp = async (email: string, password: string, fullName: string, 
     if (signUpError) throw signUpError;
     
     if (authData.user) {
-      //console.log("Utilisateur créé avec succès:", authData.user.id);
-      //console.log("Les triggers vont automatiquement créer le profil et assigner le rôle");
+      // Enregistrer le consentement CGU en base de données
+      try {
+        const response = await fetch(
+          `https://xizlfyrjhzkzdchjezfn.supabase.co/rest/v1/user_consents`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpemxmeXJqaHpremRjaGplemZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3Mjc0NDksImV4cCI6MjA2MzMwMzQ0OX0.fSIJdIhVVq76EgNdEpjB0qJu0PAACVuJs2IdC6irJmc',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              user_id: authData.user.id,
+              consent_type: 'terms',
+              consent_given: true,
+              consent_version: '1.0',
+              user_agent: navigator.userAgent
+            })
+          }
+        );
+        if (!response.ok) {
+          console.warn('Erreur enregistrement consentement CGU:', response.statusText);
+        }
+      } catch (consentError) {
+        console.warn('Erreur enregistrement consentement CGU:', consentError);
+      }
       
       return { success: true, user: authData.user };
     }

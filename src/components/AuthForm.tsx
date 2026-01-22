@@ -5,6 +5,7 @@
  */
 
 import React, { useState, useEffect } from 'react';
+import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,7 +39,10 @@ const signupSchema = z.object({
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
   startDate: z.date({ required_error: "La date de début est requise" }),
-  planId: z.string().min(1, { message: "Veuillez sélectionner un plan de lecture" })
+  planId: z.string().min(1, { message: "Veuillez sélectionner un plan de lecture" }),
+  acceptTerms: z.boolean().refine(val => val === true, {
+    message: "Vous devez accepter les CGU pour vous inscrire"
+  })
 });
 
 // Types basés sur les schémas
@@ -153,7 +157,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
    */
   const SignupForm = () => {
     const [showPassword, setShowPassword] = useState(false);
-    const [plans, setPlans] = useState<ReadingPlan[]>([]);
+    const [_plans, setPlans] = useState<ReadingPlan[]>([]);
     const form = useForm<SignupFormValues>({
       resolver: zodResolver(signupSchema),
       defaultValues: {
@@ -161,7 +165,8 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
         password: "",
         name: "",
         startDate: new Date(),
-        planId: ""
+        planId: "",
+        acceptTerms: false
       },
     });
 
@@ -315,16 +320,38 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
             )}
           />
           
+          <FormField
+            control={form.control}
+            name="acceptTerms"
+            render={({ field, fieldState }) => (
+              <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                <FormControl>
+                  <Checkbox
+                    checked={field.value}
+                    onCheckedChange={field.onChange}
+                  />
+                </FormControl>
+                <div className="space-y-1 leading-none">
+                  <FormLabel className={cn(fieldState.error && "text-destructive", "text-sm font-normal")}>
+                    J'accepte les{' '}
+                    <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
+                      Conditions Générales d'Utilisation
+                    </Link>
+                    {' '}et la{' '}
+                    <Link to="/cookies" target="_blank" className="text-primary hover:underline font-medium">
+                      Politique de cookies
+                    </Link>
+                    {' '}*
+                  </FormLabel>
+                  <FormMessage />
+                </div>
+              </FormItem>
+            )}
+          />
+          
           <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
             S'inscrire
           </Button>
-          
-          <p className="text-xs text-center text-muted-foreground mt-4">
-            En vous inscrivant, vous acceptez nos{' '}
-            <Link to="/terms" className="text-primary hover:underline">
-              Conditions Générales d'Utilisation
-            </Link>
-          </p>
         </form>
       </Form>
     );

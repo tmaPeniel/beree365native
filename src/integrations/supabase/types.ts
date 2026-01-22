@@ -318,6 +318,47 @@ export type Database = {
           },
         ]
       }
+      user_consents: {
+        Row: {
+          consent_given: boolean
+          consent_type: string
+          consent_version: string
+          consented_at: string | null
+          id: string
+          revoked_at: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          consent_given?: boolean
+          consent_type: string
+          consent_version: string
+          consented_at?: string | null
+          id?: string
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          consent_given?: boolean
+          consent_type?: string
+          consent_version?: string
+          consented_at?: string | null
+          id?: string
+          revoked_at?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_consents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_devices: {
         Row: {
           created_at: string | null
