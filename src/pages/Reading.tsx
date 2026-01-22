@@ -70,10 +70,6 @@ const Reading = React.memo(() => {
           currentDayRef.current.classList.remove('ring-2', 'ring-primary', 'ring-opacity-75');
         }
       }, 2000);
-      
-      toast.success(`Navigation vers le jour ${currentDayNumber}`);
-    } else {
-      toast.error(`Impossible de trouver le jour ${currentDayNumber}`);
     }
   };
 
