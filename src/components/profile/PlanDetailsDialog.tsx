@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Calendar, Clock, CheckCircle, BookMarked } from 'lucide-react';
 import type { ReadingPlan } from '@/types/supabase';
+import { getPlanImage } from '@/assets/planImages';
 
 interface PlanDetailsDialogProps {
   plan: ReadingPlan | null;
@@ -39,10 +40,10 @@ const PlanDetailsDialog: React.FC<PlanDetailsDialogProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         {/* Image du plan */}
-        {plan.image_url && (
+        {getPlanImage(plan.id) && (
           <div className="h-40 w-full -mt-6 -mx-6 mb-4 overflow-hidden rounded-t-lg">
             <img 
-              src={plan.image_url} 
+              src={getPlanImage(plan.id)} 
               alt={plan.name}
               className="w-full h-full object-cover"
             />

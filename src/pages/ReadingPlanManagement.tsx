@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import PlanDetailsDialog from '@/components/profile/PlanDetailsDialog';
 import { toast } from 'sonner';
 import type { ReadingPlan } from '@/types/supabase';
+import { getPlanImage } from '@/assets/planImages';
 
 /**
  * Page de gestion des plans de lecture
@@ -249,10 +250,10 @@ const ReadingPlanManagement = () => {
                   onClick={() => handlePlanCardClick(plan)}
                 >
                   {/* Image du plan */}
-                  {plan.image_url && (
+                  {getPlanImage(plan.id) && (
                     <div className="h-32 w-full overflow-hidden">
                       <img 
-                        src={plan.image_url} 
+                        src={getPlanImage(plan.id)} 
                         alt={plan.name}
                         className="w-full h-full object-cover"
                       />

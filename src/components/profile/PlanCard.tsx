@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useQuery } from '@tanstack/react-query';
 import { getUserPlan } from '@/services/readingPlan/planService';
 import PlanChangeDialog from './PlanChangeDialog';
+import { getPlanImage } from '@/assets/planImages';
 
 const PlanCard: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -85,10 +86,10 @@ const PlanCard: React.FC = () => {
   return (
     <Card className="overflow-hidden">
       {/* Image du plan */}
-      {currentPlan.image_url && (
+      {getPlanImage(currentPlan.id) && (
         <div className="h-24 w-full overflow-hidden">
           <img 
-            src={currentPlan.image_url} 
+            src={getPlanImage(currentPlan.id)} 
             alt={currentPlan.name}
             className="w-full h-full object-cover"
           />
