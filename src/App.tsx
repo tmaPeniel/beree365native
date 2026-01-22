@@ -1,5 +1,5 @@
 
-import React, { useEffect } from "react";
+import React from "react";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -26,6 +26,8 @@ import ProfileEdit from "./pages/ProfileEdit";
 import ProfileHelp from "./pages/ProfileHelp";
 import ProfilePrivacy from "./pages/ProfilePrivacy";
 import Terms from "./pages/Terms";
+import CookiesPolicy from "./pages/CookiesPolicy";
+import CookieConsentBanner from "./components/cookies/CookieConsentBanner";
 import ReadingPlanManagement from "./pages/ReadingPlanManagement";
 import VerseList from "./pages/VerseList";
 import Reading from "./pages/Reading";
@@ -45,6 +47,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <CookieConsentBanner />
         
         {/* Splash Screen */}
         <SplashScreen isVisible={splashVisible} />
@@ -64,6 +67,7 @@ function App() {
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/cookies" element={<CookiesPolicy />} />
                 <Route 
                   path="/dashboard" 
                   element={

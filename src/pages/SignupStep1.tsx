@@ -4,10 +4,11 @@
  */
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -20,7 +21,10 @@ const step1Schema = z.object({
   email: z.string().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
-  startDate: z.date({ required_error: "La date de début est requise" })
+  startDate: z.date({ required_error: "La date de début est requise" }),
+  acceptTerms: z.boolean().refine(val => val === true, {
+    message: "Vous devez accepter les CGU pour vous inscrire"
+  })
 });
 
 type Step1FormValues = z.infer<typeof step1Schema>;
@@ -35,7 +39,8 @@ const SignupStep1 = () => {
       email: "",
       password: "",
       name: "",
-      startDate: new Date()
+      startDate: new Date(),
+      acceptTerms: false
     },
   });
   
@@ -158,6 +163,35 @@ const SignupStep1 = () => {
                       />
                     </FormControl>
                     <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="acceptTerms"
+                render={({ field, fieldState }) => (
+                  <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                    <FormControl>
+                      <Checkbox
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                    <div className="space-y-1 leading-none">
+                      <FormLabel className={cn(fieldState.error && "text-destructive", "text-sm font-normal")}>
+                        J'accepte les{' '}
+                        <Link to="/terms" target="_blank" className="text-primary hover:underline font-medium">
+                          Conditions Générales d'Utilisation
+                        </Link>
+                        {' '}et la{' '}
+                        <Link to="/cookies" target="_blank" className="text-primary hover:underline font-medium">
+                          Politique de cookies
+                        </Link>
+                        {' '}*
+                      </FormLabel>
+                      <FormMessage />
+                    </div>
                   </FormItem>
                 )}
               />
