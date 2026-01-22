@@ -3,11 +3,10 @@ import { ArrowLeft, BookOpen, Calendar, CheckCircle, RotateCcw, Trash2, BookMark
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuth } from '@/hooks/useAuth';
 import { getAvailablePlans, getUserPlan, changePlan } from '@/services/readingPlan/planService';
 import { supabase } from '@/integrations/supabase/client';
@@ -133,6 +132,11 @@ const ReadingPlanManagement = () => {
     }
   };
 
+  // Get expanded plan details
+  const expandedPlan = expandedPlanId 
+    ? availablePlans?.find((p: ReadingPlan) => p.id === expandedPlanId) 
+    : null;
+
   const isLoading = currentPlanLoading || plansLoading;
 
   if (isLoading) {
@@ -175,131 +179,166 @@ const ReadingPlanManagement = () => {
 
       {/* Contenu */}
       <div className="px-4 py-6 space-y-6">
-        {/* Plans disponibles - Style Album Photo */}
-        <div className="grid grid-cols-2 gap-4">
-          {availablePlans?.map((plan: ReadingPlan) => {
-            const isCurrentPlan = plan.id === currentPlan?.id;
-            const isExpanded = expandedPlanId === plan.id;
-            const planImage = getPlanImage(plan.id);
-            
-            return (
-              <Collapsible 
-                key={plan.id} 
-                open={isExpanded} 
-                onOpenChange={() => togglePlan(plan.id)}
-                className="col-span-1"
-              >
-                <CollapsibleTrigger asChild>
-                  <div 
-                    className={`relative aspect-[4/5] rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
-                      isExpanded ? 'ring-2 ring-primary' : 'hover:scale-[1.02]'
-                    }`}
-                  >
-                    {/* Image de fond */}
-                    {planImage ? (
-                      <img 
-                        src={planImage} 
-                        alt={plan.name}
-                        className="absolute inset-0 w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                        <BookOpen className="h-12 w-12 text-primary/60" />
-                      </div>
-                    )}
-                    
-                    {/* Overlay gradient */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                    
-                    {/* Badge actuel */}
-                    {isCurrentPlan && (
-                      <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground">
-                        <CheckCircle className="h-3 w-3 mr-1" />
-                        Actuel
-                      </Badge>
-                    )}
-                    
-                    {/* Indicateur expansion */}
-                    <div className={`absolute top-3 left-3 p-1.5 rounded-full bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                      <ChevronDown className="h-4 w-4 text-white" />
-                    </div>
-                    
-                    {/* Contenu texte */}
-                    <div className="absolute inset-0 flex flex-col justify-end p-4">
-                      <span className="text-5xl font-bold text-white leading-none">
-                        {formatPlanDuration(plan)}
-                      </span>
-                      <span className="text-lg text-white/90 font-medium mt-1">
-                        {getPlanType(plan)}
-                      </span>
-                    </div>
+        
+        {/* Section: Mon plan actuel */}
+        {currentPlan && (
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Mon plan actuel</h2>
+            <Card className="overflow-hidden border-primary/20">
+              <div className="relative h-28">
+                {getPlanImage(currentPlan.id) ? (
+                  <img 
+                    src={getPlanImage(currentPlan.id)} 
+                    alt={currentPlan.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/50" />
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground">
+                  <CheckCircle className="h-3 w-3 mr-1" />
+                  Actif
+                </Badge>
+                <div className="absolute bottom-3 left-4 right-4">
+                  <h3 className="text-lg font-bold text-white">{currentPlan.name}</h3>
+                  <div className="flex gap-4 text-sm text-white/80 mt-1">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {currentPlan.duration_days} jours
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <BookMarked className="h-3.5 w-3.5" />
+                      {passageCounts?.[currentPlan.id] || 0} passages
+                    </span>
                   </div>
-                </CollapsibleTrigger>
-                
-                {/* Contenu expansible */}
-                <CollapsibleContent className="mt-3 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0">
-                  <div className="p-4 bg-card rounded-xl border border-border space-y-4">
-                    {/* Nom complet */}
-                    <h3 className="font-semibold text-foreground">{plan.name}</h3>
-                    
-                    {/* Description */}
-                    {plan.description && (
-                      <p className="text-sm text-muted-foreground">{plan.description}</p>
-                    )}
-                    
-                    {/* Stats */}
-                    <div className="flex gap-4 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="h-4 w-4" />
-                        {plan.duration_days} jours
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <BookMarked className="h-4 w-4" />
-                        {passageCounts?.[plan.id] || 0} passages
-                      </div>
+                </div>
+              </div>
+            </Card>
+          </section>
+        )}
+
+        {/* Section: Changer de plan */}
+        <section className="space-y-3">
+          <h2 className="text-base font-semibold text-foreground">Changer de plan</h2>
+          
+          {/* Grille des plans */}
+          <div className="grid grid-cols-2 gap-3">
+            {availablePlans?.map((plan: ReadingPlan) => {
+              const isCurrentPlan = plan.id === currentPlan?.id;
+              const isExpanded = expandedPlanId === plan.id;
+              const planImage = getPlanImage(plan.id);
+              
+              return (
+                <div 
+                  key={plan.id}
+                  onClick={() => togglePlan(plan.id)}
+                  className={`relative aspect-[3/2] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ${
+                    isExpanded ? 'ring-2 ring-primary scale-[0.98]' : 'hover:scale-[1.02]'
+                  } ${isCurrentPlan ? 'opacity-60' : ''}`}
+                >
+                  {/* Image de fond */}
+                  {planImage ? (
+                    <img 
+                      src={planImage} 
+                      alt={plan.name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                      <BookOpen className="h-10 w-10 text-primary/60" />
                     </div>
-                    
-                    {/* Bouton sélectionner */}
-                    {!isCurrentPlan && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                          <Button 
-                            className="w-full"
-                            disabled={changePlanMutation.isPending}
-                          >
-                            {changePlanMutation.isPending ? 'Changement...' : 'Sélectionner ce plan'}
-                          </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>Changer de plan de lecture ?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Cette action supprimera votre progression actuelle et réinitialisera vos badges. 
-                              Vous repartirez au jour 1 du nouveau plan.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Annuler</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => handleChangePlan(plan.id)}>
-                              Confirmer
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
-                    )}
-                    
-                    {isCurrentPlan && (
-                      <div className="flex items-center gap-2 text-sm text-primary">
-                        <CheckCircle className="h-4 w-4" />
-                        Plan actuellement sélectionné
-                      </div>
-                    )}
+                  )}
+                  
+                  {/* Overlay gradient */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                  
+                  {/* Badge actuel */}
+                  {isCurrentPlan && (
+                    <Badge className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs">
+                      Actuel
+                    </Badge>
+                  )}
+                  
+                  {/* Indicateur expansion */}
+                  <div className={`absolute top-2 left-2 p-1 rounded-full bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                    <ChevronDown className="h-3.5 w-3.5 text-white" />
                   </div>
-                </CollapsibleContent>
-              </Collapsible>
-            );
-          })}
-        </div>
+                  
+                  {/* Contenu texte */}
+                  <div className="absolute inset-0 flex flex-col justify-end p-3">
+                    <span className="text-3xl font-bold text-white leading-none">
+                      {formatPlanDuration(plan)}
+                    </span>
+                    <span className="text-sm text-white/90 font-medium mt-0.5">
+                      {getPlanType(plan)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Contenu expansible PLEINE LARGEUR */}
+          {expandedPlan && (
+            <div className="p-4 bg-card rounded-xl border border-border space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+              {/* Nom complet */}
+              <h3 className="font-semibold text-foreground">{expandedPlan.name}</h3>
+              
+              {/* Description */}
+              {expandedPlan.description && (
+                <p className="text-sm text-muted-foreground">{expandedPlan.description}</p>
+              )}
+              
+              {/* Stats */}
+              <div className="flex gap-4 text-sm text-muted-foreground">
+                <div className="flex items-center gap-1.5">
+                  <Calendar className="h-4 w-4" />
+                  {expandedPlan.duration_days} jours
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <BookMarked className="h-4 w-4" />
+                  {passageCounts?.[expandedPlan.id] || 0} passages
+                </div>
+              </div>
+              
+              {/* Bouton sélectionner */}
+              {expandedPlan.id !== currentPlan?.id ? (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      className="w-full"
+                      size="sm"
+                      disabled={changePlanMutation.isPending}
+                    >
+                      {changePlanMutation.isPending ? 'Changement...' : 'Sélectionner ce plan'}
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Changer de plan de lecture ?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Cette action supprimera votre progression actuelle et réinitialisera vos badges. 
+                        Vous repartirez au jour 1 du nouveau plan.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Annuler</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleChangePlan(expandedPlan.id)}>
+                        Confirmer
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              ) : (
+                <div className="flex items-center gap-2 text-sm text-primary">
+                  <CheckCircle className="h-4 w-4" />
+                  Plan actuellement sélectionné
+                </div>
+              )}
+            </div>
+          )}
+        </section>
 
         {/* Avertissement */}
         <Alert>
@@ -310,7 +349,7 @@ const ReadingPlanManagement = () => {
 
         {/* Réinitialiser le plan */}
         {currentPlan && (
-          <div className="pt-4 border-t border-border">
+          <section className="pt-2">
             <Card className="border-destructive/20">
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
@@ -370,7 +409,7 @@ const ReadingPlanManagement = () => {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </section>
         )}
 
         {/* Message si aucun plan disponible */}
