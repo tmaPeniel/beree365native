@@ -31,7 +31,7 @@ const ProfileHelp = () => {
         },
         {
           q: "Puis-je supprimer mon compte ?",
-          a: "Contactez notre équipe support à l'adresse support@beree.app pour demander la suppression de votre compte. Toutes vos données seront définitivement effacées."
+          a: "Oui, rendez-vous dans Profil > Paramètres > Données et confidentialité. Vous pourrez y supprimer définitivement votre compte et toutes vos données."
         }
       ]
     },
@@ -133,9 +133,9 @@ const ProfileHelp = () => {
     },
     {
       title: "Confidentialité",
-      description: "Politique de confidentialité",
+      description: "Gérer vos données (RGPD)",
       icon: Shield,
-      url: "#"
+      url: "/profile/privacy"
     },
     {
       title: "Notifications",

@@ -5,7 +5,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import AuthForm from '@/components/AuthForm';
 import { signIn } from '@/services/authService';
 import { useAuth } from '@/hooks/useAuth';
@@ -70,12 +70,18 @@ const Login = () => {
   }
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background animate-fade-in px-4">
       <AuthForm 
         isLogin={isLogin} 
         toggleForm={toggleForm} 
         onSubmit={handleSubmit}
       />
+      <p className="text-xs text-center text-muted-foreground mt-4">
+        En vous connectant, vous acceptez nos{' '}
+        <Link to="/terms" className="text-primary hover:underline">
+          CGU
+        </Link>
+      </p>
     </div>
   );
 };

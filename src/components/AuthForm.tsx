@@ -318,6 +318,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
             S'inscrire
           </Button>
+          
+          <p className="text-xs text-center text-muted-foreground mt-4">
+            En vous inscrivant, vous acceptez nos{' '}
+            <Link to="/terms" className="text-primary hover:underline">
+              Conditions Générales d'Utilisation
+            </Link>
+          </p>
         </form>
       </Form>
     );
