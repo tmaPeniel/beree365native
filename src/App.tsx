@@ -47,7 +47,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <CookieConsentBanner />
         
         {/* Splash Screen */}
         <SplashScreen isVisible={splashVisible} />
@@ -58,6 +57,7 @@ function App() {
             <AuthProvider>
               <BadgeNotificationProvider>
                 <BadgeUnlockPopup />
+                <CookieConsentBanner />
                 <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
