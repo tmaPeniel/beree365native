@@ -4,6 +4,7 @@ import { Badge } from './badge';
 import { Clock, BookOpen, CheckCircle } from 'lucide-react';
 import { ReadingPlan } from '@/types/supabase';
 import { getAvailablePlans } from '@/services/readingPlan/planService';
+import { getPlanImage } from '@/assets/planImages';
 
 interface PlanSelectorProps {
   selectedPlanId?: string;
@@ -58,10 +59,10 @@ const PlanSelector: React.FC<PlanSelectorProps> = ({
           onClick={() => !disabled && onPlanSelect(plan.id)}
         >
           {/* Image du plan */}
-          {plan.image_url && (
+          {getPlanImage(plan.id) && (
             <div className="h-28 w-full overflow-hidden">
               <img 
-                src={plan.image_url} 
+                src={getPlanImage(plan.id)} 
                 alt={plan.name}
                 className="w-full h-full object-cover"
               />
