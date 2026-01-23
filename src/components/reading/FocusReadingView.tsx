@@ -85,7 +85,7 @@ const FocusReadingView = React.memo<FocusReadingViewProps>(
     return (
       <div className="space-y-4">
         {/* Hero Card */}
-        <div className="relative overflow-hidden rounded-2xl text-primary-foreground">
+        <div className="relative overflow-hidden rounded-2xl text-primary-foreground min-h-[200px]">
           {/* Image de fond si disponible */}
           {planImageUrl ? (
             <img 
@@ -96,7 +96,7 @@ const FocusReadingView = React.memo<FocusReadingViewProps>(
           ) : null}
           
           {/* Overlay gradient */}
-          <div className={`relative ${planImageUrl ? 'bg-black/50' : 'bg-gradient-to-br from-primary/90 to-primary'} p-6`}>
+          <div className={`relative ${planImageUrl ? 'bg-black/50' : 'bg-gradient-to-br from-primary/90 to-primary'} min-h-[200px] p-6 flex flex-col justify-end`}>
             {/* Motif décoratif (seulement si pas d'image) */}
             {!planImageUrl && (
               <div className="absolute top-0 right-0 w-32 h-32 opacity-20">
