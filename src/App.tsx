@@ -57,7 +57,6 @@ function App() {
             <AuthProvider>
               <BadgeNotificationProvider>
                 <BadgeUnlockPopup />
-                <CookieConsentBanner />
                 <Routes>
                 <Route path="/" element={<Index />} />
                 <Route path="/login" element={<Login />} />
