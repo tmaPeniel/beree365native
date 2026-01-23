@@ -1,67 +1,76 @@
 
+## Plan : Nettoyage automatique des logs de notifications
 
-## Plan : Augmenter la taille du Hero Card et positionner le texte en bas
-
-### Objectif
-Modifier le composant Hero Card sur la page Reading pour :
-1. Augmenter significativement la hauteur du composant
-2. Positionner le texte (titre du plan et barre de progression) en bas du composant
-
----
-
-## Modification : `src/components/reading/FocusReadingView.tsx`
-
-### Structure actuelle (lignes 88-125)
-```tsx
-<div className="relative overflow-hidden rounded-2xl text-primary-foreground">
-  {/* Image de fond */}
-  <img className="absolute inset-0 w-full h-full object-cover" />
-  
-  {/* Overlay avec padding simple */}
-  <div className="relative bg-black/50 p-6">
-    <div className="relative z-10">
-      <h2>...</h2>
-      <div>Progression...</div>
-    </div>
-  </div>
-</div>
-```
-
-### Nouvelle structure proposée
-```tsx
-<div className="relative overflow-hidden rounded-2xl text-primary-foreground min-h-[200px]">
-  {/* Image de fond - inchangée */}
-  <img className="absolute inset-0 w-full h-full object-cover" />
-  
-  {/* Overlay avec flexbox pour ancrer le contenu en bas */}
-  <div className="relative bg-black/50 min-h-[200px] p-6 flex flex-col justify-end">
-    <div className="relative z-10">
-      <h2>...</h2>
-      <div>Progression...</div>
-    </div>
-  </div>
-</div>
-```
-
-### Changements techniques
-
-| Élément | Avant | Après |
-|---------|-------|-------|
-| Hauteur du container | Auto (basée sur le contenu) | `min-h-[200px]` (hauteur minimale fixe) |
-| Overlay gradient | `p-6` simple | `min-h-[200px] p-6 flex flex-col justify-end` |
-| Position du texte | En haut par défaut | Ancré en bas avec `justify-end` |
-
-### Points clés
-- `min-h-[200px]` : Fixe une hauteur minimale de 200px (ajustable selon vos préférences)
-- `flex flex-col justify-end` : Utilise Flexbox pour pousser le contenu vers le bas
-- L'image de fond s'adapte automatiquement grâce à `object-cover`
-- Le motif décoratif BookOpen reste positionné en haut à droite
+### Contexte
+- La table `notification_logs` contient actuellement **320 logs** dont **92 datent de plus d'un mois**
+- Colonne utilisée pour le tri : `sent_at` (timestamp with time zone)
+- Aucun cron job de nettoyage n'existe actuellement
 
 ---
 
-## Fichier modifié
+## Solution proposée
 
-| Fichier | Action |
+### 1. Créer une fonction SQL de nettoyage
+
+```sql
+CREATE OR REPLACE FUNCTION public.cleanup_old_notification_logs()
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path TO 'public'
+AS $$
+DECLARE
+  deleted_count INTEGER;
+BEGIN
+  DELETE FROM public.notification_logs
+  WHERE sent_at < NOW() - INTERVAL '1 month';
+  
+  GET DIAGNOSTICS deleted_count = ROW_COUNT;
+  
+  RAISE NOTICE 'Cleanup completed: % notification logs deleted', deleted_count;
+END;
+$$;
+```
+
+### 2. Programmer un cron job quotidien
+
+Exécution chaque jour à **02:00 UTC** (4h du matin heure française) pour minimiser l'impact sur les utilisateurs :
+
+```sql
+SELECT cron.schedule(
+  'cleanup-notification-logs',
+  '0 2 * * *',
+  $$SELECT public.cleanup_old_notification_logs()$$
+);
+```
+
+---
+
+## Détails techniques
+
+| Élément | Valeur |
 |---------|--------|
-| `src/components/reading/FocusReadingView.tsx` | Modifier les classes CSS du Hero Card |
+| Fonction | `cleanup_old_notification_logs()` |
+| Fréquence | Quotidien à 02:00 UTC |
+| Cron expression | `0 2 * * *` |
+| Rétention | 1 mois (30 jours) |
+| Logs supprimés immédiatement | ~92 |
 
+### Sécurité
+- `SECURITY DEFINER` : permet l'exécution avec les privilèges du créateur
+- `SET search_path TO 'public'` : évite les attaques par injection de schéma
+
+---
+
+## Fichiers / Modifications
+
+| Type | Action |
+|------|--------|
+| Migration SQL | Créer la fonction `cleanup_old_notification_logs()` |
+| Cron job | Ajouter le job `cleanup-notification-logs` via SQL Editor |
+
+### Avantages
+- Exécution 100% côté base de données (pas d'edge function nécessaire)
+- Pas de consommation de quota d'edge functions
+- Logging intégré via `RAISE NOTICE`
+- Maintenance automatique sans intervention manuelle
