@@ -1,199 +1,91 @@
 
 
-## Plan : Intégrer le DatePicker dans "Mon plan actuel" et corriger le positionnement de l'expandable
+## Plan : Simplifier l'affichage "Aujourd'hui" sur le Dashboard
 
-### Problèmes identifiés
+### Problème identifié
 
-1. **Section "Mon plan actuel"** : Actuellement statique, doit devenir cliquable avec un contenu expandable contenant le DatePicker.
+Le composant `TodayDisplay` ressemble actuellement à un bouton interactif à cause de :
+- Un fond coloré avec dégradé (`bg-gradient-to-r from-primary to-accent`)
+- Une ombre prononcée (`shadow-lg`)
+- Une animation au survol (`hover:animate-lift`)
+- Des coins très arrondis (`rounded-xl`)
 
-2. **Section "Changer de plan"** : Le contenu expandable est positionné **après la grille entière** (ligne 399) au lieu d'être directement sous la carte sélectionnée.
+Ces éléments créent une attente d'interactivité qui n'existe pas.
 
 ---
 
 ## Solution proposée
 
-### 1. Mon plan actuel - Ajouter l'expandable avec DatePicker
+Transformer le composant en un affichage textuel élégant et informatif, sans apparence de bouton.
 
-**Structure actuelle :**
-```
-[Card du plan actuel - statique]
-[Section Date de début - séparée]
-```
+### Nouveau design
 
-**Nouvelle structure :**
 ```
-[Card du plan actuel - cliquable avec ChevronDown]
-   └── [Contenu expandable avec DatePicker et stats]
+Bienvenue [Prénom],
+
+Aujourd'hui c'est le JOUR 45
+lundi 27 janvier 2025
 ```
 
-**Changements :**
-- Ajouter un état `isCurrentPlanExpanded` pour gérer l'expansion
-- Ajouter un indicateur ChevronDown sur la carte
-- Déplacer le DatePicker dans le contenu expandable
-- Supprimer la section "Date de début" séparée
-
----
-
-### 2. Changer de plan - Corriger le positionnement
-
-**Problème actuel :**
-```tsx
-<div className="grid grid-cols-2 gap-3">
-  {plans.map(plan => <Card />)}
-</div>
-{/* Expandable ICI - après toute la grille */}
-{expandedPlan && <ExpandedContent />}
-```
-
-**Solution - Approche par paires :**
-Grouper les plans par paires (lignes de 2) et insérer l'expandable après la ligne contenant le plan sélectionné.
-
-```tsx
-{planPairs.map((pair, index) => (
-  <React.Fragment key={index}>
-    {/* Ligne de 2 cartes */}
-    <div className="grid grid-cols-2 gap-3">
-      {pair.map(plan => <Card />)}
-    </div>
-    
-    {/* Expandable s'affiche si un plan de cette ligne est sélectionné */}
-    {pair.some(p => p.id === expandedPlanId) && expandedPlan && (
-      <ExpandedContent />
-    )}
-  </React.Fragment>
-))}
-```
+**Changements visuels :**
+- Supprimer le fond coloré dégradé → texte sur fond transparent
+- Supprimer l'ombre et l'animation hover
+- Conserver une mise en évidence subtile pour le numéro du jour (couleur primary)
+- Ajouter un séparateur visuel léger ou une icône calendrier optionnelle
 
 ---
 
 ## Modifications techniques
 
-### Fichier : `src/pages/ReadingPlanManagement.tsx`
+### Fichier : `src/components/TodayDisplay.tsx`
 
-#### 1. Nouvel état pour l'expansion du plan actuel
-
+**Avant :**
 ```tsx
-const [isCurrentPlanExpanded, setIsCurrentPlanExpanded] = useState(false);
+<div className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-6 rounded-xl shadow-lg mb-6 hover:animate-lift transition-all duration-300 border-primary/20 py-[15px] border-0">
 ```
 
-#### 2. Nouvelle section "Mon plan actuel" avec expandable
-
+**Après :**
 ```tsx
-{currentPlan && (
-  <section className="space-y-3">
-    <h2 className="text-base font-semibold text-foreground">Mon plan actuel</h2>
-    
-    {/* Carte cliquable */}
-    <Card 
-      className="overflow-hidden border-primary/20 cursor-pointer"
-      onClick={() => setIsCurrentPlanExpanded(!isCurrentPlanExpanded)}
-    >
-      <div className="relative h-28">
-        {/* Image et contenu existant */}
-        ...
-        {/* Ajouter indicateur ChevronDown */}
-        <div className={`absolute top-3 left-3 p-1 rounded-full bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isCurrentPlanExpanded ? 'rotate-180' : ''}`}>
-          <ChevronDown className="h-3.5 w-3.5 text-white" />
-        </div>
-      </div>
-    </Card>
-    
-    {/* Contenu expandable avec DatePicker */}
-    {isCurrentPlanExpanded && userProfile?.start_date && (
-      <div className="p-4 bg-card rounded-xl border border-border space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
-        {/* Date de début */}
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">Date de début :</p>
-            <p className="font-semibold">{format(...)}</p>
-          </div>
-          <Popover>... {/* DatePicker */}</Popover>
-        </div>
-        
-        {/* Stats du plan */}
-        <div className="flex gap-4 text-sm text-muted-foreground">
-          <span>{currentPlan.duration_days} jours</span>
-          <span>{passageCounts?.[currentPlan.id]} passages</span>
-        </div>
-        
-        {/* Description si disponible */}
-        {currentPlan.description && (
-          <p className="text-sm text-muted-foreground">{currentPlan.description}</p>
-        )}
-      </div>
-    )}
-  </section>
-)}
+<div className="mb-4">
+  <p className="text-sm text-muted-foreground mb-1">Aujourd'hui c'est le</p>
+  <h2 className="text-2xl md:text-3xl font-bold text-foreground">
+    JOUR <span className="text-primary">{dayNumber}</span>
+  </h2>
+  <p className="text-base text-muted-foreground capitalize">{formattedDate}</p>
+</div>
 ```
 
-#### 3. Grouper les plans par paires et corriger le positionnement
+### Changements clés
+
+| Élément | Avant | Après |
+|---------|-------|-------|
+| Fond | Dégradé coloré | Transparent |
+| Ombre | `shadow-lg` | Aucune |
+| Animation hover | `hover:animate-lift` | Aucune |
+| Coins | `rounded-xl` | Aucun |
+| Padding | `p-6 py-[15px]` | `mb-4` (espacement seulement) |
+| Numéro du jour | Blanc sur fond coloré | Couleur primary sur fond transparent |
+
+### Suppression de l'import inutilisé
 
 ```tsx
-// Créer des paires de plans
-const planPairs = React.useMemo(() => {
-  if (!availablePlans) return [];
-  const pairs: ReadingPlan[][] = [];
-  for (let i = 0; i < availablePlans.length; i += 2) {
-    pairs.push(availablePlans.slice(i, i + 2));
-  }
-  return pairs;
-}, [availablePlans]);
-
-// Dans le JSX
-{planPairs.map((pair, pairIndex) => (
-  <React.Fragment key={pairIndex}>
-    <div className="grid grid-cols-2 gap-3">
-      {pair.map(plan => (
-        <PlanCard key={plan.id} ... />
-      ))}
-    </div>
-    
-    {/* Expandable directement après cette ligne si un plan de la paire est sélectionné */}
-    {pair.some(p => p.id === expandedPlanId) && expandedPlan && (
-      <div className="p-4 bg-card rounded-xl border ...">
-        {/* Contenu expandable existant */}
-      </div>
-    )}
-  </React.Fragment>
-))}
+// Supprimer cette ligne (non utilisée)
+import DayNavigationControls from './DayNavigationControls';
 ```
 
 ---
 
-## Suppression
-
-| Élément | Action |
-|---------|--------|
-| Section "Date de début" séparée (lignes 270-336) | Supprimer (intégrée dans l'expandable du plan actuel) |
-
----
-
-## Résultat attendu
+## Aperçu du résultat
 
 ```
-┌─────────────────────────────────────┐
-│  Mon plan actuel              ▼     │  <- Cliquable
-└─────────────────────────────────────┘
-┌─────────────────────────────────────┐
-│  Date de début: 15 janvier 2025     │  <- Expandable
-│  [Modifier la date]                 │
-│  365 jours • 365 passages           │
-└─────────────────────────────────────┘
+Bienvenue Jean,
 
-┌─────────────────────────────────────┐
-│  Changer de plan                    │
-└─────────────────────────────────────┘
-┌──────────┐  ┌──────────┐
-│  Plan 1  │  │  Plan 2  │   <- Sélectionner Plan 2
-└──────────┘  └──────────┘
-┌─────────────────────────────────────┐
-│  Détails Plan 2                     │   <- Expandable directement en dessous
-│  [Sélectionner ce plan]             │
-└─────────────────────────────────────┘
-┌──────────┐  ┌──────────┐
-│  Plan 3  │  │  Plan 4  │
-└──────────┘  └──────────┘
+Aujourd'hui c'est le
+JOUR 45                    ← "45" en couleur primary (vert)
+lundi 27 janvier 2025      ← Texte secondaire
 ```
+
+Design épuré, informatif, et clairement non-interactif.
 
 ---
 
@@ -201,5 +93,5 @@ const planPairs = React.useMemo(() => {
 
 | Fichier | Action |
 |---------|--------|
-| `src/pages/ReadingPlanManagement.tsx` | Refactorisation complète des deux sections |
+| `src/components/TodayDisplay.tsx` | Simplifier les styles, supprimer l'apparence de bouton |
 
