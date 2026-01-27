@@ -37,10 +37,12 @@ const ReadingPlanManagement = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
+  const [isCurrentPlanExpanded, setIsCurrentPlanExpanded] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const [isUpdatingDate, setIsUpdatingDate] = useState(false);
+
 
   const { data: userProfile } = useQuery({
     queryKey: ['user-profile', user?.id],
@@ -186,6 +188,16 @@ const ReadingPlanManagement = () => {
     ? availablePlans?.find((p: ReadingPlan) => p.id === expandedPlanId) 
     : null;
 
+  // Grouper les plans par paires pour le positionnement correct des expandables
+  const planPairs = React.useMemo(() => {
+    if (!availablePlans) return [];
+    const pairs: ReadingPlan[][] = [];
+    for (let i = 0; i < availablePlans.length; i += 2) {
+      pairs.push(availablePlans.slice(i, i + 2));
+    }
+    return pairs;
+  }, [availablePlans]);
+
   const isLoading = currentPlanLoading || plansLoading;
 
   if (isLoading) {
@@ -233,7 +245,10 @@ const ReadingPlanManagement = () => {
         {currentPlan && (
           <section className="space-y-3">
             <h2 className="text-base font-semibold text-foreground">Mon plan actuel</h2>
-            <Card className="overflow-hidden border-primary/20">
+            <Card 
+              className="overflow-hidden border-primary/20 cursor-pointer transition-all duration-200"
+              onClick={() => setIsCurrentPlanExpanded(!isCurrentPlanExpanded)}
+            >
               <div className="relative h-28">
                 {getPlanImage(currentPlan.id) ? (
                   <img 
@@ -245,6 +260,12 @@ const ReadingPlanManagement = () => {
                   <div className="absolute inset-0 bg-gradient-to-br from-primary/30 to-primary/50" />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                
+                {/* Indicateur expansion */}
+                <div className={`absolute top-3 left-3 p-1 rounded-full bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isCurrentPlanExpanded ? 'rotate-180' : ''}`}>
+                  <ChevronDown className="h-3.5 w-3.5 text-white" />
+                </div>
+                
                 <Badge className="absolute top-3 right-3 bg-primary text-primary-foreground">
                   <CheckCircle className="h-3 w-3 mr-1" />
                   Actif
@@ -264,37 +285,27 @@ const ReadingPlanManagement = () => {
                 </div>
               </div>
             </Card>
-          </section>
-        )}
-
-        {/* Section: Date de début */}
-        {currentPlan && userProfile?.start_date && (
-          <section className="space-y-3">
-            <h2 className="text-base font-semibold text-foreground">Date de début</h2>
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  <div className="p-2 bg-primary/10 rounded-lg">
-                    <CalendarIcon className="h-4 w-4 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-3">
+            
+            {/* Contenu expandable avec DatePicker */}
+            {isCurrentPlanExpanded && (
+              <div className="p-4 bg-card rounded-xl border border-border space-y-4 animate-in fade-in slide-in-from-top-2 duration-200">
+                {/* Date de début */}
+                {userProfile?.start_date && (
+                  <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-sm text-muted-foreground">
-                        Votre plan a commencé le :
-                      </p>
+                      <p className="text-sm text-muted-foreground">Date de début :</p>
                       <p className="font-semibold text-foreground">
                         {format(new Date(userProfile.start_date), 'dd MMMM yyyy', { locale: fr })}
                       </p>
                     </div>
-                    
                     <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
                       <PopoverTrigger asChild>
                         <Button variant="outline" size="sm">
                           <CalendarIcon className="h-3 w-3 mr-1" />
-                          Modifier la date
+                          Modifier
                         </Button>
                       </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0" align="start">
+                      <PopoverContent className="w-auto p-0" align="end">
                         <Calendar
                           mode="single"
                           selected={selectedDate}
@@ -310,7 +321,8 @@ const ReadingPlanManagement = () => {
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => {
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 setIsDatePickerOpen(false);
                                 setSelectedDate(undefined);
                               }}
@@ -319,7 +331,10 @@ const ReadingPlanManagement = () => {
                             </Button>
                             <Button 
                               size="sm"
-                              onClick={handleUpdateStartDate}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleUpdateStartDate();
+                              }}
                               disabled={!selectedDate || isUpdatingDate}
                             >
                               {isUpdatingDate ? 'Mise à jour...' : 'Confirmer'}
@@ -329,9 +344,14 @@ const ReadingPlanManagement = () => {
                       </PopoverContent>
                     </Popover>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
+                )}
+                
+                {/* Description si disponible */}
+                {currentPlan.description && (
+                  <p className="text-sm text-muted-foreground">{currentPlan.description}</p>
+                )}
+              </div>
+            )}
           </section>
         )}
 
@@ -339,122 +359,128 @@ const ReadingPlanManagement = () => {
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-foreground">Changer de plan</h2>
           
-          {/* Grille des plans */}
-          <div className="grid grid-cols-2 gap-3">
-            {availablePlans?.map((plan: ReadingPlan) => {
-              const isCurrentPlan = plan.id === currentPlan?.id;
-              const isExpanded = expandedPlanId === plan.id;
-              const planImage = getPlanImage(plan.id);
-              
-              return (
-                <div 
-                  key={plan.id}
-                  onClick={() => togglePlan(plan.id)}
-                  className={`relative aspect-[3/2] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ${
-                    isExpanded ? 'ring-2 ring-primary scale-[0.98]' : 'hover:scale-[1.02]'
-                  } ${isCurrentPlan ? 'opacity-60' : ''}`}
-                >
-                  {/* Image de fond */}
-                  {planImage ? (
-                    <img 
-                      src={planImage} 
-                      alt={plan.name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
-                      <BookOpen className="h-10 w-10 text-primary/60" />
+          {/* Grille des plans par paires avec expandable après chaque ligne */}
+          <div className="space-y-3">
+            {planPairs.map((pair, pairIndex) => (
+              <React.Fragment key={pairIndex}>
+                <div className="grid grid-cols-2 gap-3">
+                  {pair.map((plan: ReadingPlan) => {
+                    const isCurrentPlan = plan.id === currentPlan?.id;
+                    const isExpanded = expandedPlanId === plan.id;
+                    const planImage = getPlanImage(plan.id);
+                    
+                    return (
+                      <div 
+                        key={plan.id}
+                        onClick={() => togglePlan(plan.id)}
+                        className={`relative aspect-[3/2] rounded-xl overflow-hidden cursor-pointer transition-all duration-300 ${
+                          isExpanded ? 'ring-2 ring-primary scale-[0.98]' : 'hover:scale-[1.02]'
+                        } ${isCurrentPlan ? 'opacity-60' : ''}`}
+                      >
+                        {/* Image de fond */}
+                        {planImage ? (
+                          <img 
+                            src={planImage} 
+                            alt={plan.name}
+                            className="absolute inset-0 w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="absolute inset-0 bg-gradient-to-br from-primary/20 to-primary/40 flex items-center justify-center">
+                            <BookOpen className="h-10 w-10 text-primary/60" />
+                          </div>
+                        )}
+                        
+                        {/* Overlay gradient */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+                        
+                        {/* Badge actuel */}
+                        {isCurrentPlan && (
+                          <Badge className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs">
+                            Actuel
+                          </Badge>
+                        )}
+                        
+                        {/* Indicateur expansion */}
+                        <div className={`absolute top-2 left-2 p-1 rounded-full bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
+                          <ChevronDown className="h-3.5 w-3.5 text-white" />
+                        </div>
+                        
+                        {/* Contenu texte */}
+                        <div className="absolute inset-0 flex flex-col justify-end p-3">
+                          <span className="text-3xl font-bold text-white leading-none">
+                            {formatPlanDuration(plan)}
+                          </span>
+                          <span className="text-sm text-white/90 font-medium mt-0.5">
+                            {getPlanType(plan)}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Contenu expansible directement après la ligne contenant le plan sélectionné */}
+                {pair.some(p => p.id === expandedPlanId) && expandedPlan && (
+                  <div className="p-4 bg-card rounded-xl border border-border space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
+                    {/* Nom complet */}
+                    <h3 className="font-semibold text-foreground">{expandedPlan.name}</h3>
+                    
+                    {/* Description */}
+                    {expandedPlan.description && (
+                      <p className="text-sm text-muted-foreground">{expandedPlan.description}</p>
+                    )}
+                    
+                    {/* Stats */}
+                    <div className="flex gap-4 text-sm text-muted-foreground">
+                      <div className="flex items-center gap-1.5">
+                        <CalendarIcon className="h-4 w-4" />
+                        {expandedPlan.duration_days} jours
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <BookMarked className="h-4 w-4" />
+                        {passageCounts?.[expandedPlan.id] || 0} passages
+                      </div>
                     </div>
-                  )}
-                  
-                  {/* Overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-                  
-                  {/* Badge actuel */}
-                  {isCurrentPlan && (
-                    <Badge className="absolute top-2 right-2 bg-primary/80 text-primary-foreground text-xs">
-                      Actuel
-                    </Badge>
-                  )}
-                  
-                  {/* Indicateur expansion */}
-                  <div className={`absolute top-2 left-2 p-1 rounded-full bg-white/20 backdrop-blur-sm transition-transform duration-300 ${isExpanded ? 'rotate-180' : ''}`}>
-                    <ChevronDown className="h-3.5 w-3.5 text-white" />
+                    
+                    {/* Bouton sélectionner */}
+                    {expandedPlan.id !== currentPlan?.id ? (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button 
+                            className="w-full"
+                            size="sm"
+                            disabled={changePlanMutation.isPending}
+                          >
+                            {changePlanMutation.isPending ? 'Changement...' : 'Sélectionner ce plan'}
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Changer de plan de lecture ?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Cette action supprimera votre progression actuelle et réinitialisera vos badges. 
+                              Vous repartirez au jour 1 du nouveau plan.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Annuler</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => handleChangePlan(expandedPlan.id)}>
+                              Confirmer
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    ) : (
+                      <div className="flex items-center gap-2 text-sm text-primary">
+                        <CheckCircle className="h-4 w-4" />
+                        Plan actuellement sélectionné
+                      </div>
+                    )}
                   </div>
-                  
-                  {/* Contenu texte */}
-                  <div className="absolute inset-0 flex flex-col justify-end p-3">
-                    <span className="text-3xl font-bold text-white leading-none">
-                      {formatPlanDuration(plan)}
-                    </span>
-                    <span className="text-sm text-white/90 font-medium mt-0.5">
-                      {getPlanType(plan)}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
+                )}
+              </React.Fragment>
+            ))}
           </div>
-
-          {/* Contenu expansible PLEINE LARGEUR */}
-          {expandedPlan && (
-            <div className="p-4 bg-card rounded-xl border border-border space-y-3 animate-in fade-in slide-in-from-top-2 duration-200">
-              {/* Nom complet */}
-              <h3 className="font-semibold text-foreground">{expandedPlan.name}</h3>
-              
-              {/* Description */}
-              {expandedPlan.description && (
-                <p className="text-sm text-muted-foreground">{expandedPlan.description}</p>
-              )}
-              
-              {/* Stats */}
-              <div className="flex gap-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-1.5">
-                  <CalendarIcon className="h-4 w-4" />
-                  {expandedPlan.duration_days} jours
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <BookMarked className="h-4 w-4" />
-                  {passageCounts?.[expandedPlan.id] || 0} passages
-                </div>
-              </div>
-              
-              {/* Bouton sélectionner */}
-              {expandedPlan.id !== currentPlan?.id ? (
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button 
-                      className="w-full"
-                      size="sm"
-                      disabled={changePlanMutation.isPending}
-                    >
-                      {changePlanMutation.isPending ? 'Changement...' : 'Sélectionner ce plan'}
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Changer de plan de lecture ?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        Cette action supprimera votre progression actuelle et réinitialisera vos badges. 
-                        Vous repartirez au jour 1 du nouveau plan.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Annuler</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleChangePlan(expandedPlan.id)}>
-                        Confirmer
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              ) : (
-                <div className="flex items-center gap-2 text-sm text-primary">
-                  <CheckCircle className="h-4 w-4" />
-                  Plan actuellement sélectionné
-                </div>
-              )}
-            </div>
-          )}
         </section>
 
         {/* Avertissement */}
