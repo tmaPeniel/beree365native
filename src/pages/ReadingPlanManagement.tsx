@@ -1,18 +1,24 @@
 import React, { useState } from 'react';
-import { ArrowLeft, BookOpen, Calendar, CheckCircle, RotateCcw, Trash2, BookMarked, ChevronDown } from 'lucide-react';
+import { ArrowLeft, BookOpen, Calendar as CalendarIcon, CheckCircle, RotateCcw, Trash2, BookMarked, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/hooks/useAuth';
 import { getAvailablePlans, getUserPlan, changePlan } from '@/services/readingPlan/planService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { ReadingPlan } from '@/types/supabase';
 import { getPlanImage } from '@/assets/planImages';
+import { updateUserProfile } from '@/services/authService';
+import { invalidateUserCacheSelective } from '@/services/readingPlan/optimizedCacheService';
 
 // Format plan duration as "06", "12", etc.
 const formatPlanDuration = (plan: ReadingPlan): string => {
@@ -32,6 +38,22 @@ const ReadingPlanManagement = () => {
   const queryClient = useQueryClient();
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [isResetting, setIsResetting] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const [isUpdatingDate, setIsUpdatingDate] = useState(false);
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('profiles')
+        .select('start_date')
+        .eq('id', user?.id)
+        .single();
+      return data;
+    },
+    enabled: !!user,
+  });
 
   const { data: currentPlan, isLoading: currentPlanLoading } = useQuery({
     queryKey: ['user-plan', user?.id],
@@ -87,6 +109,33 @@ const ReadingPlanManagement = () => {
 
   const togglePlan = (planId: string) => {
     setExpandedPlanId(expandedPlanId === planId ? null : planId);
+  };
+
+  const handleUpdateStartDate = async () => {
+    if (!user || !selectedDate) return;
+    
+    setIsUpdatingDate(true);
+    try {
+      const formattedDate = format(selectedDate, 'yyyy-MM-dd');
+      const result = await updateUserProfile(user.id, { start_date: formattedDate });
+      
+      if (result.success) {
+        invalidateUserCacheSelective(user.id);
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+        queryClient.invalidateQueries({ queryKey: ['optimized-reading-plan-data'] });
+        queryClient.invalidateQueries({ queryKey: ['user-plan-duration'] });
+        toast.success('Date de début mise à jour !');
+        setIsDatePickerOpen(false);
+        setSelectedDate(undefined);
+      } else {
+        toast.error('Erreur lors de la mise à jour');
+      }
+    } catch (error) {
+      console.error('Erreur lors de la mise à jour de la date:', error);
+      toast.error('Erreur lors de la mise à jour');
+    } finally {
+      setIsUpdatingDate(false);
+    }
   };
 
   const handleResetPlan = async () => {
@@ -204,7 +253,7 @@ const ReadingPlanManagement = () => {
                   <h3 className="text-lg font-bold text-white">{currentPlan.name}</h3>
                   <div className="flex gap-4 text-sm text-white/80 mt-1">
                     <span className="flex items-center gap-1">
-                      <Calendar className="h-3.5 w-3.5" />
+                      <CalendarIcon className="h-3.5 w-3.5" />
                       {currentPlan.duration_days} jours
                     </span>
                     <span className="flex items-center gap-1">
@@ -214,6 +263,74 @@ const ReadingPlanManagement = () => {
                   </div>
                 </div>
               </div>
+            </Card>
+          </section>
+        )}
+
+        {/* Section: Date de début */}
+        {currentPlan && userProfile?.start_date && (
+          <section className="space-y-3">
+            <h2 className="text-base font-semibold text-foreground">Date de début</h2>
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <CalendarIcon className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex-1 space-y-3">
+                    <div>
+                      <p className="text-sm text-muted-foreground">
+                        Votre plan a commencé le :
+                      </p>
+                      <p className="font-semibold text-foreground">
+                        {format(new Date(userProfile.start_date), 'dd MMMM yyyy', { locale: fr })}
+                      </p>
+                    </div>
+                    
+                    <Popover open={isDatePickerOpen} onOpenChange={setIsDatePickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm">
+                          <CalendarIcon className="h-3 w-3 mr-1" />
+                          Modifier la date
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-0" align="start">
+                        <Calendar
+                          mode="single"
+                          selected={selectedDate}
+                          onSelect={setSelectedDate}
+                          locale={fr}
+                          className="pointer-events-auto"
+                        />
+                        <div className="p-3 border-t space-y-2">
+                          <p className="text-xs text-muted-foreground">
+                            Modifier la date recalculera votre jour actuel.
+                          </p>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => {
+                                setIsDatePickerOpen(false);
+                                setSelectedDate(undefined);
+                              }}
+                            >
+                              Annuler
+                            </Button>
+                            <Button 
+                              size="sm"
+                              onClick={handleUpdateStartDate}
+                              disabled={!selectedDate || isUpdatingDate}
+                            >
+                              {isUpdatingDate ? 'Mise à jour...' : 'Confirmer'}
+                            </Button>
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                </div>
+              </CardContent>
             </Card>
           </section>
         )}
@@ -293,7 +410,7 @@ const ReadingPlanManagement = () => {
               {/* Stats */}
               <div className="flex gap-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-1.5">
-                  <Calendar className="h-4 w-4" />
+                  <CalendarIcon className="h-4 w-4" />
                   {expandedPlan.duration_days} jours
                 </div>
                 <div className="flex items-center gap-1.5">
