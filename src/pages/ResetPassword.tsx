@@ -1,9 +1,9 @@
 /**
  * Page de réinitialisation de mot de passe
- * Utilise l'événement PASSWORD_RECOVERY pour éviter les race conditions
+ * Traite explicitement le token de recovery avec setSession()
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +34,7 @@ const ResetPassword = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
+  const hasProcessedToken = useRef(false);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -43,73 +44,92 @@ const ResetPassword = () => {
     },
   });
 
-  // Écouter l'événement PASSWORD_RECOVERY pour éviter les race conditions
+  // Traitement du token de recovery
   useEffect(() => {
-    // Configurer le listener AVANT de vérifier la session
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth event:", event);
-      
-      if (event === 'PASSWORD_RECOVERY') {
-        console.log("PASSWORD_RECOVERY event reçu - Token valide");
-        setIsValidToken(true);
-        toast.success("Lien de réinitialisation valide. Définissez votre nouveau mot de passe.");
-      } else if (event === 'SIGNED_IN' && isValidToken === true) {
-        // Après mise à jour du mot de passe, l'utilisateur est connecté
-        console.log("Utilisateur connecté après réinitialisation");
-      } else if (event === 'TOKEN_REFRESHED') {
-        // Token rafraîchi, garder l'état actuel
-        console.log("Token rafraîchi");
-      }
-    });
+    // Ne traiter qu'une seule fois
+    if (hasProcessedToken.current) return;
 
-    // Vérifier s'il y a déjà une session recovery en cours
-    const checkExistingSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Si on a une session et qu'on n'a pas encore validé le token
-      if (session?.user && isValidToken === null) {
-        // Vérifier si l'URL contient les paramètres de recovery
-        const hash = window.location.hash;
-        const params = new URLSearchParams(hash.replace('#', ''));
-        const type = params.get('type');
+    const processRecoveryToken = async () => {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+
+      console.log("Processing recovery token:", { type, hasToken: !!accessToken });
+
+      // Si c'est une URL de recovery avec un token valide
+      if (type === 'recovery' && accessToken) {
+        hasProcessedToken.current = true;
         
-        if (type === 'recovery') {
-          console.log("Session recovery détectée via URL hash");
-          setIsValidToken(true);
-        } else {
-          // Session existante mais pas de recovery - peut-être déjà traité
-          console.log("Session existante trouvée, vérification du contexte...");
-          // On attend un court instant pour laisser l'événement PASSWORD_RECOVERY se déclencher
-          setTimeout(() => {
-            if (isValidToken === null) {
-              console.log("Timeout - pas d'événement PASSWORD_RECOVERY, redirection");
-              setIsValidToken(false);
-              toast.error("Lien de réinitialisation invalide ou expiré");
-              navigate('/forgot-password');
-            }
-          }, 2000);
+        try {
+          // Établir la session manuellement avec le token
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+
+          if (error) {
+            console.error("Erreur setSession:", error);
+            setIsValidToken(false);
+            toast.error("Lien de réinitialisation invalide ou expiré");
+            setTimeout(() => navigate('/forgot-password'), 2000);
+          } else if (data.session) {
+            console.log("Session établie avec succès");
+            setIsValidToken(true);
+            // Nettoyer le hash de l'URL
+            window.history.replaceState({}, '', '/reset-password');
+            toast.success("Lien valide. Définissez votre nouveau mot de passe.");
+          }
+        } catch (err) {
+          console.error("Erreur lors du traitement du token:", err);
+          setIsValidToken(false);
+          toast.error("Erreur lors de la vérification du lien");
+          setTimeout(() => navigate('/forgot-password'), 2000);
         }
-      } else if (!session && isValidToken === null) {
-        // Pas de session - attendre l'événement PASSWORD_RECOVERY
-        console.log("Pas de session, attente de l'événement PASSWORD_RECOVERY...");
-        // Timeout pour gérer le cas où aucun événement n'arrive
-        setTimeout(() => {
-          if (isValidToken === null) {
-            console.log("Timeout - aucun événement reçu, lien invalide");
+        return;
+      }
+
+      // Fallback: écouter l'événement PASSWORD_RECOVERY
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log("Auth event in ResetPassword:", event);
+        
+        if (event === 'PASSWORD_RECOVERY' && !hasProcessedToken.current) {
+          hasProcessedToken.current = true;
+          setIsValidToken(true);
+          toast.success("Lien valide. Définissez votre nouveau mot de passe.");
+        }
+      });
+
+      // Vérifier si une session recovery existe déjà
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !hasProcessedToken.current) {
+        console.log("Session existante trouvée");
+        hasProcessedToken.current = true;
+        setIsValidToken(true);
+      } else if (!hasProcessedToken.current) {
+        // Aucun token et pas de session - timeout plus long
+        const timeoutId = setTimeout(() => {
+          if (!hasProcessedToken.current) {
+            console.log("Timeout - lien invalide");
+            hasProcessedToken.current = true;
             setIsValidToken(false);
             toast.error("Lien de réinitialisation invalide ou expiré");
             navigate('/forgot-password');
           }
-        }, 3000);
+        }, 5000);
+
+        return () => {
+          clearTimeout(timeoutId);
+          subscription.unsubscribe();
+        };
       }
+
+      return () => subscription.unsubscribe();
     };
 
-    checkExistingSession();
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [navigate, isValidToken]);
+    processRecoveryToken();
+  }, [navigate]);
 
   /**
    * Gère la soumission du formulaire
