@@ -1,97 +1,195 @@
 
 
-## Plan : Simplifier l'affichage "Aujourd'hui" sur le Dashboard
+## Plan : Corriger le flux de réinitialisation de mot de passe
 
-### Problème identifié
+### Problèmes identifiés
 
-Le composant `TodayDisplay` ressemble actuellement à un bouton interactif à cause de :
-- Un fond coloré avec dégradé (`bg-gradient-to-r from-primary to-accent`)
-- Une ombre prononcée (`shadow-lg`)
-- Une animation au survol (`hover:animate-lift`)
-- Des coins très arrondis (`rounded-xl`)
-
-Ces éléments créent une attente d'interactivité qui n'existe pas.
+1. **SplashScreen bloque le traitement du token** (3 secondes de délai avant que le BrowserRouter soit monté)
+2. **Race condition** entre `useAuth.tsx` et `ResetPassword.tsx` qui ont chacun leur propre listener `onAuthStateChange`
+3. **Timeouts insuffisants** dans `ResetPassword.tsx`
+4. **Le hash URL peut être consommé** avant que le listener soit actif
 
 ---
 
 ## Solution proposée
 
-Transformer le composant en un affichage textuel élégant et informatif, sans apparence de bouton.
+### Approche : Traitement du hash en amont + bypass du SplashScreen
 
-### Nouveau design
-
-```
-Bienvenue [Prénom],
-
-Aujourd'hui c'est le JOUR 45
-lundi 27 janvier 2025
-```
-
-**Changements visuels :**
-- Supprimer le fond coloré dégradé → texte sur fond transparent
-- Supprimer l'ombre et l'animation hover
-- Conserver une mise en évidence subtile pour le numéro du jour (couleur primary)
-- Ajouter un séparateur visuel léger ou une icône calendrier optionnelle
+1. Détecter immédiatement si l'URL contient un token de recovery (`#access_token=...&type=recovery`)
+2. Si oui, bypasser le SplashScreen pour monter le BrowserRouter immédiatement
+3. Utiliser `supabase.auth.setSession()` ou `supabase.auth.exchangeCodeForSession()` pour gérer le token de manière explicite
+4. Éviter les conflits avec le listener dans `useAuth.tsx`
 
 ---
 
 ## Modifications techniques
 
-### Fichier : `src/components/TodayDisplay.tsx`
+### Fichier 1 : `src/hooks/useSplashScreen.tsx`
 
-**Avant :**
-```tsx
-<div className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-6 rounded-xl shadow-lg mb-6 hover:animate-lift transition-all duration-300 border-primary/20 py-[15px] border-0">
-```
-
-**Après :**
-```tsx
-<div className="mb-4">
-  <p className="text-sm text-muted-foreground mb-1">Aujourd'hui c'est le</p>
-  <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-    JOUR <span className="text-primary">{dayNumber}</span>
-  </h2>
-  <p className="text-base text-muted-foreground capitalize">{formattedDate}</p>
-</div>
-```
-
-### Changements clés
-
-| Élément | Avant | Après |
-|---------|-------|-------|
-| Fond | Dégradé coloré | Transparent |
-| Ombre | `shadow-lg` | Aucune |
-| Animation hover | `hover:animate-lift` | Aucune |
-| Coins | `rounded-xl` | Aucun |
-| Padding | `p-6 py-[15px]` | `mb-4` (espacement seulement) |
-| Numéro du jour | Blanc sur fond coloré | Couleur primary sur fond transparent |
-
-### Suppression de l'import inutilisé
+Ajouter une détection du recovery token pour bypasser le splash.
 
 ```tsx
-// Supprimer cette ligne (non utilisée)
-import DayNavigationControls from './DayNavigationControls';
+import { useState, useEffect } from 'react';
+
+const SPLASH_DURATION = 3000;
+
+// Vérifie si l'URL contient un token de recovery
+const isRecoveryUrl = () => {
+  const hash = window.location.hash;
+  return hash.includes('type=recovery') || hash.includes('type=signup');
+};
+
+export const useSplashScreen = () => {
+  // Bypass le splash si c'est une URL de recovery
+  const [isVisible, setIsVisible] = useState(!isRecoveryUrl());
+  const [isComplete, setIsComplete] = useState(isRecoveryUrl());
+
+  useEffect(() => {
+    // Si déjà complété (recovery URL), ne rien faire
+    if (isComplete) return;
+    
+    const timer = setTimeout(() => {
+      setIsVisible(false);
+      setIsComplete(true);
+    }, SPLASH_DURATION);
+
+    return () => clearTimeout(timer);
+  }, [isComplete]);
+
+  return { isVisible, isComplete };
+};
 ```
 
 ---
 
-## Aperçu du résultat
+### Fichier 2 : `src/pages/ResetPassword.tsx`
 
+Refactoriser pour un traitement plus robuste du token.
+
+```tsx
+const ResetPassword = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
+  const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
+  const [hasProcessedToken, setHasProcessedToken] = useState(false);
+
+  // ... form setup ...
+
+  useEffect(() => {
+    // Ne traiter qu'une seule fois
+    if (hasProcessedToken) return;
+
+    const processRecoveryToken = async () => {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+
+      console.log("Processing recovery token:", { type, hasToken: !!accessToken });
+
+      // Si c'est une URL de recovery avec un token valide
+      if (type === 'recovery' && accessToken) {
+        try {
+          // Établir la session manuellement
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken || ''
+          });
+
+          if (error) {
+            console.error("Erreur setSession:", error);
+            setIsValidToken(false);
+            toast.error("Lien de réinitialisation invalide ou expiré");
+            setTimeout(() => navigate('/forgot-password'), 2000);
+          } else if (data.session) {
+            console.log("Session établie avec succès");
+            setIsValidToken(true);
+            // Nettoyer le hash de l'URL
+            window.history.replaceState({}, '', '/reset-password');
+            toast.success("Lien valide. Définissez votre nouveau mot de passe.");
+          }
+        } catch (err) {
+          console.error("Erreur lors du traitement du token:", err);
+          setIsValidToken(false);
+        }
+        setHasProcessedToken(true);
+        return;
+      }
+
+      // Fallback: écouter l'événement PASSWORD_RECOVERY
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log("Auth event in ResetPassword:", event);
+        
+        if (event === 'PASSWORD_RECOVERY') {
+          setIsValidToken(true);
+          setHasProcessedToken(true);
+          toast.success("Lien valide. Définissez votre nouveau mot de passe.");
+        }
+      });
+
+      // Vérifier si une session recovery existe déjà
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        // Session existante - vérifier le contexte
+        console.log("Session existante trouvée");
+        setIsValidToken(true);
+        setHasProcessedToken(true);
+      } else {
+        // Aucun token et pas de session - timeout
+        setTimeout(() => {
+          if (!hasProcessedToken) {
+            console.log("Timeout - lien invalide");
+            setIsValidToken(false);
+            setHasProcessedToken(true);
+            toast.error("Lien de réinitialisation invalide ou expiré");
+            navigate('/forgot-password');
+          }
+        }, 5000); // Timeout plus long
+      }
+
+      return () => subscription.unsubscribe();
+    };
+
+    processRecoveryToken();
+  }, [navigate, hasProcessedToken]);
+
+  // ... reste du composant ...
+};
 ```
-Bienvenue Jean,
-
-Aujourd'hui c'est le
-JOUR 45                    ← "45" en couleur primary (vert)
-lundi 27 janvier 2025      ← Texte secondaire
-```
-
-Design épuré, informatif, et clairement non-interactif.
 
 ---
 
-## Fichiers modifiés
+### Fichier 3 : `src/hooks/useAuth.tsx`
 
-| Fichier | Action |
-|---------|--------|
-| `src/components/TodayDisplay.tsx` | Simplifier les styles, supprimer l'apparence de bouton |
+Ajouter la gestion de `PASSWORD_RECOVERY` pour éviter les conflits.
+
+```tsx
+// Dans onAuthStateChange, ajouter :
+} else if (event === 'PASSWORD_RECOVERY') {
+  // Ne pas interférer avec le flux de réinitialisation
+  console.log("PASSWORD_RECOVERY event - délégué à ResetPassword");
+  // Ne pas appeler setUser ou navigate ici
+}
+```
+
+---
+
+## Résumé des changements
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/hooks/useSplashScreen.tsx` | Bypass du splash pour les URLs de recovery |
+| `src/pages/ResetPassword.tsx` | Traitement explicite du token avec `setSession()` |
+| `src/hooks/useAuth.tsx` | Ignorer l'événement `PASSWORD_RECOVERY` |
+
+---
+
+## Points clés de la solution
+
+1. **Bypass du SplashScreen** → Le token est traité immédiatement
+2. **`setSession()` explicite** → Pas de dépendance à l'événement automatique
+3. **Nettoyage de l'URL** → Le hash est supprimé après traitement
+4. **Timeout plus long** → 5 secondes au lieu de 3
+5. **Flag `hasProcessedToken`** → Évite le traitement multiple
 
