@@ -14,7 +14,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { updatePassword } from '@/services/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+
 
 // Schéma de validation pour le formulaire
 const resetPasswordSchema = z.object({
@@ -72,19 +72,16 @@ const ResetPassword = () => {
           if (error) {
             console.error("Erreur setSession:", error);
             setIsValidToken(false);
-            toast.error("Lien de réinitialisation invalide ou expiré");
             setTimeout(() => navigate('/forgot-password'), 2000);
           } else if (data.session) {
             console.log("Session établie avec succès");
             setIsValidToken(true);
             // Nettoyer le hash de l'URL
             window.history.replaceState({}, '', '/reset-password');
-            toast.success("Lien valide. Définissez votre nouveau mot de passe.");
           }
         } catch (err) {
           console.error("Erreur lors du traitement du token:", err);
           setIsValidToken(false);
-          toast.error("Erreur lors de la vérification du lien");
           setTimeout(() => navigate('/forgot-password'), 2000);
         }
         return;
@@ -97,7 +94,6 @@ const ResetPassword = () => {
         if (event === 'PASSWORD_RECOVERY' && !hasProcessedToken.current) {
           hasProcessedToken.current = true;
           setIsValidToken(true);
-          toast.success("Lien valide. Définissez votre nouveau mot de passe.");
         }
       });
 
@@ -114,7 +110,6 @@ const ResetPassword = () => {
             console.log("Timeout - lien invalide");
             hasProcessedToken.current = true;
             setIsValidToken(false);
-            toast.error("Lien de réinitialisation invalide ou expiré");
             navigate('/forgot-password');
           }
         }, 5000);
@@ -141,12 +136,10 @@ const ResetPassword = () => {
       console.log("Tentative de mise à jour du mot de passe...");
       const result = await updatePassword(values.password);
       if (result.success) {
-        toast.success("Mot de passe mis à jour avec succès !");
         navigate('/dashboard');
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour du mot de passe:", error);
-      toast.error("Erreur lors de la mise à jour du mot de passe");
     } finally {
       setIsLoading(false);
     }
