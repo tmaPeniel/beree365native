@@ -77,7 +77,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(null);
         setProfile(null);
         navigate('/login');
+      } else if (event === 'PASSWORD_RECOVERY') {
+        // Ne pas interférer avec le flux de réinitialisation
+        // Délégué à ResetPassword.tsx
+        console.log("PASSWORD_RECOVERY event - délégué à ResetPassword");
       } else if (event === 'TOKEN_REFRESHED') {
+        // Token rafraîchi, rien de spécial à faire
       }
     });
 
