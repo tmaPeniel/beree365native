@@ -225,6 +225,22 @@ class OneSignalService {
       
       const OneSignal = await this.waitForOneSignal();
       
+      // Récupérer l'utilisateur connecté pour lier à OneSignal
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Lier l'utilisateur Supabase à OneSignal (external_user_id)
+      if (user) {
+        try {
+          console.log('🔗 Liaison utilisateur Supabase → OneSignal:', user.id);
+          await OneSignal.login(user.id);
+          console.log('✅ OneSignal.login() réussi');
+        } catch (loginError) {
+          console.warn('⚠️ OneSignal.login() échoué (non bloquant):', loginError);
+        }
+      } else {
+        console.warn('⚠️ Aucun utilisateur connecté pour OneSignal.login()');
+      }
+      
       // Vérifier d'abord la permission
       const currentPermission = Notification.permission;
       
@@ -241,27 +257,30 @@ class OneSignalService {
       // S'abonner
       await OneSignal.User.PushSubscription.optIn();
       
-      // Attendre que OneSignal traite l'abonnement (augmenté à 2s)
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Polling robuste : 5 tentatives avec délais progressifs
+      let playerId: string | null = null;
+      const delays = [1500, 2000, 2500, 3000, 3500];
       
-      // Récupérer le Player ID avec retry si nécessaire
-      let playerId = await this.getPlayerId();
-      console.log('🔍 Premier essai - Player ID:', playerId);
-      
-      // Si pas de player ID, réessayer après 1s
-      if (!playerId) {
-        console.log('⏳ Player ID non disponible, retry dans 1s...');
-        await new Promise(resolve => setTimeout(resolve, 1000));
+      for (let attempt = 0; attempt < delays.length; attempt++) {
+        await new Promise(resolve => setTimeout(resolve, delays[attempt]));
         playerId = await this.getPlayerId();
-        console.log('🔍 Deuxième essai - Player ID:', playerId);
+        console.log(`🔍 Tentative ${attempt + 1}/${delays.length} - Player ID:`, playerId);
+        if (playerId) break;
+      }
+      
+      // Fallback : vérifier si le listener a déjà capturé l'ID
+      if (!playerId && this.playerId) {
+        console.log('🔄 Fallback: utilisation du Player ID capturé par le listener:', this.playerId);
+        playerId = this.playerId;
       }
       
       if (playerId) {
+        console.log('💾 Sauvegarde du Player ID:', playerId);
         await this.savePlayerIdToProfile(playerId);
         this.playerId = playerId;
       } else {
-        logger.warn('⚠️ Player ID non disponible après abonnement');
-        console.warn('⚠️ Player ID non disponible après abonnement');
+        logger.warn('⚠️ Player ID non disponible après 5 tentatives');
+        console.warn('⚠️ Player ID non disponible après abonnement - le listener devrait le capturer');
       }
       
       const isNowSubscribed = await this.isSubscribed();
@@ -302,34 +321,32 @@ class OneSignalService {
   }
 
   /**
-   * Gère le changement de subscription
-   */
-  private async handleSubscriptionChange(): Promise<void> {
-    try {
-      const isSubscribed = await this.isSubscribed();
-      
-      if (isSubscribed) {
-        await this.updatePlayerId();
-      } else {
-        await this.clearPlayerIdFromProfile();
-        this.playerId = null;
-      }
-    } catch (error) {
-      logger.error('❌ Erreur lors du traitement du changement de subscription:', error);
-    }
-  }
-
-  /**
    * Configure l'écoute des changements de subscription
    */
   async setupSubscriptionListener(): Promise<void> {
     try {
       const OneSignal = await this.waitForOneSignal();
       
-      OneSignal.User.PushSubscription.addEventListener('change', () => {
-        logger.info('📬 Changement de subscription OneSignal');
-        this.handleSubscriptionChange();
+      OneSignal.User.PushSubscription.addEventListener('change', async (event: any) => {
+        console.log('📬 Changement de subscription OneSignal:', JSON.stringify(event));
+        
+        const playerId = event?.current?.id;
+        const isOptedIn = event?.current?.optedIn;
+        
+        console.log('📬 Player ID depuis event:', playerId, '| OptedIn:', isOptedIn);
+        
+        if (isOptedIn && playerId) {
+          this.playerId = playerId;
+          logger.info('📬 Player ID capturé via listener:', playerId);
+          await this.savePlayerIdToProfile(playerId);
+        } else if (!isOptedIn) {
+          logger.info('📬 Utilisateur désabonné via listener');
+          await this.clearPlayerIdFromProfile();
+          this.playerId = null;
+        }
       });
+      
+      logger.info('✅ Listener de subscription configuré');
     } catch (error) {
       logger.error('❌ Erreur lors de la configuration du listener:', error);
     }
