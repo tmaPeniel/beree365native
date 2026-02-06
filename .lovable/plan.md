@@ -1,116 +1,62 @@
 
 
-## Plan : Corriger l'enregistrement des abonnements OneSignal dans Supabase
+## Plan : Supprimer les cron jobs en double pour corriger les notifications triples
 
-### Diagnostic confirme
+### Probleme identifie
 
-Le dernier enregistrement dans `user_devices` date du **17 janvier 2026**. Le probleme vient du code `src/onesignal.ts` qui ne recupere pas correctement le Player ID apres l'abonnement avec le SDK OneSignal v16.
+La base de donnees contient **des cron jobs en double** qui declenchent l'envoi de notifications multiples. Le job `send-reading-reminders` (ID 5) est un doublon exact de `send-daily-reading-reminders` (ID 4) : les deux appellent la meme edge function `send-daily-reminders` toutes les heures.
 
-### 3 problemes identifies dans `src/onesignal.ts`
+Resultat : chaque utilisateur recoit **3 notifications** (2 rappels de lecture + 1 verset) au lieu de **2** (1 rappel + 1 verset).
 
-1. **Polling insuffisant** : Seulement 2 tentatives (2s + 1s) pour recuperer le Player ID, alors que OneSignal v16 peut prendre plus de temps
-2. **Event listener incomplet** : Le listener `change` ne capture pas `event.current.id` et appelle `getPlayerId()` qui peut retourner `null`
-3. **Pas de liaison utilisateur** : `OneSignal.login(user.id)` n'est jamais appele, donc OneSignal ne connait pas l'identite de l'utilisateur Supabase
+### Preuve dans les logs
 
----
+Pour l'utilisateur `5fdb4ee9` le 6 fevrier 2026 :
 
-### Modifications dans `src/onesignal.ts`
-
-#### A. Corriger le listener de subscription (ligne 325-336)
-
-Remplacer le listener actuel par un qui capture le Player ID directement depuis l'evenement :
-
-```typescript
-async setupSubscriptionListener(): Promise<void> {
-  const OneSignal = await this.waitForOneSignal();
-  
-  OneSignal.User.PushSubscription.addEventListener('change', async (event: any) => {
-    console.log('Changement de subscription OneSignal:', JSON.stringify(event));
-    
-    const playerId = event?.current?.id;
-    const isOptedIn = event?.current?.optedIn;
-    
-    if (isOptedIn && playerId) {
-      this.playerId = playerId;
-      await this.savePlayerIdToProfile(playerId);
-    } else if (!isOptedIn) {
-      await this.clearPlayerIdFromProfile();
-      this.playerId = null;
-    }
-  });
-}
+```text
+08:00:04 - reading_reminder (via job 4: send-daily-reading-reminders)
+08:00:07 - reading_reminder (via job 5: send-reading-reminders) <- DOUBLON
+10:00:04 - daily_verse     (via job 6: send-daily-verses)
 ```
 
-#### B. Ameliorer la methode `subscribe()` (ligne 222-280)
+### Solution
 
-- Ajouter `OneSignal.login(user.id)` pour lier l'utilisateur Supabase a OneSignal
-- Implementer un polling robuste avec 5 tentatives et delais progressifs
-- Ajouter un fallback via le Player ID capture par le listener
+Executer une requete SQL pour supprimer les cron jobs inutiles :
 
-```typescript
-async subscribe(): Promise<boolean> {
-  const OneSignal = await this.waitForOneSignal();
-  
-  // Recuperer l'utilisateur connecte
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  // Lier l'utilisateur Supabase a OneSignal (external_user_id)
-  if (user) {
-    await OneSignal.login(user.id);
-  }
-  
-  // Verifier/demander la permission
-  // ...
-  
-  // S'abonner
-  await OneSignal.User.PushSubscription.optIn();
-  
-  // Polling robuste : 5 tentatives avec delais progressifs
-  let playerId = null;
-  const delays = [1500, 2000, 2500, 3000, 3500];
-  
-  for (let attempt = 0; attempt < 5; attempt++) {
-    await new Promise(r => setTimeout(r, delays[attempt]));
-    playerId = await this.getPlayerId();
-    if (playerId) break;
-  }
-  
-  // Fallback : verifier si le listener a deja capture l'ID
-  if (!playerId && this.playerId) {
-    playerId = this.playerId;
-  }
-  
-  if (playerId) {
-    await this.savePlayerIdToProfile(playerId);
-    this.playerId = playerId;
-  }
-  
-  // ...
-}
+1. **Job 5** (`send-reading-reminders`) : doublon du job 4, appelle la meme fonction
+2. **Job 1** (`daily-reading-reminder-20h`) : appelle une fonction `daily-reading-reminder` qui n'existe pas (retourne 404)
+3. **Job 2** (`daily-verse-sender-7h`) : appelle une fonction `daily-verse-sender` qui n'existe pas (retourne 404)
+4. **Job 3** (`check-scheduled-notifications-every-15min`) : appelle une fonction `check-scheduled-notifications` qui n'existe pas (retourne 404)
+
+### Cron jobs a conserver
+
+| Job ID | Nom | Schedule | Fonction |
+|--------|-----|----------|----------|
+| 4 | `send-daily-reading-reminders` | `0 * * * *` | `send-daily-reminders` |
+| 6 | `send-daily-verses` | `0 * * * *` | `send-daily-verse` |
+| 7 | `sync-user-day-numbers` | `5 0 * * *` | SQL: `sync_current_day_numbers()` |
+| 8 | `sync-onesignal-daily` | `0 3 * * *` | `sync-onesignal-subscriptions` |
+| 10 | `cleanup-notification-logs` | `0 2 * * *` | SQL: `cleanup_old_notification_logs()` |
+
+### Requete SQL a executer
+
+```sql
+-- Supprimer le doublon de rappels de lecture
+SELECT cron.unschedule('send-reading-reminders');
+
+-- Supprimer les jobs appelant des fonctions inexistantes
+SELECT cron.unschedule('daily-reading-reminder-20h');
+SELECT cron.unschedule('daily-verse-sender-7h');
+SELECT cron.unschedule('check-scheduled-notifications-every-15min');
 ```
 
-#### C. Ajouter des logs detailles dans `savePlayerIdToProfile()` (ligne 119-178)
+### Resultat attendu
 
-Ajouter un bloc de logs visible pour faciliter le diagnostic futur.
+Apres la suppression :
+- Chaque utilisateur recevra exactement **2 notifications par jour** : 1 rappel de lecture + 1 verset du jour
+- Les 4 jobs inutiles (dont 3 en erreur 404) seront supprimes
+- Les 5 jobs fonctionnels resteront actifs
 
----
+### Aucun fichier a modifier
 
-### Resume des changements
+Cette correction concerne uniquement la base de donnees (table `cron.job`). Aucune modification de code n'est necessaire.
 
-| Fichier | Modification |
-|---------|-------------|
-| `src/onesignal.ts` | 1. Listener avec `event.current.id` |
-| | 2. `OneSignal.login(user.id)` dans `subscribe()` |
-| | 3. Polling 5 tentatives (1.5s a 3.5s) |
-| | 4. Fallback via `this.playerId` du listener |
-| | 5. Logs detailles |
-
-### Impact
-
-- Les **futurs abonnements** seront correctement enregistres dans `user_devices` et `profiles`
-- L'`external_user_id` sera defini dans OneSignal, facilitant la synchronisation future
-- Les logs permettront de diagnostiquer tout probleme residuel
-
-### Note importante
-
-Pour les abonnements manquants entre le 17 janvier et aujourd'hui, les utilisateurs devront desactiver puis reactiver leurs notifications pour que leur Player ID soit enregistre avec les corrections.
