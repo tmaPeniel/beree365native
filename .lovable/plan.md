@@ -1,62 +1,95 @@
 
+## Ajouter la suppression de compte dans /profile/edit
 
-## Plan : Supprimer les cron jobs en double pour corriger les notifications triples
+### Contexte
 
-### Probleme identifie
+La logique de suppression de compte existe déjà dans `src/pages/ProfilePrivacy.tsx`. Elle :
+- Appelle l'edge function `delete-user-account` via `supabase.functions.invoke`
+- Demande à l'utilisateur de re-saisir son email pour confirmer
+- Déconnecte et redirige vers `/` après suppression
 
-La base de donnees contient **des cron jobs en double** qui declenchent l'envoi de notifications multiples. Le job `send-reading-reminders` (ID 5) est un doublon exact de `send-daily-reading-reminders` (ID 4) : les deux appellent la meme edge function `send-daily-reminders` toutes les heures.
+L'objectif est d'intégrer cette même fonctionnalité directement dans `src/pages/ProfileEdit.tsx`, en bas de la page, dans une section "Zone de danger".
 
-Resultat : chaque utilisateur recoit **3 notifications** (2 rappels de lecture + 1 verset) au lieu de **2** (1 rappel + 1 verset).
+---
 
-### Preuve dans les logs
+### Modification : `src/pages/ProfileEdit.tsx`
 
-Pour l'utilisateur `5fdb4ee9` le 6 fevrier 2026 :
+Un seul fichier est modifié.
 
-```text
-08:00:04 - reading_reminder (via job 4: send-daily-reading-reminders)
-08:00:07 - reading_reminder (via job 5: send-reading-reminders) <- DOUBLON
-10:00:04 - daily_verse     (via job 6: send-daily-verses)
+#### 1. Nouveaux imports à ajouter
+
+```typescript
+import { Trash2, AlertTriangle } from 'lucide-react';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
 ```
 
-### Solution
+#### 2. Nouveaux états à ajouter
 
-Executer une requete SQL pour supprimer les cron jobs inutiles :
-
-1. **Job 5** (`send-reading-reminders`) : doublon du job 4, appelle la meme fonction
-2. **Job 1** (`daily-reading-reminder-20h`) : appelle une fonction `daily-reading-reminder` qui n'existe pas (retourne 404)
-3. **Job 2** (`daily-verse-sender-7h`) : appelle une fonction `daily-verse-sender` qui n'existe pas (retourne 404)
-4. **Job 3** (`check-scheduled-notifications-every-15min`) : appelle une fonction `check-scheduled-notifications` qui n'existe pas (retourne 404)
-
-### Cron jobs a conserver
-
-| Job ID | Nom | Schedule | Fonction |
-|--------|-----|----------|----------|
-| 4 | `send-daily-reading-reminders` | `0 * * * *` | `send-daily-reminders` |
-| 6 | `send-daily-verses` | `0 * * * *` | `send-daily-verse` |
-| 7 | `sync-user-day-numbers` | `5 0 * * *` | SQL: `sync_current_day_numbers()` |
-| 8 | `sync-onesignal-daily` | `0 3 * * *` | `sync-onesignal-subscriptions` |
-| 10 | `cleanup-notification-logs` | `0 2 * * *` | SQL: `cleanup_old_notification_logs()` |
-
-### Requete SQL a executer
-
-```sql
--- Supprimer le doublon de rappels de lecture
-SELECT cron.unschedule('send-reading-reminders');
-
--- Supprimer les jobs appelant des fonctions inexistantes
-SELECT cron.unschedule('daily-reading-reminder-20h');
-SELECT cron.unschedule('daily-verse-sender-7h');
-SELECT cron.unschedule('check-scheduled-notifications-every-15min');
+```typescript
+const [isDeleting, setIsDeleting] = useState(false);
+const [confirmEmail, setConfirmEmail] = useState('');
+const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 ```
 
-### Resultat attendu
+#### 3. Nouvelle fonction `handleDeleteAccount`
 
-Apres la suppression :
-- Chaque utilisateur recevra exactement **2 notifications par jour** : 1 rappel de lecture + 1 verset du jour
-- Les 4 jobs inutiles (dont 3 en erreur 404) seront supprimes
-- Les 5 jobs fonctionnels resteront actifs
+Identique à celle de `ProfilePrivacy.tsx` :
 
-### Aucun fichier a modifier
+```typescript
+const handleDeleteAccount = async () => {
+  if (!user || confirmEmail !== user.email) {
+    toast.error("L'email saisi ne correspond pas à votre compte");
+    return;
+  }
+  setIsDeleting(true);
+  try {
+    const response = await supabase.functions.invoke('delete-user-account', {
+      body: { userId: user.id }
+    });
+    if (response.error) throw new Error(response.error.message);
+    
+    toast.success('Votre compte a été supprimé avec succès');
+    setDeleteDialogOpen(false);
+    await supabase.auth.signOut();
+    navigate('/');
+  } catch (error) {
+    toast.error('Erreur lors de la suppression du compte. Veuillez réessayer.');
+  } finally {
+    setIsDeleting(false);
+  }
+};
+```
 
-Cette correction concerne uniquement la base de donnees (table `cron.job`). Aucune modification de code n'est necessaire.
+#### 4. Nouvelle section UI insérée entre le bouton mobile et la fin du contenu
 
+Une Card avec bordure rouge (identique à `ProfilePrivacy.tsx`) affichant :
+- Un bandeau d'avertissement orange avec icône `AlertTriangle`
+- La liste des données qui seront supprimées
+- Un bouton "Supprimer définitivement mon compte" (destructive)
+- Un `AlertDialog` demandant la re-saisie de l'email avant confirmation
+
+```
+┌─────────────────────────────────────────┐  ← border-destructive/50
+│ 🗑️  Supprimer mon compte               │
+│ Action irréversible...                  │
+│                                         │
+│ ⚠️  Attention                           │
+│    • Votre progression de lecture       │
+│    • Vos badges et récompenses          │
+│    • Vos préférences et paramètres      │
+│    • Votre historique de notifications  │
+│                                         │
+│ [Supprimer définitivement mon compte]   │
+└─────────────────────────────────────────┘
+```
+
+---
+
+### Résumé
+
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/ProfileEdit.tsx` | Ajout de 3 états, 1 fonction, 1 section Card + AlertDialog |
+
+Aucune modification de base de données ou d'edge function nécessaire : `delete-user-account` est déjà déployée et fonctionnelle.
