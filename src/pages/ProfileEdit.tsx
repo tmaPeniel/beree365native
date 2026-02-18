@@ -233,41 +233,12 @@ const ProfileEdit = () => {
         </Card>
 
         {/* Zone de danger */}
-        <Card className="border-destructive/50">
-          <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-destructive">
-              <Trash2 className="h-5 w-5" />
-              <span>Supprimer mon compte</span>
-            </CardTitle>
-            <CardDescription>
-              Action irréversible — toutes vos données seront supprimées
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-destructive/10 rounded-lg p-4 mb-4">
-              <div className="flex items-start space-x-3">
-                <AlertTriangle className="h-5 w-5 text-destructive mt-0.5 shrink-0" />
-                <div className="text-sm">
-                  <p className="font-medium text-destructive">Attention</p>
-                  <p className="text-muted-foreground mt-1">
-                    La suppression de votre compte est définitive et irréversible.
-                    Toutes vos données seront immédiatement effacées :
-                  </p>
-                  <ul className="list-disc list-inside text-muted-foreground mt-2 space-y-1">
-                    <li>Votre progression de lecture</li>
-                    <li>Vos badges et récompenses</li>
-                    <li>Vos préférences et paramètres</li>
-                    <li>Votre historique de notifications</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
+        <div className="pb-2">
             <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
               <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full sm:w-auto">
+                <Button variant="destructive" className="w-full">
                   <Trash2 className="h-4 w-4 mr-2" />
-                  Supprimer définitivement mon compte
+                  Supprimer mon compte
                 </Button>
               </AlertDialogTrigger>
               <AlertDialogContent>
@@ -308,8 +279,7 @@ const ProfileEdit = () => {
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
-          </CardContent>
-        </Card>
+        </div>
 
         {/* Bouton mobile */}
         <div className="sm:hidden pb-6">
