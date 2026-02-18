@@ -51,21 +51,24 @@ export const getAllVersesUpToDay = async (maxDayNumber: number): Promise<DailyVe
       return [];
     }
     
-    // Récupérer tous les versets disponibles en une seule requête
+    // Récupérer tous les versets avec le vrai comptage depuis verse_likes
     const { data, error } = await supabase
       .from('daily_verses')
-      .select('*')
+      .select('*, verse_likes(count)')
       .lte('day_number', maxDayNumber)
-      .order('day_number', { ascending: false }); // Ordre décroissant comme dans l'original
+      .order('day_number', { ascending: false });
     
     if (error) {
       console.error(`Error fetching verses up to day ${maxDayNumber}:`, error);
-      // En cas d'erreur, générer des versets par défaut
       return generateDefaultVerses(maxDayNumber);
     }
     
-    // Compléter avec des versets par défaut pour les jours manquants
-    const verses = data as DailyVerse[];
+    // Normaliser les données : remplacer likes_count par le vrai count depuis verse_likes
+    const verses = (data as any[]).map(v => ({
+      ...v,
+      likes_count: v.verse_likes?.[0]?.count ?? v.likes_count ?? 0,
+      verse_likes: undefined,
+    })) as DailyVerse[];
     const versesMap = new Map(verses.map(v => [v.day_number, v]));
     const completeVerses: DailyVerse[] = [];
     
