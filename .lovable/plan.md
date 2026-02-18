@@ -1,67 +1,64 @@
 
-## Centrer l'en-tête de la page /profile
+## Ajouter un graphique en barres hebdomadaire dans /profile/statistics
 
 ### Objectif
 
-Passer le header de la page profil d'une disposition **horizontale** (avatar + texte côte à côte) à une disposition **verticale centrée** (avatar au-dessus, nom + email en dessous, bouton "Éditer le profil" en dessous), comme dans l'image de référence.
+Ajouter une nouvelle Card sous les statistiques existantes avec un graphique en barres (BarChart via recharts) affichant le nombre de passages cochés pour chaque jour de la semaine en cours (Lun → Dim).
 
-### Modification actuelle vs souhaitée
+### Architecture technique
 
-Actuellement (lignes 133-157 de `src/pages/Profile.tsx`) :
-```
-[ Avatar ]  Nom de l'utilisateur
-            email@exemple.com
+`recharts` est déjà installé. Le composant `ChartContainer` de `src/components/ui/chart.tsx` est disponible et suit les conventions du projet. Il sera utilisé pour encapsuler le `BarChart`.
 
-[Éditer le profil]
-```
+### Données à récupérer
 
-Après modification :
-```
-        [ Avatar ]
-      Nom de l'utilisateur
-        email@exemple.com
-      [ Éditer le profil ]
-```
+Une nouvelle fonction `getWeeklyDailyBreakdown` sera ajoutée dans `ProfileStatistics.tsx`. Elle :
+1. Calcule les 7 dates de la semaine en cours (lundi → dimanche)
+2. Requête `user_progress` avec `completed_at` entre lundi 00h00 et aujourd'hui
+3. Regroupe les résultats par jour et retourne un tableau de 7 objets :
 
-### Modification : `src/pages/Profile.tsx`
-
-Un seul bloc HTML à modifier — le header (lignes 133-157).
-
-Remplacer `flex items-center space-x-4` par `flex flex-col items-center text-center` pour que les éléments s'empilent verticalement et soient centrés.
-
-```tsx
-<div className="bg-card border-b">
-  <div className="px-6 py-8 flex flex-col items-center text-center">
-    <Avatar className="h-20 w-20 mb-3">
-      <AvatarImage src="" alt={userName} />
-      <AvatarFallback className="bg-primary/10 text-primary text-xl font-medium">
-        {userInitials}
-      </AvatarFallback>
-    </Avatar>
-    <h1 className="text-2xl font-bold text-foreground">{userName}</h1>
-    <p className="text-muted-foreground text-sm mt-1">{user?.email}</p>
-    <Button 
-      variant="outline" 
-      size="sm"
-      onClick={() => navigate('/profile/edit')}
-      className="flex items-center gap-2 mt-4"
-    >
-      <Pencil className="h-4 w-4" />
-      Éditer le profil
-    </Button>
-  </div>
-</div>
+```typescript
+[
+  { day: 'Lun', count: 3 },
+  { day: 'Mar', count: 1 },
+  { day: 'Mer', count: 0 },
+  { day: 'Jeu', count: 5 },
+  { day: 'Ven', count: 2 },
+  { day: 'Sam', count: 0 },
+  { day: 'Dim', count: 0 },
+]
 ```
 
-### Détails visuels
+### Graphique
 
-- Avatar légèrement agrandi (h-16 → h-20) pour mieux correspondre au style de l'image
-- `text-center` appliqué sur le conteneur pour centrer nom et email
-- Espacement `mb-3` entre avatar et texte
-- Bouton "Éditer le profil" centré naturellement grâce à `items-center` du parent
+Utilisation de `BarChart` de recharts, encapsulé dans `ChartContainer` :
+- Axe X : jours de la semaine (Lun, Mar, ..., Dim)
+- Axe Y : nombre de passages (entiers, minimum 0)
+- Couleur des barres : `hsl(var(--primary))`
+- Tooltip simple au survol
+- Hauteur fixe adaptée mobile : environ 160px
 
-### Résumé
+### Nouvelle Card à insérer dans `ProfileStatistics.tsx`
+
+Placée entre les stats détaillées (grille 2 colonnes) et la fin du contenu :
+
+```
+┌─────────────────────────────────────────┐
+│  ACTIVITÉ DE LA SEMAINE                 │
+│                                         │
+│   5 ┤     ████                          │
+│   4 ┤     ████                          │
+│   3 ┤████ ████      ████                │
+│   2 ┤████ ████ ████ ████                │
+│   1 ┤████ ████ ████ ████ ████           │
+│   0 └──────────────────────────         │
+│     Lun Mar Mer Jeu Ven Sam Dim         │
+└─────────────────────────────────────────┘
+```
+
+### Résumé des modifications
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/pages/Profile.tsx` | Changer la disposition du header de `flex` horizontal à `flex-col items-center text-center` |
+| `src/pages/ProfileStatistics.tsx` | Ajout de `getWeeklyDailyBreakdown`, un `useQuery`, les imports recharts/chart, et une nouvelle Card avec `BarChart` |
+
+Aucune modification de base de données ou edge function nécessaire.
