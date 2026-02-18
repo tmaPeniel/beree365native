@@ -131,19 +131,15 @@ const Profile = () => {
     <div className="min-h-screen bg-background pb-20">
       {/* Header avec profil utilisateur */}
       <div className="bg-card border-b">
-        <div className="px-6 py-8">
-          <div className="flex items-center space-x-4">
-            <Avatar className="h-16 w-16">
-              <AvatarImage src="" alt={userName} />
-              <AvatarFallback className="bg-primary/10 text-primary text-lg font-medium">
-                {userInitials}
-              </AvatarFallback>
-            </Avatar>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{userName}</h1>
-              <p className="text-muted-foreground">{user?.email}</p>
-            </div>
-          </div>
+        <div className="px-6 py-8 flex flex-col items-center text-center">
+          <Avatar className="h-20 w-20 mb-3">
+            <AvatarImage src="" alt={userName} />
+            <AvatarFallback className="bg-primary/10 text-primary text-xl font-medium">
+              {userInitials}
+            </AvatarFallback>
+          </Avatar>
+          <h1 className="text-2xl font-bold text-foreground">{userName}</h1>
+          <p className="text-muted-foreground text-sm mt-1">{user?.email}</p>
           <Button 
             variant="outline" 
             size="sm"
