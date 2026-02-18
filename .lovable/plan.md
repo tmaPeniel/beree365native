@@ -1,64 +1,61 @@
 
-## Ajouter un graphique en barres hebdomadaire dans /profile/statistics
+## Utiliser `verse_likes` pour afficher le vrai nombre de likes dans VerseList
 
-### Objectif
+### Problème identifié
 
-Ajouter une nouvelle Card sous les statistiques existantes avec un graphique en barres (BarChart via recharts) affichant le nombre de passages cochés pour chaque jour de la semaine en cours (Lun → Dim).
+La page `/verses` (VerseList) appelle `getAllVersesUpToDay()` dans `verseService.ts`, qui fait un `select('*')` sur `daily_verses`. Cette table a bien une colonne `likes_count` maintenue par trigger, **mais** :
 
-### Architecture technique
+- Les versets "par défaut" (générés localement pour les jours sans entrée en base) n'ont pas de `likes_count`
+- La requête actuelle ne fait pas de jointure avec `verse_likes`, donc si le trigger n'a pas correctement mis à jour `likes_count`, les totaux peuvent être désynchronisés
 
-`recharts` est déjà installé. Le composant `ChartContainer` de `src/components/ui/chart.tsx` est disponible et suit les conventions du projet. Il sera utilisé pour encapsuler le `BarChart`.
+### Solution proposée
 
-### Données à récupérer
+Modifier `getAllVersesUpToDay` dans `src/services/readingPlan/verseService.ts` pour **sélectionner avec jointure** :
 
-Une nouvelle fonction `getWeeklyDailyBreakdown` sera ajoutée dans `ProfileStatistics.tsx`. Elle :
-1. Calcule les 7 dates de la semaine en cours (lundi → dimanche)
-2. Requête `user_progress` avec `completed_at` entre lundi 00h00 et aujourd'hui
-3. Regroupe les résultats par jour et retourne un tableau de 7 objets :
+```sql
+-- Équivalent de ce que Supabase fera :
+SELECT dv.*, COUNT(vl.id) as computed_likes
+FROM daily_verses dv
+LEFT JOIN verse_likes vl ON vl.verse_day_number = dv.day_number
+WHERE dv.day_number <= maxDayNumber
+GROUP BY dv.id
+ORDER BY dv.day_number DESC
+```
 
+En code Supabase JS :
 ```typescript
-[
-  { day: 'Lun', count: 3 },
-  { day: 'Mar', count: 1 },
-  { day: 'Mer', count: 0 },
-  { day: 'Jeu', count: 5 },
-  { day: 'Ven', count: 2 },
-  { day: 'Sam', count: 0 },
-  { day: 'Dim', count: 0 },
-]
+const { data } = await supabase
+  .from('daily_verses')
+  .select('*, verse_likes(count)')
+  .lte('day_number', maxDayNumber)
+  .order('day_number', { ascending: false });
 ```
 
-### Graphique
+Puis normaliser le résultat pour extraire `verse_likes[0].count` comme `likes_count`.
 
-Utilisation de `BarChart` de recharts, encapsulé dans `ChartContainer` :
-- Axe X : jours de la semaine (Lun, Mar, ..., Dim)
-- Axe Y : nombre de passages (entiers, minimum 0)
-- Couleur des barres : `hsl(var(--primary))`
-- Tooltip simple au survol
-- Hauteur fixe adaptée mobile : environ 160px
-
-### Nouvelle Card à insérer dans `ProfileStatistics.tsx`
-
-Placée entre les stats détaillées (grille 2 colonnes) et la fin du contenu :
-
-```
-┌─────────────────────────────────────────┐
-│  ACTIVITÉ DE LA SEMAINE                 │
-│                                         │
-│   5 ┤     ████                          │
-│   4 ┤     ████                          │
-│   3 ┤████ ████      ████                │
-│   2 ┤████ ████ ████ ████                │
-│   1 ┤████ ████ ████ ████ ████           │
-│   0 └──────────────────────────         │
-│     Lun Mar Mer Jeu Ven Sam Dim         │
-└─────────────────────────────────────────┘
-```
-
-### Résumé des modifications
+### Fichiers à modifier
 
 | Fichier | Modification |
 |---------|-------------|
-| `src/pages/ProfileStatistics.tsx` | Ajout de `getWeeklyDailyBreakdown`, un `useQuery`, les imports recharts/chart, et une nouvelle Card avec `BarChart` |
+| `src/services/readingPlan/verseService.ts` | Modifier `getAllVersesUpToDay` pour joindre `verse_likes` et calculer le vrai `likes_count` en temps réel |
 
-Aucune modification de base de données ou edge function nécessaire.
+### Détail de l'implémentation
+
+Dans `getAllVersesUpToDay`, remplacer `select('*')` par `select('*, verse_likes(count)')`. Supabase retourne alors :
+
+```json
+{
+  "id": "...",
+  "day_number": 1,
+  "likes_count": 5,  // colonne existante (trigger)
+  "verse_likes": [{ "count": 5 }]  // jointure réelle
+}
+```
+
+On utilise `verse_likes[0]?.count ?? 0` pour écraser `likes_count` avec la valeur calculée dynamiquement depuis la table `verse_likes`, garantissant ainsi la cohérence même si le trigger est en retard.
+
+### Bénéfice
+
+- Les likes affichés dans la liste seront **toujours exacts**, calculés depuis `verse_likes` en temps réel
+- Aucun changement de schéma nécessaire
+- La performance reste bonne car c'est une seule requête avec `LEFT JOIN` côté base
