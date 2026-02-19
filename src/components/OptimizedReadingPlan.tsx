@@ -1,4 +1,3 @@
-
 /**
  * Composant principal pour afficher et gérer le plan de lecture du jour
  * VERSION CORRIGÉE - Affichage réactif avec rafraîchissement automatique
@@ -8,10 +7,13 @@ import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Card, CardContent } from "@/components/ui/card";
 import { Check, Loader2 } from 'lucide-react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import { usePlanDuration } from '@/hooks/usePlanDuration';
 import { getReadingPlanForDay } from '@/services/readingPlan';
 import { getCachedUserProgressForDay, optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { useDayCompletion } from '@/hooks/useDayCompletion';
+import CelebrationEffects from '@/components/animations/CelebrationEffects';
 
 // Types pour une meilleure lisibilité du code
 interface ReadingItem {
@@ -19,7 +21,6 @@ interface ReadingItem {
   reference: string;
   completed: boolean;
 }
-
 interface OptimizedReadingPlanProps {
   dayNumber: number;
 }
@@ -27,31 +28,54 @@ interface OptimizedReadingPlanProps {
 /**
  * Composant de plan de lecture optimisé avec rafraîchissement automatique
  */
-const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber }) => {
+const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({
+  dayNumber
+}) => {
   // Hooks d'authentification et de gestion d'état
-  const { user, triggerProgressUpdate } = useOptimizedAuth();
+  const {
+    user,
+    triggerProgressUpdate
+  } = useOptimizedAuth();
+  const {
+    planDuration
+  } = usePlanDuration();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const queryClient = useQueryClient();
 
+  // Hook pour la détection de completion du jour
+  const {
+    showCelebration
+  } = useDayCompletion(dayNumber);
+
   // Configuration React Query CORRIGÉE - plus réactive avec rafraîchissement automatique
-  const { data: chaptersData = [] } = useQuery({
+  const {
+    data: chaptersData = []
+  } = useQuery({
     queryKey: ['reading-plan-chapters', dayNumber],
-    queryFn: () => getReadingPlanForDay(dayNumber),
-    staleTime: 30 * 1000, // 30 secondes
-    gcTime: 5 * 60 * 1000, // 5 minutes
+    queryFn: () => user ? getReadingPlanForDay(dayNumber, user.id) : [],
+    staleTime: 30 * 1000,
+    // 30 secondes
+    gcTime: 5 * 60 * 1000,
+    // 5 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: true,
-    enabled: !!dayNumber,
+    enabled: !!dayNumber && !!user,
     refetchInterval: 60 * 1000 // AJOUT : Rafraîchissement auto toutes les 60 secondes
   });
 
   // Requête pour la progression utilisateur avec rafraîchissement automatique
-  const { data: progressData = [], isLoading, refetch: refetchProgress } = useQuery({
+  const {
+    data: progressData = [],
+    isLoading,
+    refetch: refetchProgress
+  } = useQuery({
     queryKey: ['user-progress-optimized', user?.id, dayNumber],
     queryFn: () => user ? getCachedUserProgressForDay(user.id, dayNumber) : [],
-    staleTime: 15 * 1000, // 15 secondes
-    gcTime: 2 * 60 * 1000, // 2 minutes
+    staleTime: 15 * 1000,
+    // 15 secondes
+    gcTime: 2 * 60 * 1000,
+    // 2 minutes
     refetchOnMount: true,
     refetchOnWindowFocus: true,
     enabled: !!user && !!dayNumber,
@@ -72,11 +96,9 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   // Calcul optimisé des éléments de lecture
   const readingItems = useMemo(() => {
     if (!chaptersData.length) return [];
-    
     return chaptersData.map(chapter => {
       const progressItem = progressData.find(p => p.chapter_id === chapter.id);
       const completed = progressItem ? progressItem.status === 'completed' : false;
-      
       return {
         id: chapter.id,
         reference: chapter.reference,
@@ -89,33 +111,21 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
   const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
     event.preventDefault();
     event.stopPropagation();
-    
     if (!user) {
       toast.error("Vous devez être connecté pour modifier le statut de lecture");
       return;
     }
-    
     const item = readingItems.find(item => item.id === id);
     if (!item) return;
-    
     try {
       setProcessingIds(prev => [...prev, id]);
-      
-      const result = await optimizedToggleChapterStatus(
-        user.id, 
-        id, 
-        item.completed ? 'completed' : 'pending',
-        dayNumber
-      );
-      
+      const result = await optimizedToggleChapterStatus(user.id, id, item.completed ? 'completed' : 'pending', dayNumber);
       if (result.success) {
         // Mise à jour optimiste AMÉLIORÉE
         queryClient.setQueryData(['user-progress-optimized', user.id, dayNumber], (oldData: any[]) => {
           if (!oldData) return oldData;
-          
           const existingIndex = oldData.findIndex(item => item.chapter_id === id);
           const newStatus = item.completed ? 'pending' : 'completed';
-          
           if (existingIndex >= 0) {
             const updatedData = [...oldData];
             updatedData[existingIndex] = {
@@ -135,35 +145,33 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
             }];
           }
         });
-        
+
         // Invalidation CORRIGÉE avec refetch actif
-        queryClient.invalidateQueries({ 
+        queryClient.invalidateQueries({
           queryKey: ['optimized-reading-plan-data', user.id],
           refetchType: 'active'
         });
-        
+
         // Déclencher la mise à jour globale
         triggerProgressUpdate();
         setLastUpdateTime(new Date());
-        
+
         // AJOUT : Rafraîchissement automatique après succès
         setTimeout(() => {
           refetchProgress();
         }, 1000);
-        
       } else {
         throw new Error(result.error || 'Erreur lors de la mise à jour');
       }
     } catch (error) {
       console.error(`❌ [ERROR] Toggling chapter ${id}:`, error);
       toast.error("Une erreur est survenue lors de la mise à jour");
-      
+
       // Rollback en cas d'erreur avec rafraîchissement
-      queryClient.invalidateQueries({ 
+      queryClient.invalidateQueries({
         queryKey: ['user-progress-optimized', user.id, dayNumber],
         refetchType: 'active'
       });
-      
       setTimeout(() => {
         refetchProgress();
       }, 1000);
@@ -177,87 +185,56 @@ const OptimizedReadingPlan = React.memo<OptimizedReadingPlanProps>(({ dayNumber 
     item: ReadingItem;
     isProcessing: boolean;
     onToggle: (event: React.MouseEvent) => void;
-  }>(({ item, isProcessing, onToggle }) => (
-    <li className="flex items-center">
-      <button
-        type="button"
-        onClick={onToggle}
-        disabled={isProcessing}
-        className={`flex items-center w-full text-left transition-all ${
-          item.completed ? 'text-gray-400' : 'text-gray-800'
-        } ${isProcessing ? 'opacity-70' : 'hover:bg-gray-50 rounded p-1'}`}
-      >
-        <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-colors ${
-          item.completed ? 'bg-green-500' : 'border-2 border-green-300 hover:border-green-400'
-        }`}>
-          {isProcessing ? (
-            <Loader2 className="h-3 w-3 text-white animate-spin" />
-          ) : (
-            item.completed && <Check className="h-3 w-3 text-white" />
-          )}
+  }>(({
+    item,
+    isProcessing,
+    onToggle
+  }) => <li className="flex items-center">
+      <button type="button" onClick={e => {
+      e.preventDefault();
+      e.stopPropagation();
+      onToggle(e);
+    }} disabled={isProcessing} className={`flex items-center w-full text-left transition-all duration-200 ${item.completed ? 'text-muted-foreground' : 'text-foreground'} ${isProcessing ? 'opacity-70 cursor-not-allowed' : 'hover:bg-muted rounded p-2 cursor-pointer'}`}>
+        <div className={`h-5 w-5 rounded mr-3 flex items-center justify-center transition-all duration-200 ${item.completed ? 'bg-primary scale-110' : 'border-2 border-primary/30 hover:border-primary hover:scale-105'}`}>
+          {isProcessing ? <Loader2 className="h-3 w-3 text-primary-foreground animate-gentle-spin" /> : item.completed && <Check className="h-3 w-3 text-primary-foreground animate-success-bounce" />}
         </div>
-        <span className={item.completed ? 'line-through' : ''}>
+        <span className={`transition-all duration-200 ${item.completed ? 'line-through' : ''}`}>
           {item.reference}
         </span>
       </button>
-    </li>
-  ));
-
+    </li>);
   ReadingItemRow.displayName = 'ReadingItemRow';
 
   // État de chargement
   if (isLoading) {
-    return (
-      <Card className="bg-white border-none shadow-sm">
+    return <Card className="bg-card border-none shadow-sm">
         <CardContent className="p-6">
           <div className="flex justify-center items-center h-32">
-            <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+            <div className="animate-gentle-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
           </div>
         </CardContent>
-      </Card>
-    );
+      </Card>;
   }
 
   // Rendu principal du composant
-  return (
-    <Card className="bg-white border-none shadow-sm">
-      <CardContent className="p-6">
+  return <Card className="bg-card border-none shadow-sm border-0">
+      <CardContent className="p-6 py-[15px] border-0">
         {/* En-tête avec indicateur de rafraîchissement automatique */}
-        <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold">Aujourd'hui</h2>
-          <div className="flex items-center gap-2">
-            <span className="text-sm bg-green-100 text-green-700 py-1 px-3 rounded-full">
-              Jour {dayNumber}/365
-            </span>
-          </div>
-        </div>
+        
         
         {/* Section des passages à lire */}
         <div className="mb-6">
-          <h3 className="font-medium text-gray-700 mb-3">Passages du jour</h3>
-          {readingItems.length > 0 ? (
-            <ul className="space-y-2">
-              {readingItems.map((item) => (
-                <ReadingItemRow
-                  key={item.id}
-                  item={item}
-                  isProcessing={processingIds.includes(item.id)}
-                  onToggle={(event) => handleToggleRead(event, item.id)}
-                />
-              ))}
-            </ul>
-          ) : (
-            <p className="text-center text-gray-500 my-4">
+          <h3 className="font-medium text-foreground mb-3 text-center">Passages du jour</h3>
+          {readingItems.length > 0 ? <ul className="space-y-2">
+              {readingItems.map(item => <ReadingItemRow key={item.id} item={item} isProcessing={processingIds.includes(item.id)} onToggle={event => handleToggleRead(event, item.id)} />)}
+            </ul> : <p className="text-center text-muted-foreground my-4">
               Aucun passage trouvé pour ce jour
-            </p>
-          )}
+            </p>}
         </div>
         
+        {/* Animation de célébration désactivée - gérée globalement */}
       </CardContent>
-    </Card>
-  );
+    </Card>;
 });
-
 OptimizedReadingPlan.displayName = 'OptimizedReadingPlan';
-
 export default OptimizedReadingPlan;

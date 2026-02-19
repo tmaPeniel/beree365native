@@ -1,10 +1,13 @@
-
 import React, { useMemo, useCallback, useState } from 'react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
-import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedCacheService';
-import { useQueryClient } from '@tanstack/react-query';
-import { Check, Loader2 } from 'lucide-react';
+import { markAllChaptersAsRead } from '@/services/readingPlan/optimizedCacheService';
+import { optimizedToggleChapterStatus } from '@/services/readingPlan/optimizedProgressService';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { getCachedUserProgressForDay } from '@/services/readingPlan/optimizedProgressService';
+import { Check, Loader2, CheckCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { useBadgeNotification } from '@/contexts/BadgeNotificationContext';
 
 interface Chapter {
   id: string;
@@ -32,7 +35,27 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
 }) => {
   const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const [isMarkingAll, setIsMarkingAll] = useState(false);
   const queryClient = useQueryClient();
+  const { showBadgeUnlocked } = useBadgeNotification();
+  
+  // Ajouter le rafraîchissement automatique pour synchroniser les cartes
+  const { data: progressData } = useQuery({
+    queryKey: ['user-progress-refresh', user?.id, day],
+    queryFn: () => user ? getCachedUserProgressForDay(user.id, day) : null,
+    enabled: !!user,
+    refetchInterval: 500, // Rafraîchir toutes les 2 secondes
+    staleTime: 1000, // Considérer les données comme périmées après 1 seconde
+  });
+  
+  // Invalider le cache global quand les données de progression changent
+  React.useEffect(() => {
+    if (progressData && user) {
+      queryClient.invalidateQueries({ 
+        queryKey: ['optimized-reading-plan-data', user.id] 
+      });
+    }
+  }, [progressData, user, queryClient]);
   
   // Mémoriser la date formatée
   const formattedDate = useMemo(() => 
@@ -66,6 +89,13 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       );
       
       if (result.success) {
+        // Afficher les nouveaux badges débloqués
+        if (result.newBadges && result.newBadges.length > 0) {
+          for (const badge of result.newBadges) {
+            showBadgeUnlocked(badge);
+          }
+        }
+        
         // Mise à jour optimiste ultra-ciblée du cache global
         queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
           if (!oldData) return oldData;
@@ -114,14 +144,75 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
     }
   }, [user, chapters, day, queryClient, triggerProgressUpdate]);
 
+  // Handler pour marquer tous les passages comme lus
+  const handleMarkAllRead = useCallback(async () => {
+    if (!user || isMarkingAll) return;
+    
+    const uncompletedChapters = chapters.filter(ch => !ch.completed);
+    
+    if (uncompletedChapters.length === 0) {
+      toast.info("Tous les passages sont déjà cochés !");
+      return;
+    }
+    
+    setIsMarkingAll(true);
+    
+    try {
+      // Utiliser la fonction optimisée pour marquer tous les chapitres d'un coup
+      const result = await markAllChaptersAsRead(
+        user.id, 
+        uncompletedChapters.map(ch => ch.id), 
+        day
+      );
+      
+      if (result.success) {
+        // Mise à jour optimiste du cache
+        queryClient.setQueryData(['optimized-reading-plan-data', user.id], (oldData: any[]) => {
+          if (!oldData) return oldData;
+          
+          return oldData.map((dayData: any) => {
+            if (dayData.day !== day) return dayData;
+            
+            const updatedChapters = dayData.chapters.map((ch: Chapter) => ({
+              ...ch,
+              completed: true
+            }));
+            
+            return {
+              ...dayData,
+              chapters: updatedChapters,
+              progressPercentage: 100,
+              completed: true
+            };
+          });
+        });
+        
+        triggerProgressUpdate();
+        // Notification unique globale
+        toast.success(`${uncompletedChapters.length} passage${uncompletedChapters.length > 1 ? 's' : ''} marqué${uncompletedChapters.length > 1 ? 's' : ''} comme lu${uncompletedChapters.length > 1 ? 's' : ''} !`);
+      } else {
+        throw new Error(result.error || 'Erreur inconnue');
+      }
+      
+    } catch (error) {
+      console.error('Error marking all chapters as read:', error);
+      toast.error("Une erreur est survenue lors du marquage");
+      queryClient.invalidateQueries({ 
+        queryKey: ['optimized-reading-plan-data', user.id] 
+      });
+    } finally {
+      setIsMarkingAll(false);
+    }
+  }, [user, chapters, day, queryClient, triggerProgressUpdate, isMarkingAll]);
+
   // Classes CSS mémorisées avec optimisation mobile
   const cardClasses = useMemo(() => 
     `relative w-full rounded-xl border transition-all ${
       isMobile ? 'p-3' : 'p-4'
     } ${
       isToday 
-        ? 'bg-green-50 border-green-200 shadow-md' 
-        : 'bg-white border-gray-200 hover:shadow-sm'
+        ? 'bg-primary/10 border-primary/30 shadow-md' 
+        : 'bg-card border-border hover:shadow-sm'
     }`, [isToday, isMobile]
   );
   
@@ -131,17 +222,27 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
       <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
         <div className="flex flex-col">
           <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold ${
-            isToday ? 'text-green-700' : 'text-gray-900'
+            isToday ? 'text-primary' : 'text-foreground'
           }`}>
             Jour {day}
           </span>
-          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-500`}>
+          <span className={`${isMobile ? 'text-xs' : 'text-xs'} text-muted-foreground`}>
             {formattedDate}
           </span>
         </div>
       </div>
       
-      {/* Liste des passages optimisée pour mobile */}
+      
+      {/* En-tête des passages */}
+      {chapters && chapters.length > 0 && (
+        <div className={`flex items-center justify-between ${isMobile ? 'mb-2' : 'mb-3'}`}>
+          <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-foreground`}>
+            Passages du jour
+          </span>
+        </div>
+      )}
+      
+      {/* Liste des passages */}
       <div className={`space-y-${isMobile ? '1.5' : '2'} mb-3`}>
         {chapters && chapters.length > 0 ? (
           chapters.map((chapter) => (
@@ -154,30 +255,50 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
                   isMobile ? 'h-3.5 w-3.5' : 'h-4 w-4'
                 } rounded border-2 flex items-center justify-center transition-colors ${
                   chapter.completed 
-                    ? 'bg-green-500 border-green-500' 
-                    : 'border-green-300 hover:border-green-400'
+                    ? 'bg-primary border-primary' 
+                    : 'border-primary/30 hover:border-primary'
                 } ${processingIds.includes(chapter.id) ? 'opacity-70' : ''}`}
               >
                 {processingIds.includes(chapter.id) ? (
-                  <Loader2 className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-white animate-spin`} />
+                  <Loader2 className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-primary-foreground animate-gentle-spin`} />
                 ) : (
-                  chapter.completed && <Check className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-white`} />
+                  chapter.completed && <Check className={`${isMobile ? 'h-2 w-2' : 'h-2.5 w-2.5'} text-primary-foreground`} />
                 )}
               </button>
               
               <span className={`${isMobile ? 'text-xs' : 'text-sm'} ${
-                chapter.completed ? 'line-through text-gray-400' : 'text-gray-700'
+                chapter.completed ? 'line-through text-muted-foreground' : 'text-foreground'
               } leading-tight`}>
                 {chapter.reference}
               </span>
             </div>
           ))
         ) : (
-          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-gray-400 italic`}>
+          <p className={`${isMobile ? 'text-xs' : 'text-xs'} text-muted-foreground italic`}>
             Aucun passage trouvé
           </p>
         )}
       </div>
+      
+      {/* Bouton "Tout cocher" en bas */}
+      {chapters && chapters.length > 0 && chapters.some(ch => !ch.completed) && (
+        <div className={`flex justify-center ${isMobile ? 'mb-2' : 'mb-3'}`}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleMarkAllRead}
+            disabled={isMarkingAll}
+            className={`${isMobile ? 'h-6 px-2 text-xs' : 'h-7 px-3 text-xs'} border-primary/20 hover:border-primary/30 hover:bg-primary/10`}
+          >
+            {isMarkingAll ? (
+              <Loader2 className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} animate-spin mr-1`} />
+            ) : (
+              <CheckCheck className={`${isMobile ? 'h-2.5 w-2.5' : 'h-3 w-3'} mr-1`} />
+            )}
+            Tout cocher
+          </Button>
+        </div>
+      )}
       
       {/* Pourcentage positionné en bas de la carte */}
       <div className="absolute bottom-2 right-2">
@@ -185,10 +306,10 @@ const ExpandedDayCard = React.memo<ExpandedDayCardProps>(({
           isMobile ? 'text-xs px-1.5 py-0.5' : 'text-xs px-2 py-1'
         } font-medium rounded-full ${
           progressPercentage === 0
-            ? 'bg-gray-100 text-gray-500' // Style discret pour 0%
-            : isToday 
-              ? 'bg-green-200 text-green-800' 
-              : 'bg-gray-100 text-gray-600'
+            ? 'bg-muted text-muted-foreground' // Style discret pour 0%
+            : progressPercentage >= 100
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground'
         }`}>
           {progressPercentage}%
         </span>

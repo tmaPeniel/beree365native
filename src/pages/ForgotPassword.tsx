@@ -57,17 +57,17 @@ const ForgotPassword = () => {
 
   if (isSubmitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
+      <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
         <Card className="w-[400px] shadow-lg border-t-4 border-t-green-500">
           <CardHeader className="text-center">
             <h1 className="text-2xl font-bold text-green-600">Email envoyé !</h1>
           </CardHeader>
           
           <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Nous avons envoyé un lien de réinitialisation à votre adresse email.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Vérifiez votre boîte de réception et cliquez sur le lien pour réinitialiser votre mot de passe.
             </p>
           </CardContent>
@@ -86,11 +86,11 @@ const ForgotPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
       <Card className="w-[400px] shadow-lg border-t-4 border-t-green-500">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-bold">Mot de passe oublié</h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Entrez votre adresse email pour recevoir un lien de réinitialisation
           </p>
         </CardHeader>

@@ -7,6 +7,18 @@
     <title>Bérée 365 - Lisez la Bible en un an</title>
     <meta name="description" content="Application de suivi de lecture de la Bible en un an" />
     <meta name="author" content="Bérée 365" />
+    
+    <!-- PWA Meta Tags -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Bérée 365" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    
+    <!-- PWA Icons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="/beree-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/beree-512x512.png" />
+    <link rel="apple-touch-icon" href="/beree-512x512.png" />
+    <link rel="mask-icon" href="/beree2.png" />
 
     <meta property="og:title" content="Bérée 365 - Lisez la Bible en un an" />
     <meta property="og:description" content="Suivez votre plan de lecture de la Bible sur un an, jour après jour." />
@@ -16,6 +28,19 @@
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@beree365" />
     <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    
+    <!-- OneSignal Web Push SDK -->
+    <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+    <script>
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      OneSignalDeferred.push(async function(OneSignal) {
+        await OneSignal.init({
+          appId: "eaa6638c-ee99-4197-b3dd-ecaf01ba8e44",
+          allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: '/OneSignalSDKWorker.js'
+        });
+      });
+    </script>
   </head>
 
   <body>

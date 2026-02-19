@@ -2,6 +2,8 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, ChevronRight, Calendar } from 'lucide-react';
 import { useDateService } from '@/hooks/useDateService';
+import { usePlanDuration } from '@/hooks/usePlanDuration';
+
 interface DayNavigationControlsProps {
   className?: string;
   size?: 'sm' | 'default' | 'lg';
@@ -25,8 +27,10 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
     goToPrevious,
     isLoading
   } = useDateService();
+  const { planDuration } = usePlanDuration();
+  
   const canGoBack = currentDayNumber > 1;
-  const canGoForward = currentDayNumber < 365;
+  const canGoForward = currentDayNumber < planDuration;
   const handlePrevious = async () => {
     const success = await goToPrevious();
     if (success && onCurrentDayClick) {
@@ -41,9 +45,9 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
   };
   if (isLoading) {
     return <div className={`flex items-center gap-2 ${className}`}>
-        <div className="animate-pulse bg-gray-200 h-8 w-8 rounded"></div>
-        <div className="animate-pulse bg-gray-200 h-4 w-16 rounded"></div>
-        <div className="animate-pulse bg-gray-200 h-8 w-8 rounded"></div>
+        <div className="animate-pulse-soft bg-muted h-8 w-8 rounded"></div>
+        <div className="animate-pulse-soft bg-muted h-4 w-16 rounded"></div>
+        <div className="animate-pulse-soft bg-muted h-8 w-8 rounded"></div>
       </div>;
   }
   return <div className={`flex items-center gap-2 ${className}`}>

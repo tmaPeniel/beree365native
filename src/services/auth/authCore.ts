@@ -1,4 +1,3 @@
-
 /**
  * Service d'authentification de base
  * Fournit les fonctions fondamentales d'authentification
@@ -12,21 +11,23 @@ import { toast } from "sonner";
  * @param {string} email Email de l'utilisateur
  * @param {string} password Mot de passe de l'utilisateur
  * @param {string} fullName Nom complet de l'utilisateur
- * @param {Date} startDate Date de début du plan de lecture
+ * @param {string} startDate Date de début du plan de lecture (string format)
+ * @param {string} planId ID du plan de lecture sélectionné
  * @returns {Promise<{success: boolean, user?: any, error?: string}>}
  */
-export const signUp = async (email: string, password: string, fullName: string, startDate: Date) => {
+export const signUp = async (email: string, password: string, fullName: string, startDate: string, planId: string) => {
   try {
     console.log("Démarrage de l'inscription avec:", { email, fullName, startDate });
     
-    // Créer le compte utilisateur avec les métadonnées pour le trigger
+    // Créer le compte utilisateur avec les métadonnées pour les triggers
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
-          start_date: startDate.toISOString().split('T')[0]
+          start_date: startDate,
+          plan_id: planId
         }
       }
     });
@@ -34,39 +35,32 @@ export const signUp = async (email: string, password: string, fullName: string, 
     if (signUpError) throw signUpError;
     
     if (authData.user) {
-      console.log("Utilisateur créé avec succès dans auth.users:", authData.user.id);
-      
-      // Vérifier si le profil a été créé automatiquement par le trigger
-      const { data: profileData, error: profileCheckError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', authData.user.id)
-        .maybeSingle();
-        
-      if (profileCheckError) {
-        console.error("Erreur lors de la vérification du profil:", profileCheckError);
-      }
-      
-      // Si le profil n'existe pas encore, le créer manuellement
-      if (!profileData) {
-        console.log("Profil non trouvé, tentative de création manuelle");
-        
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([{
-            id: authData.user.id,
-            full_name: fullName,
-            start_date: startDate.toISOString().split('T')[0]
-          }]);
-        
-        if (profileError) {
-          console.error("Erreur lors de la création manuelle du profil:", profileError);
-          toast.error("Votre compte a été créé mais votre profil n'a pas pu être initialisé");
-        } else {
-          console.log("Profil créé manuellement avec succès");
+      // Enregistrer le consentement CGU en base de données
+      try {
+        const response = await fetch(
+          `https://xizlfyrjhzkzdchjezfn.supabase.co/rest/v1/user_consents`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'apikey': 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhpemxmeXJqaHpremRjaGplemZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc3Mjc0NDksImV4cCI6MjA2MzMwMzQ0OX0.fSIJdIhVVq76EgNdEpjB0qJu0PAACVuJs2IdC6irJmc',
+              'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`,
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({
+              user_id: authData.user.id,
+              consent_type: 'terms',
+              consent_given: true,
+              consent_version: '1.0',
+              user_agent: navigator.userAgent
+            })
+          }
+        );
+        if (!response.ok) {
+          console.warn('Erreur enregistrement consentement CGU:', response.statusText);
         }
-      } else {
-        console.log("Profil existant trouvé:", profileData.id);
+      } catch (consentError) {
+        console.warn('Erreur enregistrement consentement CGU:', consentError);
       }
       
       return { success: true, user: authData.user };
@@ -74,7 +68,7 @@ export const signUp = async (email: string, password: string, fullName: string, 
     
     return { success: false, error: "Inscription réussie, mais l'utilisateur n'a pas été créé" };
   } catch (error: any) {
-    console.error("Erreur complète lors de l'inscription:", error);
+    console.error("Erreur lors de l'inscription:", error);
     toast.error(`Erreur d'inscription: ${error.message}`);
     return { success: false, error: error.message };
   }
@@ -95,36 +89,24 @@ export const signIn = async (email: string, password: string) => {
 
     if (error) throw error;
     
-    if (data.user) {
-      // Vérifier si l'utilisateur a un profil
-      const { data: profileData, error: profileError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', data.user.id)
-        .maybeSingle();
-        
-      if (profileError) {
-        console.error("Erreur lors de la vérification du profil:", profileError);
-      }
-      
-      // Si aucun profil n'existe, en créer un
-      if (!profileData) {
-        console.log("Profil non trouvé lors de la connexion, création d'un profil par défaut");
-        
-        await supabase
-          .from('profiles')
-          .insert([{
-            id: data.user.id,
-            full_name: 'Utilisateur',
-            start_date: new Date().toISOString().split('T')[0]
-          }]);
-      }
-    }
-    
     return { success: true, user: data.user };
   } catch (error: any) {
-    toast.error(`Erreur de connexion: ${error.message}`);
-    return { success: false, error: error.message };
+    // Messages d'erreur plus clairs et en français
+    let friendlyMessage = "";
+    
+    if (error.message === "Invalid login credentials") {
+      friendlyMessage = "Email ou mot de passe incorrect";
+    } else if (error.message.includes("Email not confirmed")) {
+      friendlyMessage = "Veuillez confirmer votre email avant de vous connecter";
+    } else if (error.message.includes("Invalid email")) {
+      friendlyMessage = "Adresse email invalide";
+    } else if (error.message.includes("Password")) {
+      friendlyMessage = "Mot de passe invalide";
+    } else {
+      friendlyMessage = "Erreur de connexion. Vérifiez vos identifiants";
+    }
+    
+    return { success: false, error: friendlyMessage };
   }
 };
 
@@ -161,7 +143,7 @@ export const resetPassword = async (email: string) => {
       throw error;
     }
     
-    console.log("Email de réinitialisation envoyé avec succès");
+    //console.log("Email de réinitialisation envoyé avec succès");
     toast.success("Un email de réinitialisation a été envoyé à votre adresse");
     return { success: true };
   } catch (error: any) {

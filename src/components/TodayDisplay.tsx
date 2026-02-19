@@ -1,44 +1,32 @@
-
 import React from 'react';
-import DayNavigationControls from './DayNavigationControls';
-
 interface TodayDisplayProps {
   dayNumber: number;
   date: Date;
   userName: string;
 }
-
 const TodayDisplay: React.FC<TodayDisplayProps> = ({
   dayNumber,
   date,
   userName
 }) => {
-  console.log(`🏷️ TodayDisplay - Jour reçu: ${dayNumber}`);
-
   const formattedDate = date.toLocaleDateString('fr-FR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
     year: 'numeric'
   });
-
-  return (
-    <div>
-      <h2 className="text-2xl md:text-2xl font-bold mb-1 capitalize">
+  return <div className="animate-fade-in">
+      <h2 className="text-base md:text-lg font-medium text-foreground mb-3">
         Bienvenue {userName},
       </h2>
-      <br />
-      <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-6 rounded-xl shadow-md mb-6">
-        <h3 className="text-base md:text-base mb-1">
-          Aujourd'hui c'est le
-        </h3>
-        <h2 className="text-xl md:text-2xl font-bold mb-1 capitalize">
-          JOUR {dayNumber}
+      
+      <div className="mb-4">
+        <p className="text-sm text-muted-foreground mb-1 text-center">Aujourd'hui c'est le</p>
+        <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center">
+          JOUR <span className="text-primary">{dayNumber}</span>
         </h2>
-        <p className="text-lg md:text-xl opacity-90 capitalize">{formattedDate}</p>
+        <p className="text-base text-muted-foreground capitalize mt-1 text-center">{formattedDate}</p>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default TodayDisplay;

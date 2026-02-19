@@ -15,17 +15,22 @@
  * - Interface responsive
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import NavBar from '@/components/NavBar';
-import ExpandedDayCard from '@/components/ExpandedDayCard';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import MonthlyReadingPlan from '@/components/MonthlyReadingPlan';
 import DayNavigationControls from '@/components/DayNavigationControls';
+import SearchBar from '@/components/SearchBar';
+import { Button } from '@/components/ui/button';
+import { ChevronUp } from 'lucide-react';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { useDateService } from '@/hooks/useDateService';
+import { usePlanDuration } from '@/hooks/usePlanDuration';
 import { getOptimizedReadingPlanData } from '@/services/readingPlan/optimizedCacheService';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { useIsMobile } from '@/hooks/use-mobile';
-
+import { useLocalStorage } from '@/hooks/useLocalStorage';
+import ViewModeToggle, { ViewMode } from '@/components/reading/ViewModeToggle';
+import FocusReadingView from '@/components/reading/FocusReadingView';
 /**
  * Composant principal de la page de lecture
  * React.memo pour optimiser les performances
@@ -35,12 +40,16 @@ const Reading = React.memo(() => {
   const { profile, isLoading: authLoading } = useOptimizedAuth();
   const isMobile = useIsMobile();
   const { currentDayNumber, isLoading: dayLoading } = useDateService();
+  const { planName, planImageUrl } = usePlanDuration();
   
   // Références et état local pour la navigation
   const currentDayRef = useRef<HTMLDivElement>(null);
   const [hasScrolledToDay, setHasScrolledToDay] = useState(false);
-
-  console.log(`📖 Reading Page - Current day: ${currentDayNumber}`);
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  // Mode d'affichage (focus ou grille) - persisté dans localStorage
+  const [viewMode, setViewMode] = useLocalStorage<ViewMode>('reading-view-mode', 'focus');
+  const [showScrollToTop, setShowScrollToTop] = useState(false);
 
   /**
    * Fonction pour faire défiler vers le jour courant
@@ -55,23 +64,19 @@ const Reading = React.memo(() => {
       });
       
       // Effet visuel temporaire pour mettre en évidence le jour
-      currentDayRef.current.classList.add('ring-2', 'ring-green-400', 'ring-opacity-75');
+      currentDayRef.current.classList.add('ring-2', 'ring-primary', 'ring-opacity-75');
       setTimeout(() => {
         if (currentDayRef.current) {
-          currentDayRef.current.classList.remove('ring-2', 'ring-green-400', 'ring-opacity-75');
+          currentDayRef.current.classList.remove('ring-2', 'ring-primary', 'ring-opacity-75');
         }
       }, 2000);
-      
-      toast.success(`Navigation vers le jour ${currentDayNumber}`);
-    } else {
-      toast.error(`Impossible de trouver le jour ${currentDayNumber}`);
     }
   };
 
   // Requête principale pour charger toutes les données du plan de lecture
-  // Cache optimisé pour de meilleures performances
+  // Cache optimisé pour de meilleures performances - avec plan sélectionné
   const { data: optimizedData = [], isLoading: dataLoading, error, refetch } = useQuery({
-    queryKey: ['optimized-reading-plan-data', profile?.id],
+    queryKey: ['optimized-reading-plan-data', profile?.id, profile?.selected_plan_id, profile?.start_date],
     queryFn: async () => {
       if (!profile) return [];
       return await getOptimizedReadingPlanData(profile.id, profile.start_date);
@@ -107,13 +112,44 @@ const Reading = React.memo(() => {
     setHasScrolledToDay(false);
   }, [currentDayNumber]);
 
+  // Filtrer les données selon la recherche
+  const filteredData = useMemo(() => {
+    if (!searchQuery.trim()) return optimizedData;
+    
+    return optimizedData.filter(dayData => {
+      // Rechercher dans les références des chapitres
+      return dayData.chapters.some(chapter => 
+        chapter.reference.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    });
+  }, [optimizedData, searchQuery]);
+
+  // Gestion du bouton scroll to top
+  useEffect(() => {
+    const handleScroll = () => {
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+      setShowScrollToTop(scrollTop > 300);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Fonction pour scroller vers le haut
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
+
   // États de chargement avec interfaces claires
   if (authLoading || dayLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du plan de lecture...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Chargement du plan de lecture...</p>
         </div>
       </div>
     );
@@ -122,21 +158,20 @@ const Reading = React.memo(() => {
   // État de chargement des données
   if (dataLoading) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {/* En-tête avec état de chargement */}
-        <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+      <div className="min-h-screen bg-background">
+        {/* Affichage du jour actuel et du verset du jour */}
+        <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-          <p className="text-gray-500">Chargement de vos données...</p>
+          <p className="text-muted-foreground">Chargement de vos données...</p>
         </div>
         
         {/* Contenu avec indicateur de chargement */}
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
-            <p className="text-gray-600">Chargement des passages...</p>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-muted-foreground">Chargement des passages...</p>
           </div>
         </div>
-        <NavBar />
       </div>
     );
   }
@@ -144,84 +179,138 @@ const Reading = React.memo(() => {
   // État d'erreur avec option de retry
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+      <div className="min-h-screen bg-background">
+        <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
           <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-          <p className="text-red-500">Une erreur est survenue</p>
+          <p className="text-destructive">Une erreur est survenue</p>
         </div>
         <div className="container mx-auto px-4 pb-16">
           <div className="text-center py-12">
-            <p className="text-red-600 mb-4">Impossible de charger le plan de lecture</p>
+            <p className="text-destructive mb-4">Impossible de charger le plan de lecture</p>
             <button 
               onClick={() => refetch()} 
-              className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"
             >
               Réessayer
             </button>
           </div>
         </div>
-        <NavBar />
       </div>
     );
   }
 
   // Rendu principal de la page
   return (
-    <div className="min-h-screen bg-gray-50 pb-20">
+    <div className="min-h-screen bg-background pb-20">
       {/* En-tête avec titre et contrôles de navigation */}
-      <div className="bg-white p-4 md:p-6 shadow-sm mb-4 md:mb-6">
-        <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
-        <p className="text-gray-500">
-          Suivez votre progression au fil des jours
-        </p>
-        
-        {/* Contrôles de navigation centrés */}
-        <div className="mt-4 flex justify-center">
-          <DayNavigationControls 
-            onCurrentDayClick={scrollToCurrentDay}
-            showNavigationButtons={true}
-          />
+      <div className="bg-card p-4 md:p-6 shadow-sm mb-4 md:mb-6">
+        <div className="flex items-center justify-between mb-2">
+          <h1 className="text-xl md:text-2xl font-bold">Plan de lecture</h1>
+          
+          {/* Toggle vue grille/focus - mobile uniquement */}
+          {isMobile && optimizedData.length > 0 && (
+            <ViewModeToggle viewMode={viewMode} onViewModeChange={setViewMode} />
+          )}
         </div>
-      </div>
-      
-      {/* Contenu principal - grille des jours */}
-      <div className="container mx-auto px-4 pb-16">
-        {optimizedData.length === 0 ? (
-          /* État vide avec option de rechargement */
-          <div className="text-center py-12">
-            <p className="text-gray-600">Aucune donnée de plan de lecture disponible</p>
-            <button 
-              onClick={() => refetch()} 
-              className="mt-4 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
-            >
-              Recharger
-            </button>
-          </div>
+        
+        {optimizedData.length > 0 ? (
+          <>
+            <p className="text-muted-foreground">
+              Suivez votre progression au fil des jours
+            </p>
+            
+            {/* Barre de recherche et contrôles - seulement en mode grille ou sur desktop */}
+            {(!isMobile || viewMode === 'grid') && (
+              <>
+                <div className="mt-4 max-w-md mx-auto">
+                  <SearchBar
+                    value={searchQuery}
+                    onChange={setSearchQuery}
+                    placeholder="Rechercher des passages (ex: Jean, Psaumes...)"
+                    className="w-full"
+                  />
+                </div>
+                
+                {/* Contrôles de navigation centrés */}
+                <div className="mt-4 flex justify-center">
+                  <DayNavigationControls 
+                    onCurrentDayClick={scrollToCurrentDay}
+                    showNavigationButtons={true}
+                  />
+                </div>
+              </>
+            )}
+          </>
         ) : (
-          /* Grille responsive des jours */
-          <div className={`grid gap-3 md:gap-6 ${isMobile ? 'grid-cols-2' : 'grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4'}`}>
-            {optimizedData.map(dayData => (
-              <div
-                key={dayData.day}
-                ref={dayData.day === currentDayNumber ? currentDayRef : null}
-                className="transition-all duration-300"
-              >
-                <ExpandedDayCard 
-                  day={dayData.day} 
-                  date={dayData.date} 
-                  isToday={dayData.day === currentDayNumber} 
-                  chapters={dayData.chapters} 
-                  progressPercentage={dayData.progressPercentage} 
-                  isMobile={isMobile} 
-                />
-              </div>
-            ))}
-          </div>
+          <p className="text-muted-foreground">
+            Aucun passage disponible dans votre plan actuel
+          </p>
         )}
       </div>
       
-      {/* Barre de navigation en bas */}
-      <NavBar />
+      {/* Contenu principal */}
+      <div className="container mx-auto px-4 pb-16">
+        {/* Affichage des résultats de recherche - mode grille uniquement */}
+        {(!isMobile || viewMode === 'grid') && searchQuery && (
+          <div className="mb-4 text-center">
+            <p className="text-muted-foreground">
+              {filteredData.length} résultat{filteredData.length !== 1 ? 's' : ''} trouvé{filteredData.length !== 1 ? 's' : ''} pour "{searchQuery}"
+            </p>
+          </div>
+        )}
+        
+        {optimizedData.length === 0 ? (
+          /* État vide avec message informatif */
+          <div className="flex flex-col items-center justify-center py-16 px-4">
+            <div className="text-6xl mb-4">📖</div>
+            <h3 className="text-xl font-semibold text-foreground mb-2">Pas de passages</h3>
+            <p className="text-muted-foreground text-center max-w-md mb-6">
+              Votre plan sélectionné ne contient pas de passages pour le moment.
+            </p>
+            <Button 
+              onClick={() => window.location.href = '/reading-plan-management'}
+              className="bg-primary text-primary-foreground hover:bg-primary/90"
+            >
+              Changer de plan
+            </Button>
+          </div>
+        ) : filteredData.length === 0 && searchQuery ? (
+          /* État de recherche sans résultats */
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">Aucun passage trouvé pour "{searchQuery}"</p>
+            <p className="text-muted-foreground text-sm mt-2">Essayez de rechercher par nom de livre (ex: Jean, Psaumes, Genèse...)</p>
+          </div>
+        ) : isMobile && viewMode === 'focus' ? (
+          /* Vue Focus - mobile uniquement */
+          <FocusReadingView
+            readingData={optimizedData}
+            currentDayNumber={currentDayNumber}
+            planName={planName}
+            planImageUrl={planImageUrl}
+          />
+        ) : (
+          /* Vue Grille - organisation mensuelle du plan de lecture */
+          <MonthlyReadingPlan
+            readingData={filteredData}
+            currentDayNumber={currentDayNumber}
+            currentDayRef={currentDayRef}
+            isMobile={isMobile}
+          />
+        )}
+      </div>
+      
+      {/* Bouton flottant pour revenir en haut */}
+      {showScrollToTop && (
+        <Button
+          onClick={scrollToTop}
+          className="fixed bottom-24 right-4 z-50 h-12 w-12 rounded-full shadow-lg animate-fade-in hover-scale"
+          size="icon"
+          variant="default"
+        >
+          <ChevronUp className="h-5 w-5" />
+        </Button>
+      )}
+      
     </div>
   );
 });

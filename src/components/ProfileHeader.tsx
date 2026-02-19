@@ -24,8 +24,8 @@ const ProfileHeader: React.FC<ProfileHeaderProps> = ({ name, email, avatarUrl })
         </AvatarFallback>
       </Avatar>
       <div>
-        <h2 className="text-2xl font-semibold text-gray-800">{name}</h2>
-        <p className="text-gray-500">{email}</p>
+        <h2 className="text-2xl font-semibold text-foreground">{name}</h2>
+        <p className="text-muted-foreground">{email}</p>
       </div>
     </div>
   );

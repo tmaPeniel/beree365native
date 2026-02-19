@@ -1,35 +1,30 @@
 import React from 'react';
 import { Card, CardContent } from './card';
-
 interface PlanDatesProps {
   startDate: Date;
   endDate: Date;
   remainingDays: number;
 }
-
 const PlanDates: React.FC<PlanDatesProps> = ({
   startDate,
   endDate,
-  remainingDays,
-}) => (
-    <Card className="bg-white border-none shadow-sm">
+  remainingDays
+}) => <Card className="bg-card border-border shadow-sm border-0">
       <CardContent className="p-6">
-            <div className="text-sm text-gray-500 grid grid-cols-2 gap-3 mt-6">
-                <div className="bg-blue-50 p-3 rounded">
-                <p className="mb-1 text-blue-700">Date de début</p>
-                <p className="font-medium text-gray-700">{startDate.toLocaleDateString()}</p>
+            <div className="text-sm text-muted-foreground grid grid-cols-2 gap-3 mt-6">
+                <div className="bg-primary/10 p-3 rounded">
+                <p className="mb-1 text-primary">Date de début</p>
+                <p className="font-medium text-foreground">{startDate.toLocaleDateString()}</p>
                 </div>
-                <div className="bg-blue-50 p-3 rounded">
-                <p className="mb-1 text-blue-700">Date de fin</p>
-                <p className="font-medium text-gray-700">{endDate.toLocaleDateString()}</p>
+                <div className="bg-primary/10 p-3 rounded">
+                <p className="mb-1 text-primary">Date de fin</p>
+                <p className="font-medium text-foreground">{endDate.toLocaleDateString()}</p>
                 </div>
-                <div className="col-span-2 bg-green-50 p-3 rounded">
-                <p className="mb-1 text-green-700">Jours restants</p>
-                <p className="font-medium text-gray-700">{remainingDays} jours</p>
+                <div className="col-span-2 bg-accent/10 p-3 rounded">
+                <p className="mb-1 text-accent">Jours restants</p>
+                <p className="font-medium text-foreground">{remainingDays} jours</p>
                 </div>
             </div>
         </CardContent>
-  </Card>
-  );
-
+  </Card>;
 export default PlanDates;

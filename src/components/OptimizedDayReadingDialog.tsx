@@ -1,5 +1,5 @@
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
 import { getReadingPlanForDay } from '@/services/readingPlan';
@@ -7,6 +7,8 @@ import { getCachedUserProgressForDay, optimizedToggleChapterStatus } from '@/ser
 import { Check, Loader2 } from 'lucide-react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import CelebrationEffects from '@/components/animations/CelebrationEffects';
+import { useBadgeNotification } from '@/contexts/BadgeNotificationContext';
 
 interface ReadingItem {
   id: string;
@@ -29,7 +31,9 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
 }) => {
   const { user, triggerProgressUpdate } = useOptimizedAuth();
   const [processingIds, setProcessingIds] = useState<string[]>([]);
+  const [showCelebration, setShowCelebration] = useState(false);
   const queryClient = useQueryClient();
+  const { showBadgeUnlocked } = useBadgeNotification();
   
   const formattedDate = useMemo(() => 
     new Date(date).toLocaleDateString('fr-FR', { 
@@ -42,8 +46,8 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
   // Requêtes optimisées avec React Query
   const { data: chaptersData = [] } = useQuery({
     queryKey: ['reading-plan-chapters', day],
-    queryFn: () => getReadingPlanForDay(day),
-    enabled: isOpen && !!day,
+    queryFn: () => user ? getReadingPlanForDay(day, user.id) : [],
+    enabled: isOpen && !!day && !!user,
     staleTime: 10 * 60 * 1000
   });
 
@@ -66,6 +70,26 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
       };
     });
   }, [chaptersData, progressData]);
+
+  // Vérifier si le jour est complètement terminé
+  const isDayComplete = useMemo(() => {
+    return readingItems.length > 0 && readingItems.every(item => item.completed);
+  }, [readingItems]);
+
+  // Déclencher l'animation de célébration quand le jour est complété
+  useEffect(() => {
+    if (isDayComplete && readingItems.length > 0 && !showCelebration) {
+      setShowCelebration(true);
+      toast.success(`🎉 Félicitations ! Jour ${day} terminé !`, {
+        duration: 3000,
+      });
+      
+      // Réinitialiser l'animation après 3 secondes
+      setTimeout(() => {
+        setShowCelebration(false);
+      }, 3000);
+    }
+  }, [isDayComplete, readingItems.length, day, showCelebration]);
   
   const handleToggleRead = useCallback(async (event: React.MouseEvent, id: string) => {
     // Empêcher la propagation et le comportement par défaut
@@ -91,6 +115,13 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
       );
       
       if (result.success) {
+        // Afficher les nouveaux badges débloqués
+        if (result.newBadges && result.newBadges.length > 0) {
+          for (const badge of result.newBadges) {
+            showBadgeUnlocked(badge);
+          }
+        }
+        
         // Mise à jour optimiste du cache au lieu d'invalidation agressive
         queryClient.setQueryData(['user-progress', user.id, day], (oldData: any[]) => {
           if (!oldData) return oldData;
@@ -160,7 +191,7 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
         <DialogHeader>
           <DialogTitle className="text-center">
             <div className="mb-1 text-lg font-bold">Jour {day}</div>
-            <div className="text-sm text-gray-500">{formattedDate}</div>
+            <div className="text-sm text-muted-foreground">{formattedDate}</div>
           </DialogTitle>
         </DialogHeader>
         
@@ -169,43 +200,57 @@ const OptimizedDayReadingDialog = React.memo<OptimizedDayReadingDialogProps>(({
           
           {isLoading ? (
             <div className="flex justify-center items-center h-24">
-              <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-green-500"></div>
+              <div className="animate-gentle-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
             </div>
           ) : (
             <div className="space-y-3 max-h-[60vh] overflow-y-auto px-1">
               {readingItems.length > 0 ? (
-                readingItems.map((item) => (
+                readingItems.map((item, index) => (
                   <button
                     key={item.id}
                     type="button"
-                    onClick={(event) => !processingIds.includes(item.id) && handleToggleRead(event, item.id)}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      if (!processingIds.includes(item.id)) {
+                        handleToggleRead(event, item.id);
+                      }
+                    }}
                     disabled={processingIds.includes(item.id)}
-                    className={`flex items-center w-full p-3 text-left rounded-md hover:bg-gray-100 transition-colors ${
-                      item.completed ? 'text-gray-400 bg-gray-50' : 'text-gray-800'
-                    } ${processingIds.includes(item.id) ? 'opacity-70' : ''}`}
+                    className={`flex items-center w-full p-3 text-left rounded-md transition-all duration-300 ${
+                      item.completed ? 'text-muted-foreground bg-muted animate-success-bounce' : 'text-foreground hover:bg-muted/50 hover:animate-lift'
+                    } ${processingIds.includes(item.id) ? 'opacity-70 cursor-not-allowed' : 'cursor-pointer'}`}
+                    style={{ animationDelay: `${index * 0.1}s` }}
                   >
-                    <div className={`h-6 w-6 rounded mr-3 flex items-center justify-center transition-colors ${
-                      item.completed ? 'bg-green-500' : 'border-2 border-green-300'
+                    <div className={`h-6 w-6 rounded mr-3 flex items-center justify-center transition-all duration-300 ${
+                      item.completed ? 'bg-primary animate-scale-fade-in' : 'border-2 border-primary/30 hover:border-primary'
                     }`}>
                       {processingIds.includes(item.id) ? (
-                        <Loader2 className="h-4 w-4 text-white animate-spin" />
+                        <Loader2 className="h-4 w-4 text-primary-foreground animate-gentle-spin" />
                       ) : (
-                        item.completed && <Check className="h-4 w-4 text-white" />
+                        item.completed && <Check className="h-4 w-4 text-primary-foreground animate-success-bounce" />
                       )}
                     </div>
-                    <span className={item.completed ? 'line-through' : ''}>
+                    <span className={`transition-all duration-300 ${item.completed ? 'line-through' : ''}`}>
                       {item.reference}
                     </span>
                   </button>
                 ))
               ) : (
-                <p className="text-center text-gray-500 my-4">
+                <p className="text-center text-muted-foreground my-4">
                   Aucun passage trouvé pour ce jour
                 </p>
               )}
             </div>
           )}
         </div>
+        
+        {/* Animation de célébration pour jour complété */}
+        <CelebrationEffects 
+          trigger={showCelebration}
+          type="day-complete"
+          onComplete={() => setShowCelebration(false)}
+        />
       </DialogContent>
     </Dialog>
   );

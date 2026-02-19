@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import Logo from '@/components/Logo';
 import { useOptimizedAuth } from '@/hooks/useOptimizedAuth';
+import bereeHero from '@/assets/beree-hero.jpg';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ const Index = () => {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center px-4">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mb-4"></div>
-        <p className="text-gray-600">Chargement...</p>
+        <p className="text-muted-foreground">Chargement...</p>
       </div>
     );
   }
@@ -33,12 +34,12 @@ const Index = () => {
       <div className="max-w-md w-full text-center">
         <Logo size="large" className="mb-6" />
         
-        <h1 className="text-3xl font-bold mb-4 text-gray-800">
-          Lisez la Bible en un an
+        <h1 className="text-3xl font-bold mb-4 text-foreground">
+          Parcourez la Bible en un an
         </h1>
         
-        <p className="text-gray-600 mb-8">
-          Suivez votre lecture quotidienne, établissez une routine spirituelle et progressez pas à pas.
+        <p className="text-muted-foreground mb-8">
+          Suivez votre lecture quotidienne, établissez une routine de lecture et progressez pas à pas.
         </p>
         
         <div className="space-y-4">
@@ -85,8 +86,8 @@ const Index = () => {
       
       <div className="mt-16 mb-8">
         <img 
-          src="https://images.unsplash.com/photo-1504052434569-70ad5836ab65?ixlib=rb-1.2.1&auto=format&fit=crop&w=500&q=80" 
-          alt="Bible ouverte" 
+          src={bereeHero}
+          alt="Bérée - Bible ouverte avec croix" 
           className="w-full max-w-md rounded-2xl shadow-md"
         />
       </div>

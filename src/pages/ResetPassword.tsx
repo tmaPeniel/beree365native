@@ -1,11 +1,10 @@
-
 /**
  * Page de réinitialisation de mot de passe
- * Permet aux utilisateurs de définir un nouveau mot de passe via le lien reçu par email
+ * Traite explicitement le token de recovery avec setSession()
  */
 
-import React, { useEffect, useState } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import React, { useEffect, useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -15,7 +14,7 @@ import * as z from 'zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { updatePassword } from '@/services/auth';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+
 
 // Schéma de validation pour le formulaire
 const resetPasswordSchema = z.object({
@@ -33,9 +32,9 @@ type ResetPasswordFormValues = z.infer<typeof resetPasswordSchema>;
  */
 const ResetPassword = () => {
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [isLoading, setIsLoading] = useState(false);
   const [isValidToken, setIsValidToken] = useState<boolean | null>(null);
+  const hasProcessedToken = useRef(false);
 
   const form = useForm<ResetPasswordFormValues>({
     resolver: zodResolver(resetPasswordSchema),
@@ -45,72 +44,87 @@ const ResetPassword = () => {
     },
   });
 
-  // Vérifier et traiter les tokens de réinitialisation
+  // Traitement du token de recovery
   useEffect(() => {
-    const handlePasswordReset = async () => {
-      console.log("Vérification des paramètres URL...");
-      
-      // Récupérer les tokens depuis l'URL
-      const accessToken = searchParams.get('access_token');
-      const refreshToken = searchParams.get('refresh_token');
-      const type = searchParams.get('type');
-      
-      console.log("Paramètres URL:", { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
-      
-      // Vérifier si c'est bien un lien de réinitialisation de mot de passe
-      if (type === 'recovery' && accessToken && refreshToken) {
+    // Ne traiter qu'une seule fois
+    if (hasProcessedToken.current) return;
+
+    const processRecoveryToken = async () => {
+      const hash = window.location.hash;
+      const params = new URLSearchParams(hash.replace('#', ''));
+      const accessToken = params.get('access_token');
+      const refreshToken = params.get('refresh_token');
+      const type = params.get('type');
+
+      console.log("Processing recovery token:", { type, hasToken: !!accessToken });
+
+      // Si c'est une URL de recovery avec un token valide
+      if (type === 'recovery' && accessToken) {
+        hasProcessedToken.current = true;
+        
         try {
-          console.log("Tentative de définition de la session avec les tokens...");
-          
-          // Définir la session avec les tokens reçus
+          // Établir la session manuellement avec le token
           const { data, error } = await supabase.auth.setSession({
             access_token: accessToken,
-            refresh_token: refreshToken
+            refresh_token: refreshToken || ''
           });
-          
+
           if (error) {
-            console.error("Erreur lors de la définition de la session:", error);
-            throw error;
-          }
-          
-          if (data.session && data.user) {
-            console.log("Session définie avec succès pour l'utilisateur:", data.user.id);
+            console.error("Erreur setSession:", error);
+            setIsValidToken(false);
+            setTimeout(() => navigate('/forgot-password'), 2000);
+          } else if (data.session) {
+            console.log("Session établie avec succès");
             setIsValidToken(true);
-            toast.success("Lien de réinitialisation valide. Vous pouvez maintenant définir votre nouveau mot de passe.");
-          } else {
-            console.error("Session ou utilisateur manquant après setSession");
-            throw new Error("Session invalide");
+            // Nettoyer le hash de l'URL
+            window.history.replaceState({}, '', '/reset-password');
           }
-        } catch (error: any) {
-          console.error("Erreur lors du traitement du token:", error);
+        } catch (err) {
+          console.error("Erreur lors du traitement du token:", err);
           setIsValidToken(false);
-          toast.error("Lien de réinitialisation invalide ou expiré");
-          setTimeout(() => {
-            navigate('/forgot-password');
-          }, 3000);
+          setTimeout(() => navigate('/forgot-password'), 2000);
         }
-      } else {
-        console.log("Paramètres manquants ou type incorrect:", { type, hasAccessToken: !!accessToken, hasRefreshToken: !!refreshToken });
-        
-        // Vérifier s'il y a une session existante
-        const { data: { session } } = await supabase.auth.getSession();
-        
-        if (session?.user) {
-          console.log("Session existante trouvée");
-          setIsValidToken(true);
-        } else {
-          console.log("Aucune session valide trouvée");
-          setIsValidToken(false);
-          toast.error("Lien de réinitialisation invalide ou expiré");
-          setTimeout(() => {
-            navigate('/forgot-password');
-          }, 3000);
-        }
+        return;
       }
+
+      // Fallback: écouter l'événement PASSWORD_RECOVERY
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+        console.log("Auth event in ResetPassword:", event);
+        
+        if (event === 'PASSWORD_RECOVERY' && !hasProcessedToken.current) {
+          hasProcessedToken.current = true;
+          setIsValidToken(true);
+        }
+      });
+
+      // Vérifier si une session recovery existe déjà
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user && !hasProcessedToken.current) {
+        console.log("Session existante trouvée");
+        hasProcessedToken.current = true;
+        setIsValidToken(true);
+      } else if (!hasProcessedToken.current) {
+        // Aucun token et pas de session - timeout plus long
+        const timeoutId = setTimeout(() => {
+          if (!hasProcessedToken.current) {
+            console.log("Timeout - lien invalide");
+            hasProcessedToken.current = true;
+            setIsValidToken(false);
+            navigate('/forgot-password');
+          }
+        }, 5000);
+
+        return () => {
+          clearTimeout(timeoutId);
+          subscription.unsubscribe();
+        };
+      }
+
+      return () => subscription.unsubscribe();
     };
 
-    handlePasswordReset();
-  }, [navigate, searchParams]);
+    processRecoveryToken();
+  }, [navigate]);
 
   /**
    * Gère la soumission du formulaire
@@ -122,12 +136,10 @@ const ResetPassword = () => {
       console.log("Tentative de mise à jour du mot de passe...");
       const result = await updatePassword(values.password);
       if (result.success) {
-        toast.success("Mot de passe mis à jour avec succès !");
         navigate('/dashboard');
       }
     } catch (error) {
       console.error("Erreur lors de la mise à jour du mot de passe:", error);
-      toast.error("Erreur lors de la mise à jour du mot de passe");
     } finally {
       setIsLoading(false);
     }
@@ -136,10 +148,10 @@ const ResetPassword = () => {
   // Affichage pendant la vérification du token
   if (isValidToken === null) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Vérification du lien de réinitialisation...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Vérification du lien de réinitialisation...</p>
         </div>
       </div>
     );
@@ -148,17 +160,17 @@ const ResetPassword = () => {
   // Affichage si le token est invalide
   if (isValidToken === false) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
-        <Card className="w-[400px] shadow-lg border-t-4 border-t-red-500">
+      <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
+        <Card className="w-[400px] shadow-lg border-t-4 border-t-destructive">
           <CardHeader className="text-center">
-            <h1 className="text-2xl font-bold text-red-600">Lien invalide</h1>
+            <h1 className="text-2xl font-bold text-destructive">Lien invalide</h1>
           </CardHeader>
           
           <CardContent className="text-center space-y-4">
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Le lien de réinitialisation est invalide ou a expiré.
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-muted-foreground">
               Vous allez être redirigé vers la page de demande de réinitialisation...
             </p>
           </CardContent>
@@ -168,11 +180,11 @@ const ResetPassword = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 animate-fade-in">
-      <Card className="w-[400px] shadow-lg border-t-4 border-t-green-500">
+    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
+      <Card className="w-[400px] shadow-lg border-t-4 border-t-primary">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-bold">Nouveau mot de passe</h1>
-          <p className="text-gray-600">
+          <p className="text-muted-foreground">
             Choisissez votre nouveau mot de passe
           </p>
         </CardHeader>
@@ -210,7 +222,7 @@ const ResetPassword = () => {
               
               <Button 
                 type="submit" 
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full"
                 disabled={isLoading}
               >
                 {isLoading ? "Mise à jour..." : "Mettre à jour le mot de passe"}
