@@ -9,8 +9,7 @@ import { getOverallProgress } from '@/services/readingPlan';
 import { supabase } from '@/integrations/supabase/client';
 import { useQuery } from '@tanstack/react-query';
 import { useInitialPageLoad } from '@/hooks/useInitialPageLoad';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
-import { ChartContainer, ChartTooltipContent, ChartTooltip } from '@/components/ui/chart';
+import ActivityChart from '@/components/statistics/ActivityChart';
 
 /**
  * Récupère le nombre de passages lus cette semaine (lundi → dimanche)
@@ -33,51 +32,6 @@ const getWeeklyPassagesRead = async (userId: string): Promise<number> => {
   return count || 0;
 };
 
-const DAY_LABELS = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
-
-/**
- * Récupère le nombre de passages lus pour chaque jour de la semaine en cours
- */
-const getWeeklyDailyBreakdown = async (userId: string) => {
-  const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = dimanche
-  const diffToMonday = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
-  const monday = new Date(now);
-  monday.setDate(now.getDate() + diffToMonday);
-  monday.setHours(0, 0, 0, 0);
-
-  const sunday = new Date(monday);
-  sunday.setDate(monday.getDate() + 6);
-  sunday.setHours(23, 59, 59, 999);
-
-  const { data } = await supabase
-    .from('user_progress')
-    .select('completed_at')
-    .eq('user_id', userId)
-    .eq('status', 'completed')
-    .gte('completed_at', monday.toISOString())
-    .lte('completed_at', sunday.toISOString());
-
-  // Initialise tous les jours lun→dim à 0
-  const counts: Record<string, number> = { Lun: 0, Mar: 0, Mer: 0, Jeu: 0, Ven: 0, Sam: 0, Dim: 0 };
-  const orderedDays = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
-
-  (data || []).forEach((row) => {
-    if (!row.completed_at) return;
-    const d = new Date(row.completed_at);
-    const label = DAY_LABELS[d.getDay()];
-    if (label in counts) counts[label]++;
-  });
-
-  return orderedDays.map((day) => ({ day, count: counts[day] }));
-};
-
-const chartConfig = {
-  count: {
-    label: 'Passages',
-    color: 'hsl(var(--primary))',
-  },
-};
 
 /**
  * Page dédiée aux statistiques détaillées
@@ -101,12 +55,6 @@ const ProfileStatistics = () => {
     staleTime: 5 * 60 * 1000,
   });
 
-  const { data: weeklyBreakdown = [] } = useQuery({
-    queryKey: ['weeklyBreakdown', user?.id],
-    queryFn: () => user ? getWeeklyDailyBreakdown(user.id) : [],
-    enabled: !!user,
-    staleTime: 5 * 60 * 1000,
-  });
 
   const statItems = [
     {
@@ -224,33 +172,8 @@ const ProfileStatistics = () => {
           ))}
         </div>
 
-        {/* Graphique activité hebdomadaire */}
-        <Card className="border-border shadow-sm">
-          <CardContent className="p-5">
-            <h2 className="text-sm font-semibold text-primary bg-primary/5 py-2 rounded-md text-center mb-4 uppercase tracking-wide">
-              Activité de la semaine
-            </h2>
-            <ChartContainer config={chartConfig} className="h-40 w-full">
-              <BarChart data={weeklyBreakdown} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-                <XAxis
-                  dataKey="day"
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                  width={28}
-                />
-                <ChartTooltip content={<ChartTooltipContent />} />
-                <Bar dataKey="count" radius={[4, 4, 0, 0]} fill="hsl(var(--primary))" maxBarSize={40} />
-              </BarChart>
-            </ChartContainer>
-          </CardContent>
-        </Card>
+        {/* Graphique activité avec onglets semaine/mois */}
+        {user && <ActivityChart userId={user.id} />}
 
       </div>
     </div>
