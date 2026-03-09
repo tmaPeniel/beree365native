@@ -1,31 +1,77 @@
 
+## Ajouter la navigation hebdomadaire et la vue mensuelle dans les statistiques
 
-## Cahier des charges complet -- Application Beree
+### Objectif
 
-Je vais creer un dossier `docs/` contenant 6 fichiers de documentation exhaustive couvrant l'ensemble du projet, destine a une equipe mobile.
+Enrichir la section "Activite de la semaine" avec :
+1. Des fleches de navigation pour consulter les semaines precedentes du mois en cours
+2. Un systeme d'onglets (Semaine / Mois) pour basculer entre la vue jour par jour et une vue mensuelle avec un baton par semaine
 
-### Fichiers a creer
+### Architecture UI
 
-| Fichier | Contenu |
-|---------|---------|
-| `docs/01-presentation-projet.md` | But, mission, stack technique, architecture globale |
-| `docs/02-pages-et-ecrans.md` | Chaque page avec route, description, composants, captures (URLs preview) |
-| `docs/03-modele-de-donnees.md` | Schema complet Supabase (tables, colonnes, types, FK, RLS) |
-| `docs/04-interactions-et-logique.md` | Chaque bouton/action, ce qui se passe, flux utilisateur detailles |
-| `docs/05-services-et-api.md` | Tous les services (auth, progress, badges, verses, notifications, admin) |
-| `docs/06-design-et-composants.md` | Charte graphique, composants UI, theme, responsive, animations |
+```text
+┌─────────────────────────────────────────┐
+│  ACTIVITE                               │
+│  [ Semaine ]  [ Mois ]     <- onglets   │
+│                                         │
+│  VUE SEMAINE :                          │
+│  < Sem. 3 mars 2026 >   <- navigation   │
+│   5 |     ████                          │
+│   3 |████ ████      ████                │
+│   0 └────────────────────               │
+│     Lun Mar Mer Jeu Ven Sam Dim         │
+│                                         │
+│  VUE MOIS :                             │
+│  < Mars 2026 >           <- navigation  │
+│  10|████                                │
+│   8|████ ████                           │
+│   5|████ ████ ████                      │
+│   0└────────────────                    │
+│    Sem 1 Sem 2 Sem 3 Sem 4              │
+└─────────────────────────────────────────┘
+```
 
-### Contenu cle par fichier
+### Fichier modifie
 
-**01 - Presentation** : App de lecture biblique, plans de 180/365 jours, 4 types de plans (canonique/chronologique x 6/12 mois), PWA, Supabase backend, multi-theme (clair/sombre).
+| Fichier | Modification |
+|---------|-------------|
+| `src/pages/ProfileStatistics.tsx` | Refonte de la section graphique avec onglets, navigation et nouvelles fonctions de donnees |
 
-**02 - Pages** : 20+ ecrans documentes avec route, layout, composants utilises, etats (loading/error/vide), et description visuelle precise pour chaque ecran (Index, Login, Signup Step1/Step2, Dashboard, Reading, Profile, Statistics, Badges, VerseList, Settings, Edit, Privacy, About, Help, Admin, ForgotPassword, ResetPassword, Terms, Cookies, ReadingPlanManagement, NotFound).
+### Detail technique
 
-**03 - Modele de donnees** : Les 11 tables (profiles, reading_plans, reading_plan_chapters, user_progress, daily_verses, verse_likes, badges, user_badges, user_roles, notification_preferences, notification_logs, user_devices, user_consents) avec colonnes, types, contraintes, et politiques RLS.
+#### 1. Etat local pour la navigation
 
-**04 - Interactions** : Flux complets pour inscription (2 etapes), connexion, marquage de lecture, like de verset, changement de plan, reset de plan, modification de date, suppression de compte, export RGPD, partage, navigation entre vues (focus/grille), recherche, notifications push, badges automatiques.
+- `viewMode` : `'week'` ou `'month'` (onglet actif)
+- `weekOffset` : nombre entier (0 = semaine courante, -1 = semaine precedente, etc.), borne aux semaines du mois en cours
+- `monthOffset` : nombre entier (0 = mois courant, -1 = mois precedent)
 
-**05 - Services** : authCore (signUp/signIn/signOut/resetPassword), progressService (getOverallProgress/toggleChapterStatus), verseService (getDailyVerse/getAllVersesUpToDay avec jointure verse_likes), badgeService (calcul automatique), planService (changePlan/getAvailablePlans), admin service, dateService, cacheService.
+#### 2. Fonction `getWeeklyDailyBreakdown` parametree
 
-**06 - Design** : Couleur primaire beree-500 (vert), mobile-first, bottom NavBar (Accueil/Lecture/Profil/Admin), sidebar desktop, composants Shadcn/Radix UI, Recharts pour graphiques, Tailwind CSS, animations (splash, fade-in, scale, press), theme provider (light/dark/system).
+Modifier la fonction existante pour accepter un `weekOffset` :
+- Calcul du lundi de la semaine ciblee a partir de l'offset
+- Meme logique de requete et regroupement par jour
 
+#### 3. Nouvelle fonction `getMonthlyWeeklyBreakdown`
+
+- Prend `userId` et `monthOffset`
+- Calcule le 1er et dernier jour du mois cible
+- Requete `user_progress` sur toute la plage du mois
+- Regroupe les resultats par semaine (Sem 1 = jours 1-7, Sem 2 = jours 8-14, etc.)
+- Retourne un tableau : `[{ week: 'Sem 1', count: 12 }, { week: 'Sem 2', count: 8 }, ...]`
+
+#### 4. Queries React Query
+
+- `weeklyBreakdown` : queryKey inclut `weekOffset` pour refetch automatique lors de la navigation
+- Nouveau `monthlyBreakdown` : queryKey inclut `monthOffset`
+
+#### 5. Composant UI
+
+- Utilisation des composants `Tabs`, `TabsList`, `TabsTrigger`, `TabsContent` deja disponibles dans le projet
+- Fleches de navigation avec `ChevronLeft` / `ChevronRight` de lucide-react
+- Label central affichant la periode (ex: "Sem. 3 - Mars 2026" ou "Mars 2026")
+- Limitation : pas de navigation au-dela du mois en cours pour la vue semaine, ni au-dela de 6 mois pour la vue mensuelle
+
+#### 6. Limites de navigation
+
+- Vue semaine : on ne peut pas aller au-dela de la 1ere semaine du mois en cours (vers le passe) ni apres la semaine courante (vers le futur)
+- Vue mois : on peut remonter jusqu'a 6 mois en arriere, pas au-dela du mois courant vers le futur
