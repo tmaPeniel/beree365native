@@ -8,7 +8,9 @@ import { AuthProvider } from "@/hooks/useAuth";
 import { BadgeNotificationProvider } from "@/contexts/BadgeNotificationContext";
 import BadgeUnlockPopup from "@/components/notifications/BadgeUnlockPopup";
 import SplashScreen from "./components/SplashScreen";
+import Onboarding from "./components/Onboarding";
 import { useSplashScreen } from "./hooks/useSplashScreen";
+import { useLocalStorage } from "./hooks/useLocalStorage";
 import AppLayout from "./components/AppLayout";
 import Index from "./pages/Index";
 import Login from "./pages/Login";
@@ -42,6 +44,7 @@ const queryClient = new QueryClient();
 
 function App() {
   const { isVisible: splashVisible, isComplete: splashComplete } = useSplashScreen();
+  const [onboardingDone, setOnboardingDone] = useLocalStorage('beree-onboarding-completed', false);
 
   return (
     <QueryClientProvider client={queryClient}>
@@ -50,9 +53,14 @@ function App() {
         
         {/* Splash Screen */}
         <SplashScreen isVisible={splashVisible} />
+
+        {/* Onboarding */}
+        {splashComplete && !onboardingDone && (
+          <Onboarding onComplete={() => setOnboardingDone(true)} />
+        )}
         
         {/* Main Application */}
-        {splashComplete && (
+        {splashComplete && onboardingDone && (
           <BrowserRouter>
             <AuthProvider>
               <BadgeNotificationProvider>
