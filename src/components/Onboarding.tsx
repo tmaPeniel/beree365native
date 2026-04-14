@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { BookOpen, BarChart3, ArrowRight } from 'lucide-react';
 import Logo from './Logo';
 import { Button } from './ui/button';
