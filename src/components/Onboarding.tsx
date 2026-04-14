@@ -1,7 +1,9 @@
-import React, { useState, useRef, useCallback, useEffect } from 'react';
-import { BookOpen, BarChart3, ArrowRight } from 'lucide-react';
-import Logo from './Logo';
+import React, { useState, useRef, useCallback } from 'react';
+import { ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
+import onboardingWelcome from '@/assets/onboarding-welcome.png';
+import onboardingPlan from '@/assets/onboarding-plan.png';
+import onboardingProgress from '@/assets/onboarding-progress.png';
 
 interface OnboardingProps {
   onComplete: () => void;
@@ -9,22 +11,19 @@ interface OnboardingProps {
 
 const slides = [
   {
-    icon: null, // Logo used instead
+    image: onboardingWelcome,
     title: 'Bienvenue sur Bérée 365',
     description: 'Parcourez la Bible en un an avec un plan de lecture adapté à votre rythme.',
-    isLogo: true,
   },
   {
-    icon: BookOpen,
+    image: onboardingPlan,
     title: 'Votre plan de lecture',
     description: 'Choisissez parmi 4 plans adaptés : canonique ou chronologique, en 6 ou 12 mois.',
-    isLogo: false,
   },
   {
-    icon: BarChart3,
+    image: onboardingProgress,
     title: 'Suivez votre progression',
     description: 'Débloquez des badges, consultez vos statistiques et découvrez un verset chaque jour.',
-    isLogo: false,
   },
 ];
 
@@ -95,15 +94,13 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       {/* Slide content */}
       <div className={`flex-1 flex flex-col items-center justify-center px-8 text-center transition-all duration-200 ease-out ${slideClass}`}>
         <div className="mb-8">
-          {slide.isLogo ? (
-            <Logo size="large" />
-          ) : (
-            slide.icon && (
-              <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-                <slide.icon className="w-10 h-10 text-primary" />
-              </div>
-            )
-          )}
+          <img
+            src={slide.image}
+            alt={slide.title}
+            width={200}
+            height={200}
+            className="w-48 h-48 object-contain mx-auto drop-shadow-lg"
+          />
         </div>
 
         <h2 className="text-2xl font-bold text-foreground mb-3">{slide.title}</h2>
