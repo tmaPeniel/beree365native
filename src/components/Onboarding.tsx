@@ -30,20 +30,31 @@ const slides = [
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [current, setCurrent] = useState(0);
+  const [direction, setDirection] = useState<'left' | 'right'>('left');
+  const [isVisible, setIsVisible] = useState(true);
   const touchStartX = useRef(0);
   const isLast = current === slides.length - 1;
+
+  const goTo = useCallback((nextIndex: number, dir: 'left' | 'right') => {
+    setIsVisible(false);
+    setDirection(dir);
+    setTimeout(() => {
+      setCurrent(nextIndex);
+      setIsVisible(true);
+    }, 200);
+  }, []);
 
   const next = useCallback(() => {
     if (isLast) {
       onComplete();
     } else {
-      setCurrent((c) => c + 1);
+      goTo(current + 1, 'left');
     }
-  }, [isLast, onComplete]);
+  }, [isLast, onComplete, current, goTo]);
 
   const prev = useCallback(() => {
-    setCurrent((c) => Math.max(0, c - 1));
-  }, []);
+    if (current > 0) goTo(current - 1, 'right');
+  }, [current, goTo]);
 
   const handleTouchStart = (e: React.TouchEvent) => {
     touchStartX.current = e.touches[0].clientX;
@@ -58,6 +69,12 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   };
 
   const slide = slides[current];
+
+  const slideClass = isVisible
+    ? 'opacity-100 translate-x-0'
+    : direction === 'left'
+      ? 'opacity-0 translate-x-8'
+      : 'opacity-0 -translate-x-8';
 
   return (
     <div
