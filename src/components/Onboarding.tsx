@@ -93,8 +93,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
       {isLast && <div className="p-4 h-[52px]" />}
 
       {/* Slide content */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 text-center">
-        <div className="mb-8 transition-all duration-300">
+      <div className={`flex-1 flex flex-col items-center justify-center px-8 text-center transition-all duration-200 ease-out ${slideClass}`}>
+        <div className="mb-8">
           {slide.isLogo ? (
             <Logo size="large" />
           ) : (
