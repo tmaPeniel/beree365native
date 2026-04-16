@@ -1,12 +1,11 @@
 /**
- * Hook de notifications push avec OneSignal Web
- * Utilise l'instance globale window.OneSignal initialisée via le script dans index.html
+ * Hook de notifications push natif (Web Push API + VAPID)
  */
 
 import { useState, useEffect, useCallback } from 'react';
 import { logger } from '@/utils/logger';
 import { toast } from 'sonner';
-import { oneSignalService } from '@/onesignal';
+import { pushService } from '@/services/pushService';
 import { useAuth } from './useAuth';
 
 export type UseUnifiedPushNotificationsReturn = {
@@ -30,68 +29,37 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
   const [isInitializing, setIsInitializing] = useState(true);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [permission, setPermission] = useState<'granted' | 'denied' | 'prompt' | 'default' | 'unknown'>('unknown');
-  const [oneSignalPlayerId, setOneSignalPlayerId] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Vérifier si les notifications sont supportées
-  const isSupported = 'Notification' in window && 'serviceWorker' in navigator;
+  const isSupported = typeof window !== 'undefined' && 'Notification' in window && 'serviceWorker' in navigator && 'PushManager' in window;
 
-  // Attendre que OneSignal soit initialisé
-  const waitForOneSignal = useCallback(async (): Promise<boolean> => {
-    return new Promise((resolve) => {
-      if (window.OneSignal) {
-        resolve(true);
-      } else {
-        window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(() => {
-          resolve(true);
-        });
-      }
-    });
-  }, []);
-
-  // Initialisation au montage du composant
+  // Initialisation
   useEffect(() => {
     const initialize = async () => {
       if (!isSupported) {
-        logger.warn('⚠️ Notifications non supportées dans ce navigateur');
         setIsInitializing(false);
         return;
       }
 
-      setIsInitializing(true);
       try {
-        logger.info('🚀 Attente de l\'initialisation de OneSignal...');
-
-        // Attendre que OneSignal soit prêt (initialisé via le script dans index.html)
-        await waitForOneSignal();
-
-        logger.success('✅ OneSignal prêt');
-        
-        // Configurer le listener pour les changements de subscription
-        await oneSignalService.setupSubscriptionListener();
-        
-        // Récupérer l'état actuel
-        const state = await oneSignalService.getPermissionState();
+        const state = await pushService.getPermissionState();
         setPermission(state.permission);
         setIsSubscribed(state.isSubscribed);
-        setOneSignalPlayerId(state.playerId);
       } catch (error) {
-        logger.error('❌ Erreur lors de l\'initialisation:', error);
+        logger.error('❌ Erreur initialisation push:', error);
       } finally {
         setIsInitializing(false);
       }
     };
 
     initialize();
-  }, [isSupported, waitForOneSignal]);
+  }, [isSupported]);
 
   const subscribe = useCallback(async (): Promise<boolean> => {
     if (!user) {
-      toast.error('Vous devez être connecté pour vous abonner aux notifications');
+      toast.error('Vous devez être connecté pour activer les notifications');
       return false;
     }
-
     if (!isSupported) {
       toast.error('Les notifications ne sont pas supportées sur ce navigateur');
       return false;
@@ -99,25 +67,20 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
 
     setIsLoading(true);
     try {
-      logger.info('📝 Abonnement aux notifications...');
-
-      const success = await oneSignalService.subscribe();
-
+      const success = await pushService.subscribe();
       if (success) {
-        const state = await oneSignalService.getPermissionState();
+        const state = await pushService.getPermissionState();
         setPermission(state.permission);
-        setIsSubscribed(state.isSubscribed);
-        setOneSignalPlayerId(state.playerId);
-        
-        toast.success('✅ Abonné aux notifications avec succès');
+        setIsSubscribed(true);
+        toast.success('✅ Notifications activées');
         return true;
       } else {
-        toast.error('❌ Échec de l\'abonnement aux notifications');
+        toast.error('❌ Échec de l\'activation des notifications');
         return false;
       }
     } catch (error) {
-      logger.error('❌ Erreur lors de l\'abonnement:', error);
-      toast.error('Une erreur est survenue lors de l\'abonnement');
+      logger.error('❌ Erreur abonnement:', error);
+      toast.error('Une erreur est survenue');
       return false;
     } finally {
       setIsLoading(false);
@@ -125,67 +88,20 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
   }, [user, isSupported]);
 
   const unsubscribe = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) {
-      toast.error('Les notifications ne sont pas supportées sur ce navigateur');
-      return false;
-    }
+    if (!isSupported) return false;
 
     setIsLoading(true);
     try {
-      logger.info('🔕 Désabonnement des notifications...');
-
-      const success = await oneSignalService.unsubscribe();
-
+      const success = await pushService.unsubscribe();
       if (success) {
         setPermission(Notification.permission);
         setIsSubscribed(false);
-        setOneSignalPlayerId(null);
-        
-        toast.success('✅ Désabonné des notifications avec succès');
+        toast.success('✅ Notifications désactivées');
         return true;
-      } else {
-        toast.error('❌ Échec du désabonnement');
-        return false;
       }
-    } catch (error) {
-      logger.error('❌ Erreur lors du désabonnement:', error);
-      toast.error('Une erreur est survenue lors du désabonnement');
       return false;
-    } finally {
-      setIsLoading(false);
-    }
-  }, [isSupported]);
-
-  const requestPermission = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) {
-      toast.error('Les notifications ne sont pas supportées sur ce navigateur');
-      return false;
-    }
-
-    setIsLoading(true);
-    try {
-      logger.info('🔔 Demande de permission...');
-
-      const result = await oneSignalService.requestPermission();
-      setPermission(result);
-
-      if (result === 'granted') {
-        // Récupérer l'état mis à jour
-        const state = await oneSignalService.getPermissionState();
-        setIsSubscribed(state.isSubscribed);
-        setOneSignalPlayerId(state.playerId);
-        
-        toast.success('✅ Permission accordée');
-        return true;
-      } else if (result === 'denied') {
-        toast.error('❌ Permission refusée');
-        return false;
-      } else {
-        toast.info('ℹ️ Permission non accordée');
-        return false;
-      }
     } catch (error) {
-      logger.error('❌ Erreur lors de la demande de permission:', error);
+      logger.error('❌ Erreur désabonnement:', error);
       toast.error('Une erreur est survenue');
       return false;
     } finally {
@@ -193,40 +109,43 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     }
   }, [isSupported]);
 
-  const reinitialize = useCallback(async (): Promise<boolean> => {
-    if (!isSupported) {
-      toast.error('Les notifications ne sont pas supportées sur ce navigateur');
+  const requestPermission = useCallback(async (): Promise<boolean> => {
+    if (!isSupported) return false;
+
+    setIsLoading(true);
+    try {
+      const result = await Notification.requestPermission();
+      setPermission(result);
+      if (result === 'granted') {
+        toast.success('✅ Permission accordée');
+        return true;
+      }
+      toast.error('❌ Permission refusée');
       return false;
+    } finally {
+      setIsLoading(false);
     }
+  }, [isSupported]);
+
+  const reinitialize = useCallback(async (): Promise<boolean> => {
+    if (!isSupported) return false;
 
     setIsLoading(true);
     setIsInitializing(true);
     try {
-      logger.info('🔄 Réinitialisation de OneSignal...');
-
-      // Attendre que OneSignal soit prêt
-      await waitForOneSignal();
-      
-      // Configurer le listener
-      await oneSignalService.setupSubscriptionListener();
-      
-      // Récupérer l'état actuel
-      const state = await oneSignalService.getPermissionState();
+      const state = await pushService.getPermissionState();
       setPermission(state.permission);
       setIsSubscribed(state.isSubscribed);
-      setOneSignalPlayerId(state.playerId);
-
-      toast.success('✅ OneSignal réinitialisé');
+      toast.success('✅ État des notifications rafraîchi');
       return true;
     } catch (error) {
-      logger.error('❌ Erreur lors de la réinitialisation:', error);
-      toast.error('Erreur lors de la réinitialisation');
+      logger.error('❌ Erreur réinitialisation:', error);
       return false;
     } finally {
       setIsLoading(false);
       setIsInitializing(false);
     }
-  }, [isSupported, waitForOneSignal]);
+  }, [isSupported]);
 
   return {
     isSupported,
@@ -236,8 +155,8 @@ export const useUnifiedPushNotifications = (): UseUnifiedPushNotificationsReturn
     permission,
     platform: 'web',
     platformName: 'web',
-    deviceToken: oneSignalPlayerId,
-    oneSignalPlayerId,
+    deviceToken: null,
+    oneSignalPlayerId: null, // Kept for backward compatibility
     subscribe,
     unsubscribe,
     requestPermission,
