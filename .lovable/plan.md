@@ -1,40 +1,76 @@
 
 
-## Ajouter un onboarding pour les nouveaux utilisateurs
+## Migration OneSignal → Web Push natif (VAPID)
 
-### Principe
+### Objectif
+Remplacer OneSignal par l'API Web Push native avec des cles VAPID. Cela supprime la dependance a un service tiers, simplifie l'architecture, et donne un controle total sur les notifications.
 
-Au lancement, l'app verifie `localStorage` (`beree-onboarding-completed`). Si absent, afficher 3 ecrans d'onboarding swipables avant la page d'accueil. Une fois termine ou skippe, stocker la valeur et ne plus jamais l'afficher.
-
-### Flux
+### Architecture cible
 
 ```text
-App lance → Splash → onboarding vu ? 
-                        Non → Onboarding (3 slides) → Page Index
-                        Oui → Page Index
+Frontend (SW + Push API)          Edge Functions (Supabase)
+┌─────────────────────┐           ┌────────────────────────┐
+│ subscribe() →       │           │ send-push-notification │
+│   PushSubscription  │──save──→  │   ← web-push (VAPID)  │
+│   {endpoint, keys}  │           │   → fetch(endpoint)    │
+└─────────────────────┘           └────────────────────────┘
 ```
 
-### Ecrans d'onboarding (3 slides)
+Au lieu de stocker un `onesignal_player_id`, on stocke le `PushSubscription` complet (endpoint + p256dh + auth) dans `user_devices`.
 
-1. **Bienvenue** -- Logo + "Parcourez la Bible en un an" + description courte
-2. **Votre plan de lecture** -- Icone livre + "Choisissez parmi 4 plans adaptes a votre rythme"
-3. **Suivez votre progression** -- Icone graphique + "Badges, statistiques et versets du jour" + bouton "Commencer"
-
-Chaque slide : illustration/icone, titre, sous-titre. Navigation par dots + swipe. Bouton "Passer" en haut a droite sur chaque slide sauf le dernier.
-
-### Fichiers a creer/modifier
+### Fichiers a modifier/creer
 
 | Fichier | Action |
 |---------|--------|
-| `src/components/Onboarding.tsx` | Creer -- composant plein ecran avec 3 slides, dots, swipe, bouton Passer/Commencer |
-| `src/App.tsx` | Modifier -- ajouter un etat `onboardingDone` (lu depuis localStorage), afficher `<Onboarding>` entre le splash et le router si pas encore vu |
+| **DB migration** | Ajouter colonnes `push_endpoint`, `push_p256dh`, `push_auth` a `user_devices` ; rendre `onesignal_player_id` nullable |
+| `src/services/pushService.ts` | **Creer** -- remplace `src/onesignal.ts`. Subscribe/unsubscribe via Push API native, sauvegarde PushSubscription dans Supabase |
+| `src/hooks/useUnifiedPushNotifications.ts` | **Recrire** -- utilise `pushService` au lieu de `oneSignalService` |
+| `src/hooks/useBadgeCalculation.tsx` | **Modifier** -- importer `pushService` au lieu de `oneSignalService` |
+| `public/sw.js` | **Garder** -- deja fonctionnel pour `push` et `notificationclick` |
+| `index.html` | **Modifier** -- supprimer le script OneSignal SDK et le bloc `OneSignalDeferred` |
+| `public/OneSignalSDKWorker.js` | **Supprimer** |
+| `public/manifest.json` | **Modifier** -- retirer `gcm_sender_id` si present |
+| `supabase/functions/send-push-notification/index.ts` | **Recrire** -- remplacer l'appel API OneSignal par Web Push natif (fetch vers l'endpoint avec payload chiffre VAPID) |
+| `supabase/functions/send-daily-reminders/index.ts` | **Recrire** -- meme logique, utiliser les colonnes `push_endpoint/p256dh/auth` au lieu de `onesignal_player_id` |
+| `supabase/functions/send-daily-verse/index.ts` | **Recrire** -- idem |
+| `supabase/functions/sync-onesignal-subscriptions/index.ts` | **Supprimer** ou renommer en `cleanup-push-subscriptions` |
+| `src/pages/ProfileNotifications.tsx` | **Modifier** -- retirer references OneSignal, simplifier l'UI |
+| `src/components/cookies/CookieConsentBanner.tsx` | **Modifier** -- changer "OneSignal" en "notifications push" |
 
 ### Detail technique
 
-- **Stockage** : `useLocalStorage('beree-onboarding-completed', false)` (hook existant dans le projet)
-- **Swipe** : gestion tactile avec `onTouchStart`/`onTouchEnd` natifs (pas de dependance supplementaire)
-- **Animations** : transitions CSS `translate-x` entre slides, fade sur les dots
-- **Bouton "Passer"** : marque l'onboarding comme complete et ferme
-- **Bouton "Commencer"** (dernier slide) : idem
-- **Integration dans App.tsx** : apres `splashComplete && !onboardingDone`, afficher `<Onboarding onComplete={() => setOnboardingDone(true)} />`, sinon afficher le `BrowserRouter` normalement
+#### 1. Migration BDD
+```sql
+ALTER TABLE user_devices 
+  ADD COLUMN push_endpoint text,
+  ADD COLUMN push_p256dh text,
+  ADD COLUMN push_auth text;
+ALTER TABLE user_devices ALTER COLUMN onesignal_player_id DROP NOT NULL;
+```
+
+#### 2. pushService.ts (remplace onesignal.ts)
+- `subscribe()` : appelle `registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: VAPID_PUBLIC_KEY })`, sauvegarde le `PushSubscription` JSON dans `user_devices`
+- `unsubscribe()` : appelle `subscription.unsubscribe()`, marque `is_active = false`
+- `getSubscription()` : verifie si une subscription active existe
+- Utilise `VITE_VAPID_PUBLIC_KEY` (env var publique) pour la cle VAPID cote client
+
+#### 3. Edge Functions -- envoi Web Push natif
+Les Edge Functions utiliseront la librairie `web-push` pour Deno (ou implementation manuelle avec `crypto.subtle`) pour signer les requetes VAPID et envoyer les payloads chiffres vers les endpoints Push.
+
+Secrets necessaires : `VAPID_PUBLIC_KEY` et `VAPID_PRIVATE_KEY` (deja configures dans Supabase).
+
+#### 4. Service Worker
+Le `public/sw.js` existant gere deja `push` et `notificationclick` correctement -- aucune modification necessaire.
+
+#### 5. Nettoyage
+- Supprimer `src/onesignal.ts`
+- Supprimer `public/OneSignalSDKWorker.js`
+- Retirer les scripts OneSignal de `index.html`
+- Retirer les colonnes `onesignal_player_id` de `profiles` (migration future, pas bloquant)
+
+### Impact
+- **0 dependance externe** pour les notifications
+- Les secrets `VAPID_PUBLIC_KEY` et `VAPID_PRIVATE_KEY` sont deja configures
+- Le service worker existant est deja compatible
+- Les tables `user_devices` et `notification_logs` restent utilisees
 
