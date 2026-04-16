@@ -6,7 +6,6 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3B82F6",
-  "gcm_sender_id": "482941778795",
   "icons": [
     {
       "src": "/beree-192x192.png",

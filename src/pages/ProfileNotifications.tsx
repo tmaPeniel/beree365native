@@ -1,10 +1,10 @@
 /**
- * Page de gestion des notifications push avec OneSignal Web
+ * Page de gestion des notifications push natives (Web Push API)
  */
 
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, Send, RefreshCw, Globe } from 'lucide-react';
+import { ArrowLeft, Bell, BellOff, Send, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/hooks/useAuth';
 import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
-import { oneSignalService } from '@/onesignal';
+import { pushService } from '@/services/pushService';
 import { toast } from '@/hooks/use-toast';
 import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
 
@@ -25,7 +25,6 @@ export default function ProfileNotifications() {
     isLoading, 
     isInitializing,
     permission,
-    oneSignalPlayerId,
     subscribe, 
     unsubscribe,
     reinitialize
@@ -51,7 +50,7 @@ export default function ProfileNotifications() {
 
     setIsSending(true);
     try {
-      const success = await oneSignalService.sendNotification({
+      const success = await pushService.sendNotification({
         title: title.trim(),
         message: message.trim(),
         userId: user.id,
@@ -59,7 +58,7 @@ export default function ProfileNotifications() {
 
       toast({
         title: success ? 'Notification envoyée' : 'Erreur',
-        description: success ? 'Notification envoyée avec succès' : 'Échec de l\'envoi',
+        description: success ? 'Notification envoyée avec succès' : "Échec de l'envoi",
         variant: success ? 'default' : 'destructive',
       });
     } finally {
@@ -77,15 +76,11 @@ export default function ProfileNotifications() {
         </Button>
         <div>
           <h1 className="text-2xl font-bold">Notifications Push</h1>
-          <p className="text-sm text-muted-foreground">Gérez vos notifications OneSignal</p>
+          <p className="text-sm text-muted-foreground">Gérez vos notifications</p>
         </div>
       </div>
 
       <div className="flex gap-2 mb-6">
-        <Badge variant="default">
-          <Globe className="h-3 w-3 mr-1" />
-          Web
-        </Badge>
         <Badge variant={permission === 'granted' ? 'default' : 'destructive'}>
           <Bell className="h-3 w-3 mr-1" />
           {permission === 'granted' ? 'Autorisées' : 'Refusées'}
@@ -103,14 +98,6 @@ export default function ProfileNotifications() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {oneSignalPlayerId && (
-            <div className="bg-muted/30 p-4 rounded-lg font-mono text-xs">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Player ID:</span>
-                <span>{oneSignalPlayerId.substring(0, 20)}...</span>
-              </div>
-            </div>
-          )}
           <div className="flex gap-2">
             <Button onClick={() => isSubscribed ? unsubscribe() : subscribe()} disabled={isLoading} className="flex-1" variant={isSubscribed ? 'destructive' : 'default'}>
               {isLoading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : isSubscribed ? <BellOff className="h-4 w-4 mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
