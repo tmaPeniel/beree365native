@@ -367,7 +367,10 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_seen_at: string | null
-          onesignal_player_id: string
+          onesignal_player_id: string | null
+          push_auth: string | null
+          push_endpoint: string | null
+          push_p256dh: string | null
           user_id: string
         }
         Insert: {
@@ -377,7 +380,10 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_seen_at?: string | null
-          onesignal_player_id: string
+          onesignal_player_id?: string | null
+          push_auth?: string | null
+          push_endpoint?: string | null
+          push_p256dh?: string | null
           user_id: string
         }
         Update: {
@@ -387,7 +393,10 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_seen_at?: string | null
-          onesignal_player_id?: string
+          onesignal_player_id?: string | null
+          push_auth?: string | null
+          push_endpoint?: string | null
+          push_p256dh?: string | null
           user_id?: string
         }
         Relationships: []
