@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -8,25 +9,33 @@ const corsHeaders = {
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!;
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
+const VAPID_SUBJECT = 'mailto:contact@beree-365.app';
+
+webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 interface Chapter {
   reference: string;
 }
 
-async function sendWebPush(endpoint: string, payload: object): Promise<{ success: boolean; statusCode?: number }> {
+interface Device {
+  user_id: string;
+  push_endpoint: string;
+  push_p256dh: string;
+  push_auth: string;
+}
+
+async function sendWebPush(device: Device, payload: object): Promise<{ success: boolean; statusCode?: number }> {
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Encoding': 'aes128gcm',
-        'TTL': '86400',
-      },
-      body: new TextEncoder().encode(JSON.stringify(payload)),
-    });
-    return { success: response.status === 201 || response.status === 200, statusCode: response.status };
-  } catch {
-    return { success: false };
+    const subscription = {
+      endpoint: device.push_endpoint,
+      keys: { p256dh: device.push_p256dh, auth: device.push_auth },
+    };
+    await webpush.sendNotification(subscription, JSON.stringify(payload), { TTL: 86400 });
+    return { success: true, statusCode: 201 };
+  } catch (error: any) {
+    return { success: false, statusCode: error.statusCode };
   }
 }
 
@@ -110,7 +119,7 @@ serve(async (req) => {
         const payload = { title, body: message, tag: 'reading-reminder', data: { type: 'reading_reminder', day_number: user.current_day_number } };
 
         for (const device of userDevices) {
-          const result = await sendWebPush(device.push_endpoint, payload);
+          const result = await sendWebPush(device as Device, payload);
           if (result.statusCode === 410 || result.statusCode === 404) {
             await supabase.from('user_devices').update({ is_active: false }).eq('push_endpoint', device.push_endpoint);
           }

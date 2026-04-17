@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,31 +15,36 @@ const NotificationSchema = z.object({
   userIds: z.array(z.string().uuid()).optional(),
 });
 
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY')!;
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
+const VAPID_SUBJECT = 'mailto:contact@beree-365.app';
+
+webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+
 async function sendWebPush(
-  endpoint: string,
+  device: { push_endpoint: string; push_p256dh: string; push_auth: string },
   payload: object,
 ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
   try {
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Encoding': 'aes128gcm',
-        'TTL': '86400',
+    const subscription = {
+      endpoint: device.push_endpoint,
+      keys: {
+        p256dh: device.push_p256dh,
+        auth: device.push_auth,
       },
-      body: new TextEncoder().encode(JSON.stringify(payload)),
+    };
+
+    await webpush.sendNotification(subscription, JSON.stringify(payload), {
+      TTL: 86400,
     });
 
-    if (response.status === 201 || response.status === 200) {
-      return { success: true, statusCode: response.status };
-    } else if (response.status === 410 || response.status === 404) {
-      return { success: false, statusCode: response.status, error: 'Subscription expired' };
-    } else {
-      const text = await response.text();
-      return { success: false, statusCode: response.status, error: text };
-    }
-  } catch (error) {
-    return { success: false, error: error.message };
+    return { success: true, statusCode: 201 };
+  } catch (error: any) {
+    return {
+      success: false,
+      statusCode: error.statusCode,
+      error: error.body || error.message,
+    };
   }
 }
 
@@ -57,11 +63,11 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     const targetUserIds = userIds || (userId ? [userId] : []);
-    
+
     if (targetUserIds.length === 0) {
       return new Response(
         JSON.stringify({ error: 'No target users specified' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -76,14 +82,14 @@ serve(async (req) => {
       console.error('Error fetching devices:', devicesError);
       return new Response(
         JSON.stringify({ error: 'Failed to fetch devices' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
     if (!devices || devices.length === 0) {
       return new Response(
         JSON.stringify({ error: 'No active push subscriptions found' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -94,14 +100,31 @@ serve(async (req) => {
     let failCount = 0;
 
     for (const device of devices) {
-      const result = await sendWebPush(device.push_endpoint, payload);
+      const result = await sendWebPush(device, payload);
 
       if (result.success) {
         successCount++;
+        // Logger le succès
+        await supabase.from('notification_logs').insert({
+          user_id: device.user_id,
+          notification_type: 'manual_test',
+          title,
+          body: message,
+          success: true,
+        });
       } else {
         failCount++;
-        console.error(`Push failed for device ${device.id}:`, result.error);
-        
+        console.error(`Push failed for device ${device.id} (${result.statusCode}):`, result.error);
+
+        await supabase.from('notification_logs').insert({
+          user_id: device.user_id,
+          notification_type: 'manual_test',
+          title,
+          body: message,
+          success: false,
+          error_message: `${result.statusCode}: ${result.error}`,
+        });
+
         if (result.statusCode === 410 || result.statusCode === 404) {
           await supabase
             .from('user_devices')
@@ -113,13 +136,13 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ success: true, sent: successCount, failed: failCount }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
