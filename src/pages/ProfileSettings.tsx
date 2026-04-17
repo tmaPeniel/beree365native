@@ -211,7 +211,26 @@ const ProfileSettings = () => {
                     )}
                   </div>
                 ))}
+                {group.title === "Notifications" && isSubscribed && (
+                  <Button
+                    onClick={handleSendTest}
+                    disabled={isSendingTest}
+                    variant="outline"
+                    className="w-full mt-2"
+                  >
+                    {isSendingTest ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Envoyer une notification de test
+                  </Button>
+                )}
               </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
             </CardContent>
           </Card>
         ))}
