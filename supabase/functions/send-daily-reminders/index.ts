@@ -119,7 +119,7 @@ serve(async (req) => {
         const payload = { title, body: message, tag: 'reading-reminder', data: { type: 'reading_reminder', day_number: user.current_day_number } };
 
         for (const device of userDevices) {
-          const result = await sendWebPush(device.push_endpoint, payload);
+          const result = await sendWebPush(device as Device, payload);
           if (result.statusCode === 410 || result.statusCode === 404) {
             await supabase.from('user_devices').update({ is_active: false }).eq('push_endpoint', device.push_endpoint);
           }
