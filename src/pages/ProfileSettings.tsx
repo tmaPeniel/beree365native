@@ -1,5 +1,5 @@
-import React from "react";
-import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle } from "lucide-react";
+import React, { useState } from "react";
+import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle, Send, RefreshCw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,13 +8,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
+import { useAuth } from "@/hooks/useAuth";
+import { pushService } from "@/services/pushService";
+import { toast } from "@/hooks/use-toast";
 
 /**
  * Page des paramètres utilisateur
  */
 const ProfileSettings = () => {
   const { theme, setTheme } = useTheme();
+  const { user } = useAuth();
   const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe } = useUnifiedPushNotifications();
+  const [isSendingTest, setIsSendingTest] = useState(false);
 
   // Handler pour le toggle des notifications
   const handleNotificationToggle = async (checked: boolean) => {
@@ -22,6 +27,28 @@ const ProfileSettings = () => {
       await subscribe();
     } else {
       await unsubscribe();
+    }
+  };
+
+  // Handler pour envoyer une notification de test
+  const handleSendTest = async () => {
+    if (!user) return;
+    setIsSendingTest(true);
+    try {
+      const success = await pushService.sendNotification({
+        title: "🔔 Notification de test",
+        message: "Vos notifications fonctionnent correctement !",
+        userId: user.id,
+      });
+      toast({
+        title: success ? "Notification envoyée" : "Échec de l'envoi",
+        description: success
+          ? "Vous devriez recevoir la notification dans quelques secondes."
+          : "Impossible d'envoyer la notification de test.",
+        variant: success ? "default" : "destructive",
+      });
+    } finally {
+      setIsSendingTest(false);
     }
   };
 
@@ -184,6 +211,21 @@ const ProfileSettings = () => {
                     )}
                   </div>
                 ))}
+                {group.title === "Notifications" && isSubscribed && (
+                  <Button
+                    onClick={handleSendTest}
+                    disabled={isSendingTest}
+                    variant="outline"
+                    className="w-full mt-2"
+                  >
+                    {isSendingTest ? (
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Send className="h-4 w-4 mr-2" />
+                    )}
+                    Envoyer une notification de test
+                  </Button>
+                )}
               </div>
             </CardContent>
           </Card>
