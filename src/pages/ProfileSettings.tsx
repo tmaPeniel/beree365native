@@ -231,10 +231,6 @@ const ProfileSettings = () => {
           </Card>
         ))}
       </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
     </div>
   );
 };
