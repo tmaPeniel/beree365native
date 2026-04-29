@@ -11,6 +11,7 @@ import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications
 import { useAuth } from "@/hooks/useAuth";
 import { pushService } from "@/services/pushService";
 import { toast } from "@/hooks/use-toast";
+import PushDiagnosticsPanel from "@/components/notifications/PushDiagnosticsPanel";
 
 /**
  * Page des paramètres utilisateur
@@ -226,6 +227,7 @@ const ProfileSettings = () => {
                     Envoyer une notification de test
                   </Button>
                 )}
+                {group.title === "Notifications" && <PushDiagnosticsPanel />}
               </div>
             </CardContent>
           </Card>
