@@ -65,6 +65,20 @@ class PushService {
   }
 
   /**
+   * Récupère l'endpoint courant (si abonné)
+   */
+  async getCurrentEndpoint(): Promise<string | null> {
+    try {
+      const reg = await this.getRegistration();
+      if (!reg) return null;
+      const sub = await reg.pushManager.getSubscription();
+      return sub?.endpoint ?? null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
    * Demande la permission et s'abonne aux notifications push
    */
   async subscribe(): Promise<boolean> {
@@ -94,16 +108,21 @@ class PushService {
         return false;
       }
 
-      // S'abonner via Push API
-      const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
-      const subscription = await reg.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
-      });
+      // Réutiliser une souscription existante si possible
+      let subscription = await reg.pushManager.getSubscription();
 
-      logger.success('✅ Abonnement push créé');
+      if (subscription) {
+        logger.info('♻️ Souscription existante détectée, on la réutilise');
+      } else {
+        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
+        });
+        logger.success('✅ Nouvelle souscription push créée');
+      }
 
-      // Sauvegarder dans Supabase
+      // Sauvegarder/réactiver dans Supabase
       await this.saveSubscription(subscription);
 
       return true;
