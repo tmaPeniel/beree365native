@@ -159,7 +159,9 @@ class PushService {
   }
 
   /**
-   * Sauvegarde la souscription dans user_devices
+   * Sauvegarde la souscription dans user_devices.
+   * Stratégie : désactiver toutes les autres lignes web de l'utilisateur,
+   * puis upsert/insert la souscription courante en active.
    */
   private async saveSubscription(subscription: PushSubscription): Promise<void> {
     const { data: { user } } = await supabase.auth.getUser();
@@ -173,9 +175,50 @@ class PushService {
     const p256dh = subJson.keys?.p256dh || '';
     const auth = subJson.keys?.auth || '';
 
-    const { error } = await supabase
+    // 1) Désactiver toutes les anciennes souscriptions web de cet utilisateur
+    //    pour qu'une seule souscription (le navigateur courant) soit active.
+    const { error: deactivateError } = await supabase
       .from('user_devices')
-      .upsert({
+      .update({ is_active: false })
+      .eq('user_id', user.id)
+      .eq('device_platform', 'web');
+
+    if (deactivateError) {
+      logger.warn('⚠️ Impossible de désactiver les anciens devices web:', deactivateError);
+    }
+
+    // 2) Si une ligne existe déjà pour cet endpoint, la réactiver et MAJ les clés
+    const { data: existing } = await supabase
+      .from('user_devices')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('push_endpoint', endpoint)
+      .maybeSingle();
+
+    if (existing?.id) {
+      const { error: updateError } = await supabase
+        .from('user_devices')
+        .update({
+          push_p256dh: p256dh,
+          push_auth: auth,
+          device_platform: 'web',
+          last_seen_at: new Date().toISOString(),
+          is_active: true,
+        })
+        .eq('id', existing.id);
+
+      if (updateError) {
+        logger.error('❌ Erreur réactivation device existant:', updateError);
+      } else {
+        logger.success('✅ Souscription existante réactivée');
+      }
+      return;
+    }
+
+    // 3) Sinon, insérer une nouvelle ligne
+    const { error: insertError } = await supabase
+      .from('user_devices')
+      .insert({
         user_id: user.id,
         push_endpoint: endpoint,
         push_p256dh: p256dh,
@@ -183,41 +226,12 @@ class PushService {
         device_platform: 'web',
         last_seen_at: new Date().toISOString(),
         is_active: true,
-      }, {
-        onConflict: 'user_id,push_endpoint',
-        ignoreDuplicates: false,
       });
 
-    if (error) {
-      // Fallback: insert si upsert échoue (pas de contrainte unique sur push_endpoint)
-      logger.warn('⚠️ Upsert échoué, tentative insert:', error);
-      
-      // D'abord désactiver les anciens devices web de cet utilisateur
-      await supabase
-        .from('user_devices')
-        .update({ is_active: false })
-        .eq('user_id', user.id)
-        .eq('device_platform', 'web');
-
-      const { error: insertError } = await supabase
-        .from('user_devices')
-        .insert({
-          user_id: user.id,
-          push_endpoint: endpoint,
-          push_p256dh: p256dh,
-          push_auth: auth,
-          device_platform: 'web',
-          last_seen_at: new Date().toISOString(),
-          is_active: true,
-        });
-
-      if (insertError) {
-        logger.error('❌ Erreur sauvegarde subscription:', insertError);
-      } else {
-        logger.success('✅ Subscription sauvegardée (insert)');
-      }
+    if (insertError) {
+      logger.error('❌ Erreur insert nouvelle souscription:', insertError);
     } else {
-      logger.success('✅ Subscription sauvegardée dans user_devices');
+      logger.success('✅ Nouvelle souscription enregistrée dans user_devices');
     }
   }
 
