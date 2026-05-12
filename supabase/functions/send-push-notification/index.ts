@@ -17,12 +17,12 @@ const NotificationSchema = z.object({
 
 const CODEBASE_VAPID_PUBLIC_KEY = 'BDOkO6W2fMryZrRu2Z8JkDxbhK0zQACVyTWBDCJJHsl6QbDf1GFZpwG0ZqmvuM20CWvC085o-mbcdF0Rr8GMAMo';
 const runtimeVapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
-const VAPID_PUBLIC_KEY = CODEBASE_VAPID_PUBLIC_KEY;
+const VAPID_PUBLIC_KEY = runtimeVapidPublicKey || CODEBASE_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
 const VAPID_SUBJECT = 'mailto:contact@beree-365.app';
 
-if (runtimeVapidPublicKey && runtimeVapidPublicKey !== CODEBASE_VAPID_PUBLIC_KEY) {
-  console.warn('[send-push-notification] Runtime VAPID public key mismatch détecté, fallback sur la clé du codebase');
+if (!runtimeVapidPublicKey) {
+  console.warn('[send-push-notification] Runtime VAPID public key absente, fallback sur la clé du codebase');
 }
 
 console.log('[send-push-notification] Boot. VAPID public key length:', VAPID_PUBLIC_KEY?.length, 'private key length:', VAPID_PRIVATE_KEY?.length);
