@@ -11,12 +11,12 @@ const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
 const CODEBASE_VAPID_PUBLIC_KEY = 'BDOkO6W2fMryZrRu2Z8JkDxbhK0zQACVyTWBDCJJHsl6QbDf1GFZpwG0ZqmvuM20CWvC085o-mbcdF0Rr8GMAMo';
 const runtimeVapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
-const VAPID_PUBLIC_KEY = CODEBASE_VAPID_PUBLIC_KEY;
+const VAPID_PUBLIC_KEY = runtimeVapidPublicKey || CODEBASE_VAPID_PUBLIC_KEY;
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
 const VAPID_SUBJECT = 'mailto:contact@beree-365.app';
 
-if (runtimeVapidPublicKey && runtimeVapidPublicKey !== CODEBASE_VAPID_PUBLIC_KEY) {
-  console.warn('Runtime VAPID public key mismatch détecté dans send-daily-verse, fallback sur la clé du codebase');
+if (!runtimeVapidPublicKey) {
+  console.warn('Runtime VAPID public key absente dans send-daily-verse, fallback sur la clé du codebase');
 }
 
 webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
