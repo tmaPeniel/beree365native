@@ -105,6 +105,11 @@ const PushDiagnosticsPanel: React.FC = () => {
     setSending(true);
     setLastResult(null);
     try {
+      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+        await pushService.subscribe();
+        await refresh();
+      }
+
       const { data, error } = await supabase.functions.invoke("send-push-notification", {
         body: {
           title: "🔔 Test Bérée",
