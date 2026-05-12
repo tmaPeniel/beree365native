@@ -6,7 +6,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
-const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+const FALLBACK_VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
 
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
@@ -26,6 +26,44 @@ export interface PushPermissionState {
 
 class PushService {
   private registration: ServiceWorkerRegistration | null = null;
+  private vapidPublicKeyPromise: Promise<string | null> | null = null;
+
+  private async getVapidPublicKey(): Promise<string | null> {
+    if (!this.vapidPublicKeyPromise) {
+      this.vapidPublicKeyPromise = (async () => {
+        try {
+          const { data, error } = await supabase.functions.invoke('get-vapid-public-key');
+          if (error) {
+            logger.warn('⚠️ Impossible de récupérer la clé VAPID runtime, fallback frontend:', error);
+            return FALLBACK_VAPID_PUBLIC_KEY || null;
+          }
+
+          return data?.publicKey || FALLBACK_VAPID_PUBLIC_KEY || null;
+        } catch (error) {
+          logger.warn('⚠️ Erreur récupération clé VAPID runtime, fallback frontend:', error);
+          return FALLBACK_VAPID_PUBLIC_KEY || null;
+        }
+      })();
+    }
+
+    return this.vapidPublicKeyPromise;
+  }
+
+  private isSubscriptionUsingVapidKey(subscription: PushSubscription, vapidPublicKey: string): boolean {
+    const applicationServerKey = subscription.options?.applicationServerKey;
+    if (!applicationServerKey) return true;
+
+    const currentKey = new Uint8Array(applicationServerKey);
+    const expectedKey = urlBase64ToUint8Array(vapidPublicKey);
+
+    if (currentKey.length !== expectedKey.length) return false;
+
+    for (let i = 0; i < currentKey.length; i += 1) {
+      if (currentKey[i] !== expectedKey[i]) return false;
+    }
+
+    return true;
+  }
 
   /**
    * Récupère le service worker enregistré
@@ -83,7 +121,9 @@ class PushService {
    */
   async subscribe(): Promise<boolean> {
     try {
-      if (!VAPID_PUBLIC_KEY) {
+      const vapidPublicKey = await this.getVapidPublicKey();
+
+      if (!vapidPublicKey) {
         logger.error('❌ VAPID_PUBLIC_KEY manquante');
         return false;
       }
@@ -112,14 +152,32 @@ class PushService {
       let subscription = await reg.pushManager.getSubscription();
 
       if (subscription) {
-        logger.info('♻️ Souscription existante détectée, on la réutilise');
+        const usesExpectedKey = this.isSubscriptionUsingVapidKey(subscription, vapidPublicKey);
+
+        if (!usesExpectedKey) {
+          logger.warn('⚠️ Souscription liée à une ancienne clé VAPID, recréation…');
+          await subscription.unsubscribe();
+          await this.deactivateSubscription();
+          subscription = null;
+        } else {
+          logger.info('♻️ Souscription existante détectée, on la réutilise');
+        }
       } else {
-        const applicationServerKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
+        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
         subscription = await reg.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
         });
         logger.success('✅ Nouvelle souscription push créée');
+      }
+
+      if (!subscription) {
+        const applicationServerKey = urlBase64ToUint8Array(vapidPublicKey);
+        subscription = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: applicationServerKey.buffer as ArrayBuffer,
+        });
+        logger.success('✅ Souscription push recréée avec la clé VAPID active');
       }
 
       // Sauvegarder/réactiver dans Supabase
