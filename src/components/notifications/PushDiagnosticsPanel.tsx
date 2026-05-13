@@ -37,15 +37,22 @@ const PushDiagnosticsPanel: React.FC = () => {
   const refresh = async () => {
     setLoading(true);
     try {
-      const hasNotificationApi = typeof window !== "undefined" && "Notification" in window;
-      const hasServiceWorker = typeof navigator !== "undefined" && "serviceWorker" in navigator;
-      const hasPushManager = typeof window !== "undefined" && "PushManager" in window;
-      const permission = hasNotificationApi ? Notification.permission : "unsupported";
+      const hasNotificationApi =
+        typeof window !== "undefined" && "Notification" in window;
+      const hasServiceWorker =
+        typeof navigator !== "undefined" && "serviceWorker" in navigator;
+      const hasPushManager =
+        typeof window !== "undefined" && "PushManager" in window;
+      const permission = hasNotificationApi
+        ? Notification.permission
+        : "unsupported";
       let runtimeVapidAvailable = false;
       let runtimeVapidPreview: string | null = null;
 
       try {
-        const { data, error } = await supabase.functions.invoke("get-vapid-public-key");
+        const { data, error } = await supabase.functions.invoke(
+          "get-vapid-public-key",
+        );
         if (!error && data?.publicKey) {
           runtimeVapidAvailable = true;
           runtimeVapidPreview = data.publicKey.slice(0, 20) + "…";
@@ -85,7 +92,9 @@ const PushDiagnosticsPanel: React.FC = () => {
           .eq("device_platform", "web");
 
         dbActiveDevices = data?.length ?? 0;
-        const endpoints = (data ?? []).map((d) => d.push_endpoint).filter(Boolean) as string[];
+        const endpoints = (data ?? [])
+          .map((d) => d.push_endpoint)
+          .filter(Boolean) as string[];
         dbEndpointPreview = endpoints[0] ?? null;
         if (localEndpoint && endpoints.includes(localEndpoint)) {
           dbEndpointMatchesLocal = true;
@@ -122,18 +131,25 @@ const PushDiagnosticsPanel: React.FC = () => {
     setSending(true);
     setLastResult(null);
     try {
-      if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      if (
+        typeof window !== "undefined" &&
+        "Notification" in window &&
+        Notification.permission === "granted"
+      ) {
         await pushService.subscribe();
         await refresh();
       }
 
-      const { data, error } = await supabase.functions.invoke("send-push-notification", {
-        body: {
-          title: "🔔 Test Bérée",
-          message: "Ceci est une notification de diagnostic.",
-          userId: user.id,
+      const { data, error } = await supabase.functions.invoke(
+        "send-push-notification",
+        {
+          body: {
+            title: "🔔 Test Bérée",
+            message: "Ceci est une notification de diagnostic.",
+            userId: user.id,
+          },
         },
-      });
+      );
 
       if (error) {
         const msg = `❌ Erreur invocation: ${error.message}`;
@@ -157,7 +173,15 @@ const PushDiagnosticsPanel: React.FC = () => {
     }
   };
 
-  const Row = ({ label, value, ok }: { label: string; value: React.ReactNode; ok?: boolean }) => (
+  const Row = ({
+    label,
+    value,
+    ok,
+  }: {
+    label: string;
+    value: React.ReactNode;
+    ok?: boolean;
+  }) => (
     <div className="flex items-start justify-between gap-3 text-sm py-1">
       <span className="text-muted-foreground">{label}</span>
       <span className="font-mono text-right break-all">
@@ -172,7 +196,9 @@ const PushDiagnosticsPanel: React.FC = () => {
 
   if (!diag) {
     return (
-      <Card className="p-4 mt-2 text-sm text-muted-foreground">Chargement du diagnostic…</Card>
+      <Card className="p-4 mt-2 text-sm text-muted-foreground">
+        Chargement du diagnostic…
+      </Card>
     );
   }
 
@@ -185,29 +211,66 @@ const PushDiagnosticsPanel: React.FC = () => {
         </Button>
       </div>
 
-      <Row label="Notification API" value={String(diag.hasNotificationApi)} ok={diag.hasNotificationApi} />
-      <Row label="Service Worker API" value={String(diag.hasServiceWorker)} ok={diag.hasServiceWorker} />
-      <Row label="PushManager" value={String(diag.hasPushManager)} ok={diag.hasPushManager} />
-      <Row label="Permission" value={diag.permission} ok={diag.permission === "granted"} />
-      <Row label="VAPID runtime" value={String(diag.runtimeVapidAvailable)} ok={diag.runtimeVapidAvailable} />
+      <Row
+        label="Notification API"
+        value={String(diag.hasNotificationApi)}
+        ok={diag.hasNotificationApi}
+      />
+      <Row
+        label="Service Worker API"
+        value={String(diag.hasServiceWorker)}
+        ok={diag.hasServiceWorker}
+      />
+      <Row
+        label="PushManager"
+        value={String(diag.hasPushManager)}
+        ok={diag.hasPushManager}
+      />
+      <Row
+        label="Permission"
+        value={diag.permission}
+        ok={diag.permission === "granted"}
+      />
+      <Row
+        label="VAPID runtime"
+        value={String(diag.runtimeVapidAvailable)}
+        ok={diag.runtimeVapidAvailable}
+      />
       <Row label="Clé runtime" value={diag.runtimeVapidPreview ?? "—"} />
-      <Row label="Service worker prêt" value={String(diag.swReady)} ok={diag.swReady} />
+      <Row
+        label="Service worker prêt"
+        value={String(diag.swReady)}
+        ok={diag.swReady}
+      />
       <Row label="SW scope" value={diag.swScope ?? "—"} />
       <Row
         label="Souscription locale"
-        value={diag.localEndpoint ? truncate(diag.localEndpoint, 50) : "absente"}
+        value={
+          diag.localEndpoint ? truncate(diag.localEndpoint, 50) : "absente"
+        }
         ok={!!diag.localEndpoint}
       />
-      <Row label="Devices actifs en base" value={String(diag.dbActiveDevices)} ok={diag.dbActiveDevices > 0} />
+      <Row
+        label="Devices actifs en base"
+        value={String(diag.dbActiveDevices)}
+        ok={diag.dbActiveDevices > 0}
+      />
       <Row
         label="DB ↔ navigateur courant"
         value={diag.dbEndpointMatchesLocal ? "alignés" : "non alignés"}
         ok={diag.dbEndpointMatchesLocal}
       />
-      <Row label="DB endpoint" value={truncate(diag.dbEndpointPreview, 50) || "—"} />
+      <Row
+        label="DB endpoint"
+        value={truncate(diag.dbEndpointPreview, 50) || "—"}
+      />
 
       <div className="pt-3 flex flex-col gap-2">
-        <Button onClick={sendTest} disabled={sending || !user} variant="outline">
+        <Button
+          onClick={sendTest}
+          disabled={sending || !user}
+          variant="outline"
+        >
           {sending ? (
             <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
           ) : (
