@@ -1,109 +1,42 @@
-# Plan de correction du flux de notifications push
+# Plan de correction des notifications push
 
-## Ce que le diagnostic montre déjà
-- Le backend a bien au moins une ancienne souscription web active pour ton utilisateur dans `user_devices`, avec un endpoint FCM valide côté navigateur.
-- En revanche, il n’y a **aucune trace récente de `manual_test`** dans `notification_logs`.
-- Il n’y a pas non plus de logs récents pour l’edge function `send-push-notification`.
+## Objectif
+Rétablir l’envoi des notifications push Web en supprimant l’erreur `403 permission denied: invalid JWT provided`.
 
-Conclusion la plus probable : le problème ne se situe pas uniquement chez FCM/VAPID. Le flux casse probablement **avant la livraison visible**, à l’un de ces niveaux :
-1. la souscription active utilisée n’est pas celle de ton navigateur/appareil actuel,
-2. le clic sur le bouton de test n’invoque pas correctement l’edge function,
-3. l’edge function répond mais sans journalisation suffisante pour comprendre,
-4. la notification arrive au service push mais n’est pas affichée par le service worker / navigateur courant.
+## Ce que je vais faire
+1. **Éliminer l’ambiguïté sur les clés VAPID**
+   - Retirer le fallback codé en dur côté Edge Functions.
+   - Faire reposer l’envoi sur une seule source de vérité pour la paire VAPID utilisée au runtime.
+   - Ajouter un contrôle explicite au démarrage qui échoue proprement si la paire est absente ou incohérente.
 
-## Plan d’implémentation
+2. **Ajouter un diagnostic serveur plus précis**
+   - Exposer des métadonnées sûres sur la config VAPID active (présence, longueurs, comparaison public key frontend/runtime, sans jamais exposer la clé privée).
+   - Faire remonter dans la réponse de test un indicateur clair quand l’erreur provient de la signature VAPID et non de la souscription navigateur.
 
-### 1. Ajouter un mode diagnostic visible dans l’écran Profil > Notifications
-Créer un bloc de diagnostic simple pour afficher en direct :
-- support navigateur (`Notification`, `serviceWorker`, `PushManager`),
-- permission actuelle (`granted`, `denied`, `default`),
-- présence de `VITE_VAPID_PUBLIC_KEY`,
-- état du service worker (`ready`, scope, registration trouvée ou non),
-- présence d’une `PushSubscription` locale,
-- endpoint courant tronqué pour vérifier qu’il correspond bien à celui stocké en base,
-- résultat détaillé du bouton “Envoyer une notification de test”.
+3. **Sécuriser le flux de réabonnement frontend**
+   - Garder la récupération de la clé publique active depuis Supabase.
+   - Forcer un resync propre de la souscription avant test si la clé associée à la souscription locale ne correspond plus.
+   - Afficher dans le panneau de diagnostic l’état exact de correspondance entre clé frontend, clé runtime et souscription locale.
 
-But : ne plus avoir un simple “ça ne marche pas”, mais savoir immédiatement à quel étage le flux casse.
+4. **Valider la cause racine avec un test ciblé**
+   - Redéployer les Edge Functions concernées.
+   - Rejouer un test d’envoi.
+   - Vérifier dans les logs si l’erreur disparaît ou si elle confirme définitivement un problème de paire VAPID runtime à remplacer.
 
-### 2. Fiabiliser l’enregistrement de la souscription web
-Revoir la logique client de `pushService.subscribe()` / `saveSubscription()` pour :
-- réutiliser une souscription existante si le navigateur en a déjà une,
-- réactiver la ligne correspondante en base si l’endpoint existe déjà,
-- éviter qu’une ancienne souscription d’un autre navigateur reste la seule active,
-- rafraîchir `last_seen_at` systématiquement.
+## Résultat attendu
+- Si les secrets runtime sont corrects, les notifications repartent.
+- Si les secrets runtime sont incohérents, l’app affichera un diagnostic clair indiquant qu’il faut remplacer la paire VAPID au lieu de continuer à échouer silencieusement.
 
-But : s’assurer que le push part bien vers **le navigateur actuellement utilisé**.
+## Détail technique
+- Fichier frontend concerné : `src/services/pushService.ts`
+- UI de diagnostic : `src/components/notifications/PushDiagnosticsPanel.tsx`
+- Edge Functions :
+  - `supabase/functions/send-push-notification/index.ts`
+  - `supabase/functions/send-daily-reminders/index.ts`
+  - `supabase/functions/send-daily-verse/index.ts`
+  - `supabase/functions/get-vapid-public-key/index.ts`
 
-### 3. Instrumenter fortement l’edge function `send-push-notification`
-Ajouter des logs explicites à chaque étape :
-- invocation reçue,
-- utilisateur(s) ciblé(s),
-- nombre de devices trouvés,
-- endpoint ciblé tronqué,
-- statut de chaque envoi,
-- éventuel code d’erreur web-push.
-
-Retourner aussi une réponse plus parlante au client, par exemple :
-- `devicesFound`,
-- `sent`,
-- `failed`,
-- détails par device.
-
-But : si l’appel part bien, on saura immédiatement s’il échoue côté sélection de device, côté envoi web-push, ou côté réception navigateur.
-
-### 4. Vérifier et corriger le service worker de réception
-Contrôler la compatibilité de `public/sw.js` avec les payloads réellement envoyés :
-- bon parsing de `event.data.json()`,
-- fallback correct si payload partiel,
-- `showNotification()` toujours appelé,
-- absence d’erreur silencieuse empêchant l’affichage.
-
-Si besoin, simplifier le payload serveur pour commencer par un format minimal garanti :
-```text
-{ title, body, tag }
-```
-Puis réintroduire les options avancées seulement après validation.
-
-### 5. Valider le flux de bout en bout après correctifs
-Après implémentation, exécuter une validation complète :
-1. se placer sur le vrai flux Profil > Paramètres,
-2. activer les notifications,
-3. vérifier qu’une souscription locale existe,
-4. vérifier qu’elle est bien enregistrée en base,
-5. cliquer sur le bouton de test,
-6. confirmer :
-   - appel edge function,
-   - logs backend,
-   - ligne `manual_test` en base,
-   - réception effective de la notification.
-
-## Fichiers concernés
-- `src/pages/ProfileSettings.tsx`
-- `src/services/pushService.ts`
-- `src/hooks/useUnifiedPushNotifications.ts`
-- `public/sw.js`
-- `supabase/functions/send-push-notification/index.ts`
-
-## Détails techniques
-
-### Hypothèse principale à corriger
-La base semble contenir une vieille souscription active pour ton utilisateur, mais pas de trace récente de test manuel. Donc le problème le plus crédible est :
-```text
-clic sur le bouton
-  -> appel edge function absent ou non observable
-  OU
-  -> souscription courante pas alignée avec le navigateur utilisé
-  OU
-  -> réception locale/service worker non affichée
-```
-
-### Résultat attendu après correction
-Depuis l’écran de paramètres, on doit pouvoir lire noir sur blanc :
-- “permission accordée”,
-- “service worker prêt”,
-- “subscription locale trouvée”,
-- “device enregistré en base”,
-- “test envoyé à 1 device”,
-- puis recevoir la notification sur l’appareil courant.
-
-Si tu valides, j’implémente cette instrumentation + les correctifs de fiabilisation, puis je refais le test complet avec les logs de bout en bout.
+## Hypothèse principale validée à ce stade
+- La souscription navigateur a changé, donc le réabonnement fonctionne.
+- La clé publique exposée par `get-vapid-public-key` est bien celle attendue.
+- Le `403 invalid JWT` persiste malgré cela, ce qui pointe fortement vers une **paire VAPID runtime invalide ou non appairée** dans les secrets Supabase.
