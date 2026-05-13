@@ -105,6 +105,23 @@ serve(async (req) => {
   const startedAt = Date.now();
   console.log('[send-push-notification] ▶️ Invocation reçue');
 
+  if (!vapidPairValid) {
+    console.error('[send-push-notification] ❌ Paire VAPID invalide:', vapidPairError);
+    return new Response(
+      JSON.stringify({
+        ok: false,
+        error: 'VAPID_KEY_PAIR_INVALID',
+        detail: vapidPairError,
+        hint: "La clé publique VAPID stockée ne correspond pas à la clé privée. Régénère une paire VAPID et mets à jour les secrets VAPID_PUBLIC_KEY et VAPID_PRIVATE_KEY.",
+        runtimePublicKeyLength: VAPID_PUBLIC_KEY.length,
+        runtimePrivateKeyLength: VAPID_PRIVATE_KEY.length,
+        derivedPublicKeyPreview: derivedPublicKey ? derivedPublicKey.slice(0, 12) + '…' : null,
+        runtimePublicKeyPreview: VAPID_PUBLIC_KEY ? VAPID_PUBLIC_KEY.slice(0, 12) + '…' : null,
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
   try {
     const requestBody = await req.json().catch(() => ({}));
     console.log('[send-push-notification] Body brut:', JSON.stringify(requestBody));
