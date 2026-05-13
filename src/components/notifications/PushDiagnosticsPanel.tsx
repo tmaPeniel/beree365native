@@ -14,6 +14,8 @@ interface Diagnostics {
   hasPushManager: boolean;
   permission: string;
   vapidConfigured: boolean;
+  runtimeVapidAvailable: boolean;
+  runtimeVapidPreview: string | null;
   swReady: boolean;
   swScope: string | null;
   localEndpoint: string | null;
@@ -39,7 +41,20 @@ const PushDiagnosticsPanel: React.FC = () => {
       const hasServiceWorker = typeof navigator !== "undefined" && "serviceWorker" in navigator;
       const hasPushManager = typeof window !== "undefined" && "PushManager" in window;
       const permission = hasNotificationApi ? Notification.permission : "unsupported";
-      const vapidConfigured = !!import.meta.env.VITE_VAPID_PUBLIC_KEY;
+      let runtimeVapidAvailable = false;
+      let runtimeVapidPreview: string | null = null;
+
+      try {
+        const { data, error } = await supabase.functions.invoke("get-vapid-public-key");
+        if (!error && data?.publicKey) {
+          runtimeVapidAvailable = true;
+          runtimeVapidPreview = data.publicKey.slice(0, 20) + "…";
+        }
+      } catch {
+        runtimeVapidAvailable = false;
+      }
+
+      const vapidConfigured = runtimeVapidAvailable;
 
       let swReady = false;
       let swScope: string | null = null;
@@ -83,6 +98,8 @@ const PushDiagnosticsPanel: React.FC = () => {
         hasPushManager,
         permission,
         vapidConfigured,
+        runtimeVapidAvailable,
+        runtimeVapidPreview,
         swReady,
         swScope,
         localEndpoint,
@@ -172,7 +189,8 @@ const PushDiagnosticsPanel: React.FC = () => {
       <Row label="Service Worker API" value={String(diag.hasServiceWorker)} ok={diag.hasServiceWorker} />
       <Row label="PushManager" value={String(diag.hasPushManager)} ok={diag.hasPushManager} />
       <Row label="Permission" value={diag.permission} ok={diag.permission === "granted"} />
-      <Row label="VAPID configurée" value={String(diag.vapidConfigured)} ok={diag.vapidConfigured} />
+      <Row label="VAPID runtime" value={String(diag.runtimeVapidAvailable)} ok={diag.runtimeVapidAvailable} />
+      <Row label="Clé runtime" value={diag.runtimeVapidPreview ?? "—"} />
       <Row label="Service worker prêt" value={String(diag.swReady)} ok={diag.swReady} />
       <Row label="SW scope" value={diag.swScope ?? "—"} />
       <Row
