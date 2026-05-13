@@ -16,19 +16,54 @@ const NotificationSchema = z.object({
   userIds: z.array(z.string().uuid()).optional(),
 });
 
-const CODEBASE_VAPID_PUBLIC_KEY = 'BDOkO6W2fMryZrRu2Z8JkDxbhK0zQACVyTWBDCJJHsl6QbDf1GFZpwG0ZqmvuM20CWvC085o-mbcdF0Rr8GMAMo';
-const runtimeVapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY');
-const VAPID_PUBLIC_KEY = runtimeVapidPublicKey || CODEBASE_VAPID_PUBLIC_KEY;
-const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY')!;
+const VAPID_PUBLIC_KEY = Deno.env.get('VAPID_PUBLIC_KEY') ?? '';
+const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') ?? '';
 const VAPID_SUBJECT = 'mailto:contact@beree-365.app';
 
-if (!runtimeVapidPublicKey) {
-  console.warn('[send-push-notification] Runtime VAPID public key absente, fallback sur la clé du codebase');
+function b64urlToBytes(s: string): Uint8Array {
+  const pad = '='.repeat((4 - (s.length % 4)) % 4);
+  const b64 = (s + pad).replace(/-/g, '+').replace(/_/g, '/');
+  const bin = atob(b64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+function bytesToB64url(bytes: Uint8Array): string {
+  let bin = '';
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 }
 
-console.log('[send-push-notification] Boot. VAPID public key length:', VAPID_PUBLIC_KEY?.length, 'private key length:', VAPID_PRIVATE_KEY?.length);
+let vapidPairValid = false;
+let vapidPairError: string | null = null;
+let derivedPublicKey: string | null = null;
 
-webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+try {
+  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+    throw new Error('VAPID keys missing in environment');
+  }
+  const privBytes = b64urlToBytes(VAPID_PRIVATE_KEY);
+  if (privBytes.length !== 32) {
+    throw new Error(`VAPID private key must decode to 32 bytes (got ${privBytes.length})`);
+  }
+  const pubBytes = p256.getPublicKey(privBytes, false); // 65 bytes uncompressed (0x04||X||Y)
+  derivedPublicKey = bytesToB64url(pubBytes);
+  if (derivedPublicKey !== VAPID_PUBLIC_KEY) {
+    vapidPairError = `VAPID public/private keys do not match. Public from secret length=${VAPID_PUBLIC_KEY.length}, derived length=${derivedPublicKey.length}`;
+  } else {
+    vapidPairValid = true;
+  }
+} catch (e: any) {
+  vapidPairError = e?.message || String(e);
+}
+
+console.log('[send-push-notification] Boot. VAPID pair valid=', vapidPairValid,
+  'pubLen=', VAPID_PUBLIC_KEY.length, 'privLen=', VAPID_PRIVATE_KEY.length,
+  vapidPairError ? `err=${vapidPairError}` : '');
+
+if (vapidPairValid) {
+  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+}
 
 function truncate(str: string | null | undefined, n = 60): string {
   if (!str) return '';
