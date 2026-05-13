@@ -6,7 +6,6 @@ import { RefreshCw, Send } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { pushService } from "@/services/pushService";
-import { toast } from "@/hooks/use-toast";
 
 interface Diagnostics {
   hasNotificationApi: boolean;
@@ -154,16 +153,9 @@ const PushDiagnosticsPanel: React.FC = () => {
       if (error) {
         const msg = `❌ Erreur invocation: ${error.message}`;
         setLastResult(msg);
-        toast({ title: "Échec", description: msg, variant: "destructive" });
       } else {
         const msg = `Réponse edge function: ${JSON.stringify(data, null, 2)}`;
         setLastResult(msg);
-        const sent = data?.sent ?? 0;
-        toast({
-          title: sent > 0 ? "Test envoyé" : "Aucune notification envoyée",
-          description: `devices=${data?.devicesFound ?? 0} sent=${sent} failed=${data?.failed ?? 0}`,
-          variant: sent > 0 ? "default" : "destructive",
-        });
       }
     } catch (e: any) {
       setLastResult(`❌ Exception: ${e?.message || String(e)}`);
