@@ -2,6 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { z } from "https://deno.land/x/zod@v3.22.4/mod.ts";
 import webpush from "npm:web-push@3.6.7";
+import { p256 } from "npm:@noble/curves@1.4.0/p256";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
