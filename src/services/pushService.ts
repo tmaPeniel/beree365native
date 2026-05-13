@@ -6,8 +6,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import { logger } from '@/utils/logger';
 
-const FALLBACK_VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY;
-
 function urlBase64ToUint8Array(base64String: string): Uint8Array {
   const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
   const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
@@ -34,14 +32,14 @@ class PushService {
         try {
           const { data, error } = await supabase.functions.invoke('get-vapid-public-key');
           if (error) {
-            logger.warn('⚠️ Impossible de récupérer la clé VAPID runtime, fallback frontend:', error);
-            return FALLBACK_VAPID_PUBLIC_KEY || null;
+            logger.warn('⚠️ Impossible de récupérer la clé VAPID runtime:', error);
+            return null;
           }
 
-          return data?.publicKey || FALLBACK_VAPID_PUBLIC_KEY || null;
+          return data?.publicKey || null;
         } catch (error) {
-          logger.warn('⚠️ Erreur récupération clé VAPID runtime, fallback frontend:', error);
-          return FALLBACK_VAPID_PUBLIC_KEY || null;
+          logger.warn('⚠️ Erreur récupération clé VAPID runtime:', error);
+          return null;
         }
       })();
     }
