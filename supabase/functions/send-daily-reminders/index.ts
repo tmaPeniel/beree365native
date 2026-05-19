@@ -1,244 +1,184 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import webpush from "npm:web-push@3.6.7";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-const ONESIGNAL_APP_ID = Deno.env.get('ONESIGNAL_APP_ID');
-const ONESIGNAL_REST_API_KEY = Deno.env.get('ONESIGNAL_REST_API_KEY');
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL');
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+const VAPID_PUBLIC_KEY = Deno.env.get("VAPID_PUBLIC_KEY") ?? "";
+const VAPID_PRIVATE_KEY = Deno.env.get("VAPID_PRIVATE_KEY") ?? "";
+const VAPID_SUBJECT = "mailto:contact@beree-365.app";
 
-interface UserToNotify {
-  id: string;
-  full_name: string | null;
-  start_date: string;
-  current_day_number: number;
-  selected_plan_id: string;
-  reading_reminder_time: string;
+if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
+  throw new Error("Missing VAPID keys in send-daily-reminders");
 }
 
-interface UserDevice {
-  user_id: string;
-  onesignal_player_id: string;
-}
+webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
 
 interface Chapter {
   reference: string;
 }
 
+interface Device {
+  user_id: string;
+  push_endpoint: string;
+  push_p256dh: string;
+  push_auth: string;
+}
+
+async function sendWebPush(
+  device: Device,
+  payload: object,
+): Promise<{ success: boolean; statusCode?: number }> {
+  try {
+    const subscription = {
+      endpoint: device.push_endpoint,
+      keys: { p256dh: device.push_p256dh, auth: device.push_auth },
+    };
+    await webpush.sendNotification(subscription, JSON.stringify(payload), {
+      TTL: 86400,
+    });
+    return { success: true, statusCode: 201 };
+  } catch (error: any) {
+    return { success: false, statusCode: error.statusCode };
+  }
+}
+
 serve(async (req) => {
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    console.log('🔔 Starting daily reminders job...');
-    
-    // Créer le client Supabase avec le service role key
-    const supabase = createClient(
-      SUPABASE_URL!,
-      SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        },
-      }
-    );
+    console.log("🔔 Starting daily reminders job...");
 
-    // Obtenir l'heure actuelle en UTC
+    const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!, {
+      auth: { autoRefreshToken: false, persistSession: false },
+    });
+
     const now = new Date();
     const currentHour = now.getUTCHours();
     const currentMinute = now.getUTCMinutes();
     console.log(`⏰ Current UTC time: ${currentHour}:${currentMinute}`);
 
-    // Récupérer tous les utilisateurs avec les rappels activés
+    // Fetch users with reminders enabled
     const { data: users, error: usersError } = await supabase
-      .from('profiles')
-      .select(`
-        id,
-        full_name,
-        start_date,
-        current_day_number,
-        selected_plan_id,
-        notification_preferences!inner(
-          reading_reminder_enabled,
-          reading_reminder_time
-        )
-      `)
-      .eq('notification_preferences.reading_reminder_enabled', true);
+      .from("profiles")
+      .select(
+        `
+        id, full_name, start_date, current_day_number, selected_plan_id,
+        notification_preferences!inner(reading_reminder_enabled, reading_reminder_time)
+      `,
+      )
+      .eq("notification_preferences.reading_reminder_enabled", true);
 
-    if (usersError) {
-      console.error('❌ Error fetching users:', usersError);
-      throw usersError;
-    }
-
-    console.log(`📊 Found ${users?.length || 0} users with reminders enabled`);
-
+    if (usersError) throw usersError;
     if (!users || users.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No users to notify', count: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ message: "No users to notify", count: 0 }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
 
-    // Récupérer tous les appareils actifs pour ces utilisateurs
-    const userIds = users.map(u => u.id);
-    const { data: devices, error: devicesError } = await supabase
-      .from('user_devices')
-      .select('user_id, onesignal_player_id')
-      .in('user_id', userIds)
-      .eq('is_active', true);
-
-    if (devicesError) {
-      console.error('❌ Error fetching devices:', devicesError);
-      throw devicesError;
-    }
-
-    console.log(`📱 Found ${devices?.length || 0} active devices`);
-
-    // Filtrer les utilisateurs dont l'heure de rappel correspond à l'heure actuelle (±30 min)
-    const usersToNotify: UserToNotify[] = users.filter((user: any) => {
-      const prefTime = user.notification_preferences.reading_reminder_time;
-      const [prefHour, prefMinute] = prefTime.split(':').map(Number);
-      
-      // Calculer la différence en minutes
-      const prefTimeInMinutes = prefHour * 60 + prefMinute;
-      const currentTimeInMinutes = currentHour * 60 + currentMinute;
-      const diffMinutes = Math.abs(prefTimeInMinutes - currentTimeInMinutes);
-      
-      // Accepter si la différence est <= 30 minutes
-      return diffMinutes <= 30;
-    }).map((user: any) => ({
-      id: user.id,
-      full_name: user.full_name,
-      onesignal_player_id: user.onesignal_player_id,
-      start_date: user.start_date,
-      current_day_number: user.current_day_number,
-      selected_plan_id: user.selected_plan_id,
-      reading_reminder_time: user.notification_preferences.reading_reminder_time,
-    })) as UserToNotify[];
-
-    console.log(`🎯 ${usersToNotify.length} users to notify at this hour`);
+    // Filter users by time window (±30 min)
+    const usersToNotify = users.filter((user: any) => {
+      const [prefHour, prefMinute] =
+        user.notification_preferences.reading_reminder_time
+          .split(":")
+          .map(Number);
+      const diff = Math.abs(
+        prefHour * 60 + prefMinute - (currentHour * 60 + currentMinute),
+      );
+      return diff <= 30;
+    });
 
     if (usersToNotify.length === 0) {
       return new Response(
-        JSON.stringify({ message: 'No users scheduled for this hour', count: 0 }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({
+          message: "No users scheduled for this hour",
+          count: 0,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        },
       );
     }
+
+    // Fetch active devices with push subscriptions
+    const userIds = usersToNotify.map((u: any) => u.id);
+    const { data: devices } = await supabase
+      .from("user_devices")
+      .select("user_id, push_endpoint, push_p256dh, push_auth")
+      .in("user_id", userIds)
+      .eq("is_active", true)
+      .not("push_endpoint", "is", null);
+
+    console.log(`📱 Found ${devices?.length || 0} active devices`);
 
     let successCount = 0;
     let errorCount = 0;
 
-    // Traiter chaque utilisateur
-    for (const user of usersToNotify) {
+    for (const user of usersToNotify as any[]) {
       try {
-        console.log(`📖 Processing user ${user.id} (Day ${user.current_day_number})`);
+        const { data: chapters } = await supabase
+          .from("reading_plan_chapters")
+          .select("reference")
+          .eq("plan_id", user.selected_plan_id)
+          .eq("day_number", user.current_day_number);
 
-        // Récupérer les chapitres du jour pour cet utilisateur
-        const { data: chapters, error: chaptersError } = await supabase
-          .from('reading_plan_chapters')
-          .select('reference')
-          .eq('plan_id', user.selected_plan_id)
-          .eq('day_number', user.current_day_number);
+        if (!chapters || chapters.length === 0) continue;
 
-        if (chaptersError) {
-          console.error(`❌ Error fetching chapters for user ${user.id}:`, chaptersError);
-          throw chaptersError;
-        }
-
-        if (!chapters || chapters.length === 0) {
-          console.log(`⚠️ No chapters found for user ${user.id} on day ${user.current_day_number}`);
-          continue;
-        }
-
-        // Construire le message
-        const chaptersList = (chapters as Chapter[]).map(c => c.reference).join(', ');
+        const chaptersList = (chapters as Chapter[])
+          .map((c) => c.reference)
+          .join(", ");
         const title = `📖 Lecture du jour - Jour ${user.current_day_number}`;
         const message = `Vos chapitres : ${chaptersList}`;
 
-        // Récupérer tous les appareils de l'utilisateur
-        const userDevices = (devices as UserDevice[])?.filter(d => d.user_id === user.id) || [];
-        const playerIds = userDevices.map(d => d.onesignal_player_id);
+        const userDevices =
+          devices?.filter((d: any) => d.user_id === user.id) || [];
+        if (userDevices.length === 0) continue;
 
-        if (playerIds.length === 0) {
-          console.log(`⚠️ No active devices for user ${user.id}`);
-          continue;
-        }
-
-        console.log(`📤 Sending notification to ${playerIds.length} device(s)`);
-        console.log(`   Title: ${title}`);
-        console.log(`   Message: ${message}`);
-
-        // Envoyer la notification via OneSignal à TOUS les appareils
-        const oneSignalResponse = await fetch('https://onesignal.com/api/v1/notifications', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Basic ${ONESIGNAL_REST_API_KEY}`,
+        const payload = {
+          title,
+          body: message,
+          tag: "reading-reminder",
+          data: {
+            type: "reading_reminder",
+            day_number: user.current_day_number,
           },
-          body: JSON.stringify({
-            app_id: ONESIGNAL_APP_ID,
-            include_player_ids: playerIds,
-            headings: { en: title },
-            contents: { en: message },
-            data: {
-              type: 'reading_reminder',
-              day_number: user.current_day_number,
-            },
-          }),
-        });
+        };
 
-        const oneSignalData = await oneSignalResponse.json();
-
-        if (!oneSignalResponse.ok) {
-          console.error(`❌ OneSignal API error:`, oneSignalData);
-          throw new Error(`OneSignal error: ${JSON.stringify(oneSignalData)}`);
-        }
-
-        console.log(`✅ Notification sent successfully:`, oneSignalData);
-
-        // Désactiver automatiquement les player IDs invalides retournés par OneSignal
-        if (oneSignalData.errors?.invalid_player_ids && oneSignalData.errors.invalid_player_ids.length > 0) {
-          console.log(`🔕 Deactivating ${oneSignalData.errors.invalid_player_ids.length} invalid player IDs`);
-          for (const invalidId of oneSignalData.errors.invalid_player_ids) {
-            const { error: updateError } = await supabase
-              .from('user_devices')
-              .update({ is_active: false, last_seen_at: new Date().toISOString() })
-              .eq('onesignal_player_id', invalidId);
-            
-            if (updateError) {
-              console.error(`Error deactivating player ${invalidId}:`, updateError);
-            } else {
-              console.log(`✅ Deactivated invalid player ID: ${invalidId}`);
-            }
+        for (const device of userDevices) {
+          const result = await sendWebPush(device as Device, payload);
+          if (result.statusCode === 410 || result.statusCode === 404) {
+            await supabase
+              .from("user_devices")
+              .update({ is_active: false })
+              .eq("push_endpoint", device.push_endpoint);
           }
         }
 
-        // Logger le succès
-        await supabase.from('notification_logs').insert({
+        await supabase.from("notification_logs").insert({
           user_id: user.id,
-          notification_type: 'reading_reminder',
+          notification_type: "reading_reminder",
           title,
           body: message,
           success: true,
-          onesignal_notification_id: oneSignalData.id,
         });
-
         successCount++;
       } catch (error: any) {
-        console.error(`❌ Error processing user ${user.id}:`, error);
         errorCount++;
-
-        // Logger l'échec
-        await supabase.from('notification_logs').insert({
+        await supabase.from("notification_logs").insert({
           user_id: user.id,
-          notification_type: 'reading_reminder',
-          title: 'Failed to send',
+          notification_type: "reading_reminder",
+          title: "Failed",
           body: error.message,
           success: false,
           error_message: error.message,
@@ -246,28 +186,22 @@ serve(async (req) => {
       }
     }
 
-    const result = {
-      message: 'Daily reminders job completed',
-      totalUsers: usersToNotify.length,
-      successCount,
-      errorCount,
-      timestamp: new Date().toISOString(),
-    };
-
-    console.log('✅ Job completed:', result);
-
     return new Response(
-      JSON.stringify(result),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify({
+        message: "Done",
+        successCount,
+        errorCount,
+        timestamp: new Date().toISOString(),
+      }),
+      {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      },
     );
   } catch (error: any) {
-    console.error('❌ Fatal error in daily reminders job:', error);
-    return new Response(
-      JSON.stringify({ error: error.message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      }
-    );
+    console.error("❌ Fatal error:", error);
+    return new Response(JSON.stringify({ error: error.message }), {
+      status: 500,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });

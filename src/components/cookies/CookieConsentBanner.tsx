@@ -127,7 +127,7 @@ const CookieConsentBanner = () => {
                   Cookies analytiques
                 </Label>
                 <p className="text-xs text-muted-foreground">
-                  Notifications push via OneSignal.
+                  Notifications push.
                 </p>
               </div>
               <Switch 
