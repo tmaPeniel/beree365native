@@ -64,17 +64,26 @@ export default {
 					ring: 'hsl(var(--sidebar-ring))'
 				},
 				beree: {
-					50: '#f0faf3',
-					100: '#dcf2e3',
-					200: '#bde5cb',
-					300: '#92d2aa',
-					400: '#65b881',
-					500: '#34A853', // Our accent green
-					600: '#2e8a45',
-					700: '#29703b',
-					800: '#255a32',
-					900: '#214a2c',
-					950: '#0e2716',
+					50: '#fbf6ec',
+					100: '#f5e7c8',
+					200: '#ecd194',
+					300: '#e0b65a',
+					400: '#d29a30',
+					500: '#a86d20', // Warm brown - matches "BÉRÉE" wordmark
+					600: '#8a541a',
+					700: '#6b4015',
+					800: '#4c2e10',
+					900: '#2f1d0a',
+					950: '#1a0f05',
+				},
+				sun: {
+					DEFAULT: '#e8a82c', // Gold sun rays
+					soft: '#f5c14a',
+					deep: '#c98a1e',
+				},
+				sand: {
+					DEFAULT: '#d4b896', // Tan brush stroke
+					light: '#ead9bc',
 				}
 			},
 			borderRadius: {
