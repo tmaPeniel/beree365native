@@ -1,5 +1,5 @@
-
 import React from 'react';
+import logoImage from '@/assets/beree-logo.png';
 
 interface LogoProps {
   className?: string;
@@ -8,16 +8,17 @@ interface LogoProps {
 
 const Logo: React.FC<LogoProps> = ({ className = '', size = 'medium' }) => {
   const sizeClasses = {
-    small: 'text-xl',
-    medium: 'text-3xl',
-    large: 'text-5xl',
+    small: 'h-10',
+    medium: 'h-16',
+    large: 'h-28',
   };
-  
+
   return (
-    <div className={`font-bold ${sizeClasses[size]} ${className}`}>
-      <span className="text-foreground">Bérée</span>
-      <span className="text-beree-500">365</span>
-    </div>
+    <img
+      src={logoImage}
+      alt="Bérée"
+      className={`${sizeClasses[size]} w-auto object-contain mx-auto ${className}`}
+    />
   );
 };
 
