@@ -150,8 +150,8 @@ export default {
 					'100%': { transform: 'scale(1)' }
 				},
 				'badge-glow': {
-					'0%, 100%': { boxShadow: '0 0 5px rgba(52, 168, 83, 0.3)' },
-					'50%': { boxShadow: '0 0 20px rgba(52, 168, 83, 0.6)' }
+					'0%, 100%': { boxShadow: '0 0 5px rgba(232, 168, 44, 0.3)' },
+					'50%': { boxShadow: '0 0 20px rgba(232, 168, 44, 0.6)' }
 				},
 				
 				// 7. Animation de texte (révélation progressive)
