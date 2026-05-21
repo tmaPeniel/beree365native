@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { RefreshCw, Send } from "lucide-react";
+import { RefreshCw, Send, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { pushService } from "@/services/pushService";
@@ -258,6 +258,28 @@ const PushDiagnosticsPanel: React.FC = () => {
       />
 
       <div className="pt-3 flex flex-col gap-2">
+        <Button
+          onClick={async () => {
+            setSending(true);
+            setLastResult(null);
+            try {
+              const ok = await pushService.forceResubscribe();
+              setLastResult(
+                ok
+                  ? "✅ Resouscription effectuée. Réessaie l'envoi du test."
+                  : "❌ Échec de la resouscription (voir console).",
+              );
+            } finally {
+              setSending(false);
+              refresh();
+            }
+          }}
+          disabled={sending || !user}
+          variant="secondary"
+        >
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Resynchroniser l'abonnement
+        </Button>
         <Button
           onClick={sendTest}
           disabled={sending || !user}

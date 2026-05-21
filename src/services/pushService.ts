@@ -327,6 +327,30 @@ class PushService {
   }
 
   /**
+   * Force la resouscription (utile après rotation de la clé VAPID)
+   */
+  async forceResubscribe(): Promise<boolean> {
+    try {
+      logger.info("🔄 Resouscription forcée...");
+      // Reset cache de clé pour récupérer la version runtime à jour
+      this.vapidPublicKeyPromise = null;
+
+      const reg = await this.getRegistration();
+      if (reg) {
+        const existing = await reg.pushManager.getSubscription();
+        if (existing) {
+          await existing.unsubscribe();
+        }
+      }
+      await this.deactivateSubscription();
+      return await this.subscribe();
+    } catch (error) {
+      logger.error("❌ Erreur lors de la resouscription forcée:", error);
+      return false;
+    }
+  }
+
+  /**
    * Envoie une notification push via l'edge function Supabase
    */
   async sendNotification(params: {

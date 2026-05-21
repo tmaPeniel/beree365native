@@ -1,42 +1,36 @@
-# Plan de correction des notifications push
-
 ## Objectif
-Rétablir l’envoi des notifications push Web en supprimant l’erreur `403 permission denied: invalid JWT provided`.
+Corriger définitivement l’ancien logo visible dans la PWA installée, puis clarifier et fiabiliser le comportement des clés VAPID pour éliminer le faux diagnostic autour du pairing.
 
 ## Ce que je vais faire
-1. **Éliminer l’ambiguïté sur les clés VAPID**
-   - Retirer le fallback codé en dur côté Edge Functions.
-   - Faire reposer l’envoi sur une seule source de vérité pour la paire VAPID utilisée au runtime.
-   - Ajouter un contrôle explicite au démarrage qui échoue proprement si la paire est absente ou incohérente.
+1. **Uniformiser toutes les icônes PWA sur le nouveau logo**
+   - Vérifier et corriger les références encore incohérentes entre `index.html`, `manifest.json`, `vite.config.ts` et `public/sw.js`.
+   - Remplacer les anciennes ressources encore présentes ou ambiguës (`favicon.ico`, anciens fichiers `pwa-*`, référence erronée `beree-logo.png.png`).
+   - S’assurer que les tailles 192x192, 512x512 et Apple touch icon pointent bien vers le nouveau logo généré.
 
-2. **Ajouter un diagnostic serveur plus précis**
-   - Exposer des métadonnées sûres sur la config VAPID active (présence, longueurs, comparaison public key frontend/runtime, sans jamais exposer la clé privée).
-   - Faire remonter dans la réponse de test un indicateur clair quand l’erreur provient de la signature VAPID et non de la souscription navigateur.
+2. **Corriger la configuration PWA pour éviter que l’ancien logo persiste sur appareil**
+   - Nettoyer la config manifest injectée par Vite PWA pour qu’elle corresponde aux vrais fichiers publics.
+   - Prévoir un mécanisme de mise à jour propre afin que l’icône utilisée par l’app installée se rafraîchisse correctement au prochain chargement/publication.
+   - Vérifier si l’ancien `favicon.ico` peut reprendre la main sur certains appareils et le retirer si nécessaire.
 
-3. **Sécuriser le flux de réabonnement frontend**
-   - Garder la récupération de la clé publique active depuis Supabase.
-   - Forcer un resync propre de la souscription avant test si la clé associée à la souscription locale ne correspond plus.
-   - Afficher dans le panneau de diagnostic l’état exact de correspondance entre clé frontend, clé runtime et souscription locale.
+3. **Fiabiliser le diagnostic VAPID côté app**
+   - Garder le constat principal : un hash/digest affiché dans l’interface Supabase Secrets n’est pas la valeur runtime réelle et n’explique pas à lui seul le mismatch.
+   - Améliorer le diagnostic utilisateur côté app pour afficher plus clairement :
+     - la clé publique runtime réellement servie,
+     - si l’abonnement courant a été créé avec une ancienne clé,
+     - et si le problème vient d’un vrai mismatch public/privé ou d’une souscription navigateur obsolète.
 
-4. **Valider la cause racine avec un test ciblé**
-   - Redéployer les Edge Functions concernées.
-   - Rejouer un test d’envoi.
-   - Vérifier dans les logs si l’erreur disparaît ou si elle confirme définitivement un problème de paire VAPID runtime à remplacer.
+4. **Ajouter un chemin de resynchronisation propre pour les tests push**
+   - Ajouter l’action de resouscription forcée prévue dans le panneau de diagnostic.
+   - Désabonner puis recréer proprement l’abonnement web courant pour qu’il utilise la clé VAPID active.
 
-## Résultat attendu
-- Si les secrets runtime sont corrects, les notifications repartent.
-- Si les secrets runtime sont incohérents, l’app affichera un diagnostic clair indiquant qu’il faut remplacer la paire VAPID au lieu de continuer à échouer silencieusement.
+## Réponse à ton doute sur Supabase Secrets
+Le fait que Supabase affiche une version masquée / digestée dans l’UI des secrets est normal : **ce n’est pas cette valeur affichée qui est lue par l’Edge Function**. À l’exécution, la fonction reçoit bien la vraie valeur stockée. Donc si `send-push-notification` détecte un mismatch, la cause la plus probable reste :
+- soit une vraie paire public/privé non correspondante,
+- soit un ancien abonnement navigateur encore lié à une ancienne clé publique.
 
 ## Détail technique
-- Fichier frontend concerné : `src/services/pushService.ts`
-- UI de diagnostic : `src/components/notifications/PushDiagnosticsPanel.tsx`
-- Edge Functions :
-  - `supabase/functions/send-push-notification/index.ts`
-  - `supabase/functions/send-daily-reminders/index.ts`
-  - `supabase/functions/send-daily-verse/index.ts`
-  - `supabase/functions/get-vapid-public-key/index.ts`
-
-## Hypothèse principale validée à ce stade
-- La souscription navigateur a changé, donc le réabonnement fonctionne.
-- La clé publique exposée par `get-vapid-public-key` est bien celle attendue.
-- Le `403 invalid JWT` persiste malgré cela, ce qui pointe fortement vers une **paire VAPID runtime invalide ou non appairée** dans les secrets Supabase.
+- Fichiers ciblés : `vite.config.ts`, `index.html`, `public/manifest.json`, `public/sw.js`, `src/services/pushService.ts`, `src/components/notifications/PushDiagnosticsPanel.tsx`
+- Validation prévue :
+  - vérifier que les références d’icônes convergent toutes vers le nouveau logo,
+  - confirmer côté diagnostic que la clé VAPID runtime est bien récupérée,
+  - et que la resouscription recrée un abonnement aligné avec la clé active.
