@@ -35,7 +35,7 @@ export default defineConfig(({ mode, command }) => ({
           },
         ],
       },
-      includeAssets: ['favicon.ico', 'beree-logo.png.png'],
+      includeAssets: ['beree-logo.png', 'beree-192x192.png', 'beree-512x512.png', 'apple-touch-icon.png'],
       manifest: {
         name: 'Bérée 365 - Lisez la Bible en un an',
         short_name: 'Bérée 365',
@@ -44,20 +44,27 @@ export default defineConfig(({ mode, command }) => ({
         orientation: 'any',
         scope: '/',
         start_url: '/',
+        theme_color: '#a86d20',
+        background_color: '#ffffff',
         categories: ['education', 'lifestyle', 'books'],
-        
         icons: [
           {
-            src: 'beree-logo.png',
+            src: '/beree-192x192.png',
             sizes: '192x192',
             type: 'image/png',
-            purpose: 'maskable any'
+            purpose: 'any'
           },
           {
-            src: 'beree-logo.png',
+            src: '/beree-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable any'
+            purpose: 'any'
+          },
+          {
+            src: '/beree-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'maskable'
           }
         ],
         shortcuts: [
@@ -66,14 +73,14 @@ export default defineConfig(({ mode, command }) => ({
             short_name: "Aujourd'hui",
             description: "Accéder à la lecture du jour",
             url: "/reading",
-            icons: [{ src: "beree-logo.png", sizes: "192x192" }]
+            icons: [{ src: "/beree-192x192.png", sizes: "192x192" }]
           },
           {
             name: "Tableau de bord",
             short_name: "Dashboard",
             description: "Voir mes statistiques de lecture",
             url: "/dashboard",
-            icons: [{ src: "beree-logo.png", sizes: "192x192" }]
+            icons: [{ src: "/beree-192x192.png", sizes: "192x192" }]
           }
         ]
       }
