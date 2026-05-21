@@ -22,8 +22,8 @@ self.addEventListener('push', function(event) {
       
       const options = {
         body: data.body || 'Nouvelle notification de Bérée 365',
-        icon: '/beree-logo.png',
-        badge: '/beree-logo.png',
+        icon: '/beree-192x192.png',
+        badge: '/beree-192x192.png',
         tag: data.tag || 'beree-notification',
         requireInteraction: data.requireInteraction || false,
         actions: data.actions || [],
@@ -45,8 +45,8 @@ self.addEventListener('push', function(event) {
       event.waitUntil(
         self.registration.showNotification('Bérée 365', {
           body: 'Vous avez une nouvelle notification',
-          icon: '/beree-logo.png',
-          badge: '/beree-logo.png',
+          icon: '/beree-192x192.png',
+          badge: '/beree-192x192.png',
           tag: 'beree-default'
         })
       );
