@@ -259,6 +259,28 @@ const PushDiagnosticsPanel: React.FC = () => {
 
       <div className="pt-3 flex flex-col gap-2">
         <Button
+          onClick={async () => {
+            setSending(true);
+            setLastResult(null);
+            try {
+              const ok = await pushService.forceResubscribe();
+              setLastResult(
+                ok
+                  ? "✅ Resouscription effectuée. Réessaie l'envoi du test."
+                  : "❌ Échec de la resouscription (voir console).",
+              );
+            } finally {
+              setSending(false);
+              refresh();
+            }
+          }}
+          disabled={sending || !user}
+          variant="secondary"
+        >
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Resynchroniser l'abonnement
+        </Button>
+        <Button
           onClick={sendTest}
           disabled={sending || !user}
           variant="outline"
