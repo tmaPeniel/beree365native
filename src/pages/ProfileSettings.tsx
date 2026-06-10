@@ -91,7 +91,7 @@ const ProfileSettings = () => {
         },
       ],
     },
-    {
+    ...(isPremium ? [{
       title: "Notifications",
       status: notificationStatus,
       options: [
@@ -103,7 +103,19 @@ const ProfileSettings = () => {
           badge: notificationStatus,
         },
       ],
-    },
+    }] : [{
+      title: "Notifications",
+      options: [
+        {
+          label: "Notifications push",
+          description: "Réservé aux abonnés Premium",
+          icon: Bell,
+          action: "navigate",
+          to: "/premium",
+          badge: { status: "premium" as const, label: "Premium", variant: "secondary" as const },
+        },
+      ],
+    }]),
     {
       title: "Apparence",
       options: [
