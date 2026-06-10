@@ -13,7 +13,12 @@ export type Profile = {
   created_at: string;
   last_login_at?: string | null;
   is_active?: boolean | null;
-  selected_plan_id: string; // Nouveau champ
+  selected_plan_id: string;
+  // Freemium
+  is_premium?: boolean | null;
+  premium_start_date?: string | null;
+  premium_end_date?: string | null;
+  premium_source?: string | null;
 };
 
 // Type pour les plans de lecture
@@ -71,10 +76,14 @@ export type UserRole = {
 export type UserStats = {
   user_id: string;
   full_name: string | null;
-  email: string; // Type mis à jour pour correspondre à VARCHAR(255) de la DB
+  email: string;
   start_date: string | null;
   last_login_at: string | null;
   is_active: boolean | null;
   completed_chapters_count: number;
   total_days_completed: number;
+  is_premium?: boolean | null;
+  premium_start_date?: string | null;
+  premium_end_date?: string | null;
+  premium_source?: string | null;
 };
