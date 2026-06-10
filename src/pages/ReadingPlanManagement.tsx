@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
 import { getAvailablePlans, getUserPlan, changePlan } from '@/services/readingPlan/planService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ import type { ReadingPlan } from '@/types/supabase';
 import { getPlanImage } from '@/assets/planImages';
 import { updateUserProfile } from '@/services/authService';
 import { invalidateUserCacheSelective } from '@/services/readingPlan/optimizedCacheService';
+import { Crown } from 'lucide-react';
 
 // Format plan duration as "06", "12", etc.
 const formatPlanDuration = (plan: ReadingPlan): string => {
@@ -35,6 +37,7 @@ const getPlanType = (plan: ReadingPlan): string => {
 
 const ReadingPlanManagement = () => {
   const { user } = useAuth();
+  const { isPremium } = usePremium();
   const queryClient = useQueryClient();
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [isCurrentPlanExpanded, setIsCurrentPlanExpanded] = useState(false);
@@ -355,7 +358,8 @@ const ReadingPlanManagement = () => {
           </section>
         )}
 
-        {/* Section: Changer de plan */}
+        {/* Section: Changer de plan — Premium uniquement */}
+        {isPremium ? (
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-foreground">Changer de plan</h2>
           
