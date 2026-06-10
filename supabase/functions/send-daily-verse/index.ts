@@ -66,22 +66,27 @@ serve(async (req) => {
       .select(
         `
         id, full_name, current_day_number,
+        is_premium, premium_end_date,
         notification_preferences!inner(daily_verse_enabled, daily_verse_time)
       `,
       )
-      .eq("notification_preferences.daily_verse_enabled", true);
+      .eq("notification_preferences.daily_verse_enabled", true)
+      .eq("is_premium", true);
 
     if (usersError) throw usersError;
     if (!users || users.length === 0) {
       return new Response(
         JSON.stringify({ message: "No users to notify", count: 0 }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
-    const usersToNotify = users.filter((user: any) => {
+    const nowMs = Date.now();
+    const activePremiumUsers = users.filter((u: any) =>
+      !u.premium_end_date || new Date(u.premium_end_date).getTime() > nowMs
+    );
+
+    const usersToNotify = activePremiumUsers.filter((user: any) => {
       const [prefHour, prefMinute] =
         user.notification_preferences.daily_verse_time.split(":").map(Number);
       let diff = Math.abs(

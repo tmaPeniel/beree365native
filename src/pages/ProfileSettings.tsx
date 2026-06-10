@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle, Send, RefreshCw } from "lucide-react";
+import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle, Send, RefreshCw, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { usePremium } from "@/hooks/usePremium";
 import { pushService } from "@/services/pushService";
 import { toast } from "@/hooks/use-toast";
 import PushDiagnosticsPanel from "@/components/notifications/PushDiagnosticsPanel";
@@ -19,6 +20,7 @@ import PushDiagnosticsPanel from "@/components/notifications/PushDiagnosticsPane
 const ProfileSettings = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
+  const { isPremium } = usePremium();
   const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe } = useUnifiedPushNotifications();
   const [isSendingTest, setIsSendingTest] = useState(false);
 
@@ -89,7 +91,7 @@ const ProfileSettings = () => {
         },
       ],
     },
-    {
+    ...(isPremium ? [{
       title: "Notifications",
       status: notificationStatus,
       options: [
@@ -101,7 +103,19 @@ const ProfileSettings = () => {
           badge: notificationStatus,
         },
       ],
-    },
+    }] : [{
+      title: "Notifications",
+      options: [
+        {
+          label: "Notifications push",
+          description: "Réservé aux abonnés Premium",
+          icon: Bell,
+          action: "navigate",
+          to: "/premium",
+          badge: { status: "premium" as const, label: "Premium", variant: "secondary" as const },
+        },
+      ],
+    }]),
     {
       title: "Apparence",
       options: [
@@ -212,7 +226,7 @@ const ProfileSettings = () => {
                     )}
                   </div>
                 ))}
-                {group.title === "Notifications" && isSubscribed && (
+                {group.title === "Notifications" && isPremium && isSubscribed && (
                   <Button
                     onClick={handleSendTest}
                     disabled={isSendingTest}
@@ -227,7 +241,7 @@ const ProfileSettings = () => {
                     Envoyer une notification de test
                   </Button>
                 )}
-                {group.title === "Notifications" && <PushDiagnosticsPanel />}
+                {group.title === "Notifications" && isPremium && <PushDiagnosticsPanel />}
               </div>
             </CardContent>
           </Card>

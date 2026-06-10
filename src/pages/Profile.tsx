@@ -11,7 +11,8 @@ import {
   Share,
   LogOut,
   ChevronRight,
-  Pencil
+  Pencil,
+  Crown
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
 import { supabase } from '@/integrations/supabase/client';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -35,6 +37,7 @@ import { toast } from 'sonner';
  */
 const Profile = () => {
   const { user, profile, isLoading } = useAuth();
+  const { isPremium } = usePremium();
   const navigate = useNavigate();
   const [showLogoutDialog, setShowLogoutDialog] = useState(false);
 
@@ -71,19 +74,26 @@ const Profile = () => {
       to: '/profile/statistics',
       color: 'text-primary'
     },
-    {
+    ...(isPremium ? [{
       label: 'Badges',
       description: 'Vos récompenses et accomplissements',
       icon: Award,
       to: '/profile/badges',
       color: 'text-accent'
-    },
+    }] : []),
     {
       label: 'Verset du jour',
       description: 'Méditer sur la Parole',
       icon: Heart,
       to: '/verses',
       color: 'text-primary'
+    },
+    {
+      label: isPremium ? 'Mon abonnement' : 'Découvrir Premium',
+      description: isPremium ? 'Détails de votre abonnement Premium' : 'Débloquez toutes les fonctionnalités',
+      icon: Crown,
+      to: isPremium ? '/profile/subscription' : '/premium',
+      color: 'text-accent'
     },
     {
       label: 'Paramètres',

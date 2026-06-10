@@ -12,6 +12,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useAuth } from '@/hooks/useAuth';
+import { usePremium } from '@/hooks/usePremium';
 import { getAvailablePlans, getUserPlan, changePlan } from '@/services/readingPlan/planService';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -19,6 +20,7 @@ import type { ReadingPlan } from '@/types/supabase';
 import { getPlanImage } from '@/assets/planImages';
 import { updateUserProfile } from '@/services/authService';
 import { invalidateUserCacheSelective } from '@/services/readingPlan/optimizedCacheService';
+import { Crown } from 'lucide-react';
 
 // Format plan duration as "06", "12", etc.
 const formatPlanDuration = (plan: ReadingPlan): string => {
@@ -35,6 +37,7 @@ const getPlanType = (plan: ReadingPlan): string => {
 
 const ReadingPlanManagement = () => {
   const { user } = useAuth();
+  const { isPremium } = usePremium();
   const queryClient = useQueryClient();
   const [expandedPlanId, setExpandedPlanId] = useState<string | null>(null);
   const [isCurrentPlanExpanded, setIsCurrentPlanExpanded] = useState(false);
@@ -355,7 +358,8 @@ const ReadingPlanManagement = () => {
           </section>
         )}
 
-        {/* Section: Changer de plan */}
+        {/* Section: Changer de plan — Premium uniquement */}
+        {isPremium ? (
         <section className="space-y-3">
           <h2 className="text-base font-semibold text-foreground">Changer de plan</h2>
           
@@ -482,13 +486,35 @@ const ReadingPlanManagement = () => {
             ))}
           </div>
         </section>
+        ) : (
+        <section className="space-y-3">
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardContent className="p-5 space-y-3 text-center">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Crown className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Plus de plans avec Premium</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Accédez aux plans chronologique, Nouveau Testament, thématiques et plus encore.
+                </p>
+              </div>
+              <Link to="/premium">
+                <Button>Découvrir Premium</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </section>
+        )}
 
         {/* Avertissement */}
+        {isPremium && (
         <Alert>
           <AlertDescription className="text-sm">
             <strong>Note :</strong> Changer de plan supprime votre progression et vos badges.
           </AlertDescription>
         </Alert>
+        )}
 
         {/* Réinitialiser le plan */}
         {currentPlan && (
