@@ -1,36 +1,48 @@
 ## Objectif
-Corriger définitivement l’ancien logo visible dans la PWA installée, puis clarifier et fiabiliser le comportement des clés VAPID pour éliminer le faux diagnostic autour du pairing.
 
-## Ce que je vais faire
-1. **Uniformiser toutes les icônes PWA sur le nouveau logo**
-   - Vérifier et corriger les références encore incohérentes entre `index.html`, `manifest.json`, `vite.config.ts` et `public/sw.js`.
-   - Remplacer les anciennes ressources encore présentes ou ambiguës (`favicon.ico`, anciens fichiers `pwa-*`, référence erronée `beree-logo.png.png`).
-   - S’assurer que les tailles 192x192, 512x512 et Apple touch icon pointent bien vers le nouveau logo généré.
+Ajouter une 4ᵉ slide à l'onboarding qui explique comment installer Bérée 365 sur son téléphone via le navigateur (PWA), avec des instructions adaptées automatiquement à iOS et Android.
 
-2. **Corriger la configuration PWA pour éviter que l’ancien logo persiste sur appareil**
-   - Nettoyer la config manifest injectée par Vite PWA pour qu’elle corresponde aux vrais fichiers publics.
-   - Prévoir un mécanisme de mise à jour propre afin que l’icône utilisée par l’app installée se rafraîchisse correctement au prochain chargement/publication.
-   - Vérifier si l’ancien `favicon.ico` peut reprendre la main sur certains appareils et le retirer si nécessaire.
+## Ce qui sera fait
 
-3. **Fiabiliser le diagnostic VAPID côté app**
-   - Garder le constat principal : un hash/digest affiché dans l’interface Supabase Secrets n’est pas la valeur runtime réelle et n’explique pas à lui seul le mismatch.
-   - Améliorer le diagnostic utilisateur côté app pour afficher plus clairement :
-     - la clé publique runtime réellement servie,
-     - si l’abonnement courant a été créé avec une ancienne clé,
-     - et si le problème vient d’un vrai mismatch public/privé ou d’une souscription navigateur obsolète.
+### 1. Détection de plateforme
+Ajouter un petit utilitaire (inline dans `Onboarding.tsx`) qui détecte iOS (Safari iPhone/iPad), Android (Chrome/Samsung), ou desktop via `navigator.userAgent`. Cela conditionne le contenu affiché sur la slide PWA.
 
-4. **Ajouter un chemin de resynchronisation propre pour les tests push**
-   - Ajouter l’action de resouscription forcée prévue dans le panneau de diagnostic.
-   - Désabonner puis recréer proprement l’abonnement web courant pour qu’il utilise la clé VAPID active.
+### 2. Génération de 2 illustrations
+- `onboarding-install-ios.png` — illustration d'un iPhone montrant le bouton "Partager" Safari (carré avec flèche vers le haut) puis "Sur l'écran d'accueil", dans les couleurs chaudes de l'app (brun/or).
+- `onboarding-install-android.png` — illustration d'un téléphone Android montrant le menu ⋮ Chrome puis "Installer l'application".
 
-## Réponse à ton doute sur Supabase Secrets
-Le fait que Supabase affiche une version masquée / digestée dans l’UI des secrets est normal : **ce n’est pas cette valeur affichée qui est lue par l’Edge Function**. À l’exécution, la fonction reçoit bien la vraie valeur stockée. Donc si `send-push-notification` détecte un mismatch, la cause la plus probable reste :
-- soit une vraie paire public/privé non correspondante,
-- soit un ancien abonnement navigateur encore lié à une ancienne clé publique.
+Ces images seront générées dans le style cohérent avec les 3 illustrations d'onboarding existantes.
 
-## Détail technique
-- Fichiers ciblés : `vite.config.ts`, `index.html`, `public/manifest.json`, `public/sw.js`, `src/services/pushService.ts`, `src/components/notifications/PushDiagnosticsPanel.tsx`
-- Validation prévue :
-  - vérifier que les références d’icônes convergent toutes vers le nouveau logo,
-  - confirmer côté diagnostic que la clé VAPID runtime est bien récupérée,
-  - et que la resouscription recrée un abonnement aligné avec la clé active.
+### 3. Nouvelle slide PWA (4ᵉ position)
+Insérée juste avant le bouton "Commencer". Contenu :
+
+- **Titre** : « Installez l'application »
+- **Image** : selon la plateforme détectée (iOS, Android, ou une image générique pour desktop)
+- **Description** : instructions courtes adaptées :
+  - **iOS** : « Touchez le bouton Partager ⬆️ dans Safari, puis "Sur l'écran d'accueil". »
+  - **Android** : « Ouvrez le menu ⋮ de Chrome, puis "Installer l'application" ou "Ajouter à l'écran d'accueil". »
+  - **Desktop** : « Ouvrez Bérée 365 dans Safari (iPhone) ou Chrome (Android), puis ajoutez-la à votre écran d'accueil. »
+
+### 4. Masquer la slide si déjà installée
+Si l'app est déjà lancée en mode standalone (`window.matchMedia('(display-mode: standalone)').matches` ou `navigator.standalone`), la slide PWA est sautée automatiquement — inutile de proposer l'installation à quelqu'un qui a déjà installé.
+
+### 5. Mémoire projet
+Mettre à jour `mem://features/onboarding-flow` pour refléter 4 slides au lieu de 3, et noter la slide PWA conditionnelle par OS.
+
+## Détails techniques
+
+**Fichier modifié** : `src/components/Onboarding.tsx`
+- Ajout d'un hook `useMemo` pour la détection plateforme.
+- Tableau `slides` étendu à 4 entrées, avec la 4ᵉ qui choisit dynamiquement image + description selon l'OS.
+- Filtre conditionnel : si standalone, la slide PWA est retirée du tableau.
+- Le reste de la logique (swipe, dots, transition) reste inchangé — l'animation gère naturellement N slides.
+
+**Fichiers créés** :
+- `src/assets/onboarding-install-ios.png` (image générée)
+- `src/assets/onboarding-install-android.png` (image générée)
+
+**Aucun changement** sur : routing, auth, service worker, manifest, edge functions.
+
+## Hors scope
+- Pas de bouton « Installer » natif via `beforeinstallprompt` (peu fiable sur iOS et instable sur Android — l'utilisateur passe par le menu navigateur, c'est ce qui marche partout).
+- Pas de modification du manifest PWA ni du logo (déjà traités précédemment).
