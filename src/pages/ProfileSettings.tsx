@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle, Send, RefreshCw } from "lucide-react";
+import { ArrowLeft, User, Bell, Moon, Shield, HelpCircle, Check, X, AlertCircle, Send, RefreshCw, Crown } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { useTheme } from "@/providers/ThemeProvider";
 import { useUnifiedPushNotifications } from "@/hooks/useUnifiedPushNotifications";
 import { useAuth } from "@/hooks/useAuth";
+import { usePremium } from "@/hooks/usePremium";
 import { pushService } from "@/services/pushService";
 import { toast } from "@/hooks/use-toast";
 import PushDiagnosticsPanel from "@/components/notifications/PushDiagnosticsPanel";
@@ -19,6 +20,7 @@ import PushDiagnosticsPanel from "@/components/notifications/PushDiagnosticsPane
 const ProfileSettings = () => {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
+  const { isPremium } = usePremium();
   const { isSupported, isSubscribed, isLoading, permission, subscribe, unsubscribe } = useUnifiedPushNotifications();
   const [isSendingTest, setIsSendingTest] = useState(false);
 
