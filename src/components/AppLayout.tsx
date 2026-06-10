@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar';
 import { useIsMobile } from '@/hooks/use-mobile';
 import AppSidebar from './AppSidebar';
 import NavBar from './NavBar';
+import { useEnforceCanonicalPlan } from '@/hooks/useEnforceCanonicalPlan';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -10,6 +11,7 @@ interface AppLayoutProps {
 
 const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const isMobile = useIsMobile();
+  useEnforceCanonicalPlan();
 
   if (isMobile) {
     return (
