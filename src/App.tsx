@@ -34,6 +34,8 @@ import ReadingPlanManagement from "./pages/ReadingPlanManagement";
 import VerseList from "./pages/VerseList";
 import Reading from "./pages/Reading";
 import Admin from "./pages/Admin";
+import Premium from "./pages/Premium";
+import ProfileSubscription from "./pages/ProfileSubscription";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/admin/AdminRoute";
 import NotFound from "./pages/NotFound";
@@ -214,6 +216,26 @@ function App() {
                           <Admin />
                         </AppLayout>
                       </AdminRoute>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/premium" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Premium />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/subscription" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProfileSubscription />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
