@@ -226,7 +226,7 @@ const ProfileSettings = () => {
                     )}
                   </div>
                 ))}
-                {group.title === "Notifications" && isSubscribed && (
+                {group.title === "Notifications" && isPremium && isSubscribed && (
                   <Button
                     onClick={handleSendTest}
                     disabled={isSendingTest}
@@ -241,7 +241,7 @@ const ProfileSettings = () => {
                     Envoyer une notification de test
                   </Button>
                 )}
-                {group.title === "Notifications" && <PushDiagnosticsPanel />}
+                {group.title === "Notifications" && isPremium && <PushDiagnosticsPanel />}
               </div>
             </CardContent>
           </Card>
