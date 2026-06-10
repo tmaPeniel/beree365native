@@ -66,29 +66,36 @@ serve(async (req) => {
     const currentMinute = now.getUTCMinutes();
     console.log(`⏰ Current UTC time: ${currentHour}:${currentMinute}`);
 
-    // Fetch users with reminders enabled
+    // Fetch users with reminders enabled (Premium only — defense in depth)
     const { data: users, error: usersError } = await supabase
       .from("profiles")
       .select(
         `
         id, full_name, start_date, current_day_number, selected_plan_id,
+        is_premium, premium_end_date,
         notification_preferences!inner(reading_reminder_enabled, reading_reminder_time)
       `,
       )
-      .eq("notification_preferences.reading_reminder_enabled", true);
+      .eq("notification_preferences.reading_reminder_enabled", true)
+      .eq("is_premium", true);
 
     if (usersError) throw usersError;
     if (!users || users.length === 0) {
       return new Response(
         JSON.stringify({ message: "No users to notify", count: 0 }),
-        {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        },
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
+    // Exclude expired premium subscriptions
+    const nowMs = Date.now();
+    const activePremiumUsers = users.filter((u: any) =>
+      !u.premium_end_date || new Date(u.premium_end_date).getTime() > nowMs
+    );
+
+
     // Filter users by time window (±30 min)
-    const usersToNotify = users.filter((user: any) => {
+    const usersToNotify = activePremiumUsers.filter((user: any) => {
       const [prefHour, prefMinute] =
         user.notification_preferences.reading_reminder_time
           .split(":")

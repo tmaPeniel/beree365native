@@ -188,12 +188,31 @@ serve(async (req) => {
       );
     }
 
+    // Filter: only premium users with active subscription receive push notifications
+    const { data: premiumProfiles } = await supabase
+      .from("profiles")
+      .select("id, premium_end_date")
+      .in("id", targetUserIds)
+      .eq("is_premium", true);
+
+    const nowMs = Date.now();
+    const activeUserIds = (premiumProfiles ?? [])
+      .filter((p: any) => !p.premium_end_date || new Date(p.premium_end_date).getTime() > nowMs)
+      .map((p: any) => p.id);
+
+    if (activeUserIds.length === 0) {
+      return new Response(
+        JSON.stringify({ ok: false, devicesFound: 0, sent: 0, failed: 0, error: "No premium-active users among targets" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     const { data: devices, error: devicesError } = await supabase
       .from("user_devices")
       .select(
         "id, user_id, push_endpoint, push_p256dh, push_auth, last_seen_at",
       )
-      .in("user_id", targetUserIds)
+      .in("user_id", activeUserIds)
       .eq("is_active", true)
       .not("push_endpoint", "is", null)
       .not("push_p256dh", "is", null)
