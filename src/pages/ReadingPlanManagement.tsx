@@ -486,13 +486,35 @@ const ReadingPlanManagement = () => {
             ))}
           </div>
         </section>
+        ) : (
+        <section className="space-y-3">
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardContent className="p-5 space-y-3 text-center">
+              <div className="inline-flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                <Crown className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-foreground">Plus de plans avec Premium</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Accédez aux plans chronologique, Nouveau Testament, thématiques et plus encore.
+                </p>
+              </div>
+              <Link to="/premium">
+                <Button>Découvrir Premium</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        </section>
+        )}
 
         {/* Avertissement */}
+        {isPremium && (
         <Alert>
           <AlertDescription className="text-sm">
             <strong>Note :</strong> Changer de plan supprime votre progression et vos badges.
           </AlertDescription>
         </Alert>
+        )}
 
         {/* Réinitialiser le plan */}
         {currentPlan && (
