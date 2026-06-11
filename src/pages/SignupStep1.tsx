@@ -53,7 +53,7 @@ const SignupStep1 = () => {
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
-      <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-green-500">
+      <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-primary">
         <CardHeader className="text-center">
           <h1 className="font-bold text-xl md:text-2xl">Inscription</h1>
           <p className="text-sm text-muted-foreground">Étape 1 sur 2 - Informations personnelles</p>
@@ -196,7 +196,7 @@ const SignupStep1 = () => {
                 )}
               />
               
-              <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
                 Suivant <ArrowRight className="ml-2 h-4 w-4" />
               </Button>
             </form>
@@ -207,7 +207,7 @@ const SignupStep1 = () => {
           <Button 
             variant="link" 
             onClick={() => navigate('/login')} 
-            className="text-green-600 hover:text-green-700 w-full"
+            className="text-primary hover:text-primary/80 w-full"
           >
             Déjà un compte? Se connecter
           </Button>

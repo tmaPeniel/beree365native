@@ -138,13 +138,13 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
           <div className="text-right">
             <Link 
               to="/forgot-password"
-              className="text-sm text-green-600 hover:text-green-700 underline"
+              className="text-sm text-primary hover:text-primary/80 underline"
             >
               Mot de passe oublié ?
             </Link>
           </div>
           
-          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
             Se connecter
           </Button>
         </form>
@@ -349,7 +349,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
             )}
           />
           
-          <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
+          <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
             S'inscrire
           </Button>
         </form>
@@ -358,7 +358,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
   };
 
   return (
-    <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-green-500">
+    <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-primary">
       <CardHeader className="text-center font-bold text-xl md:text-2xl">
         {isLogin ? "Connexion" : "Inscription"}
       </CardHeader>
@@ -368,7 +368,7 @@ const AuthForm: React.FC<AuthFormProps> = ({ isLogin, toggleForm, onSubmit }) =>
       </CardContent>
       
       <CardFooter className="flex justify-center">
-        <Button variant="link" onClick={toggleForm} className="text-green-600 hover:text-green-700 w-full">
+        <Button variant="link" onClick={toggleForm} className="text-primary hover:text-primary/80 w-full">
           {isLogin 
             ? "Pas encore de compte? S'inscrire" 
             : "Déjà un compte? Se connecter"}

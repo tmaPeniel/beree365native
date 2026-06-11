@@ -53,9 +53,9 @@ const DayNavigationControls: React.FC<DayNavigationControlsProps> = ({
   return <div className={`flex items-center gap-2 ${className}`}>
       {showNavigationButtons}
       
-      <button onClick={onCurrentDayClick} className="flex items-center gap-1 px-3 py-1 bg-green-50 rounded-lg border border-green-200 hover:bg-green-100 transition-colors cursor-pointer" title="Aller au jour courant">
-        <Calendar className="h-4 w-4 text-green-600" />
-        <span className="font-medium text-green-700 min-w-[4rem] text-center">
+      <button onClick={onCurrentDayClick} className="flex items-center gap-1 px-3 py-1 bg-secondary rounded-lg border border-border hover:bg-secondary/80 transition-colors cursor-pointer" title="Aller au jour courant">
+        <Calendar className="h-4 w-4 text-primary" />
+        <span className="font-medium text-primary min-w-[4rem] text-center">
           Jour {currentDayNumber}
         </span>
       </button>

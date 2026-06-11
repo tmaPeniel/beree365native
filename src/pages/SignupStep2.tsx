@@ -86,22 +86,22 @@ const SignupStep2 = () => {
   if (!signupData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-green-500"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
       </div>
     );
   }
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
-      <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-green-500">
+      <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-primary">
         <CardHeader className="text-center">
           <h1 className="font-bold text-xl md:text-2xl">Choisir un plan</h1>
           <p className="text-sm text-muted-foreground">Étape 2 sur 2 - Sélection du plan de lecture</p>
         </CardHeader>
         
         <CardContent className="space-y-4">
-          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-            <p className="text-sm text-green-800">
+          <div className="p-4 bg-secondary rounded-lg border border-border">
+            <p className="text-sm text-secondary-foreground">
               <strong>Bienvenue {signupData.name} !</strong><br />
               Choisissez le plan de lecture qui vous convient le mieux.
             </p>
@@ -126,7 +126,7 @@ const SignupStep2 = () => {
           <Button 
             onClick={handleSubmit}
             disabled={!selectedPlanId || isLoading}
-            className="flex-1 bg-green-600 hover:bg-green-700"
+            className="flex-1 bg-primary hover:bg-primary/90"
           >
             {isLoading ? (
               <>

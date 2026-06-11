@@ -58,9 +58,9 @@ const ForgotPassword = () => {
   if (isSubmitted) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
-        <Card className="w-[400px] shadow-lg border-t-4 border-t-green-500">
+        <Card className="w-[400px] shadow-lg border-t-4 border-t-primary">
           <CardHeader className="text-center">
-            <h1 className="text-2xl font-bold text-green-600">Email envoyé !</h1>
+            <h1 className="text-2xl font-bold text-primary">Email envoyé !</h1>
           </CardHeader>
           
           <CardContent className="text-center space-y-4">
@@ -74,7 +74,7 @@ const ForgotPassword = () => {
           
           <CardFooter className="flex justify-center">
             <Link to="/login">
-              <Button variant="link" className="text-green-600 hover:text-green-700">
+              <Button variant="link" className="text-primary hover:text-primary/80">
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Retour à la connexion
               </Button>
@@ -87,7 +87,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
-      <Card className="w-[400px] shadow-lg border-t-4 border-t-green-500">
+      <Card className="w-[400px] shadow-lg border-t-4 border-t-primary">
         <CardHeader className="text-center">
           <h1 className="text-2xl font-bold">Mot de passe oublié</h1>
           <p className="text-muted-foreground">
@@ -114,7 +114,7 @@ const ForgotPassword = () => {
               
               <Button 
                 type="submit" 
-                className="w-full bg-green-600 hover:bg-green-700"
+                className="w-full bg-primary hover:bg-primary/90"
                 disabled={isLoading}
               >
                 {isLoading ? "Envoi en cours..." : "Envoyer le lien"}
@@ -125,7 +125,7 @@ const ForgotPassword = () => {
         
         <CardFooter className="flex justify-center">
           <Link to="/login">
-            <Button variant="link" className="text-green-600 hover:text-green-700">
+            <Button variant="link" className="text-primary hover:text-primary/80">
               <ArrowLeft className="w-4 h-4 mr-2" />
               Retour à la connexion
             </Button>

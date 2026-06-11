@@ -34,8 +34,8 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
       // Générer plus de particules avec variations
       const particleCount = type === 'badge-unlock' ? 20 : 15;
       const colors = type === 'badge-unlock' 
-        ? ['#FFD700', '#FFA500', '#FF6B6B', '#4ECDC4', '#45B7D1']
-        : ['#34A853', '#4CAF50', '#8BC34A', '#CDDC39', '#FFC107'];
+        ? ['#FFD700', '#FFA500', '#e8a82c', '#c98a1e', '#a86d20']
+        : ['#e8a82c', '#f5c14a', '#c98a1e', '#a86d20', '#FFC107'];
       
       const newParticles = Array.from({ length: particleCount }, (_, i) => ({
         id: i,
@@ -83,9 +83,9 @@ const CelebrationEffects: React.FC<CelebrationEffectsProps> = ({
       default:
         return { 
           icon: CheckCircle, 
-          iconColor: 'text-green-500',
-          glowColor: 'shadow-green-500/50',
-          bgGradient: 'from-green-400 to-emerald-500'
+          iconColor: 'text-sun',
+          glowColor: 'shadow-sun/50',
+          bgGradient: 'from-sun-soft to-sun-deep'
         };
     }
   };
