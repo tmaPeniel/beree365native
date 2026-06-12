@@ -1,51 +1,66 @@
-# Harmonisation aux couleurs du logo Bérée
+# Refonte complète : suppression intégrale du système de notifications
 
-## Objectif
-Éliminer toutes les couleurs vertes résiduelles (`green-*`, `emerald-*`) et garantir que l'app utilise systématiquement la palette du logo : **brun chaud `beree-500` (#a86d20)** + **or `sun` (#e8a82c)**, en light et dark mode.
+L'utilisateur veut repartir de zéro. **Cette étape ne reconstruit rien** : on supprime tout, on valide, puis on rebâtit dans un second temps avec de nouvelles clés VAPID.
 
-## Diagnostic
-Le système de tokens (`index.css`, `tailwind.config.ts`) est déjà correctement aligné sur brun/or. Le problème vient de **classes Tailwind vertes codées en dur** dans une vingtaine de composants/pages (legacy d'auth, spinners, célébrations, navigation).
+## 1. Suppression côté code
 
-## Changements
+### Frontend
+- Supprimer tous les hooks/services/composants liés aux notifications :
+  - `src/hooks/useOneSignal*.tsx`, `useNotifications*.tsx`, `usePushNotifications*.tsx`
+  - `src/services/onesignal*.ts`, `src/services/notifications/*`
+  - Composants `OneSignal*`, `PushNotificationToggle`, `NotificationCenter`, `NotificationBell`, `IOSInstallPrompt` push
+- Retirer tout import / usage résiduel dans `App.tsx`, `Settings.tsx`, `AppLayout.tsx`, `index.html`, `main.tsx`
+- Désinstaller : `bun remove react-onesignal` (et toute lib push éventuelle)
 
-### 1. Tokens & palette (déjà OK — vérif seulement)
-- `index.css` : `--primary` brun, `--accent` or → conservés
-- `tailwind.config.ts` : palette `beree` brune + `sun` or → conservés
-- Ajustement mineur : enrichir le dark mode si nécessaire (déjà cohérent)
+### Service workers
+- Supprimer `public/OneSignalSDKWorker.js`, `public/OneSignalSDKUpdaterWorker.js`, et tout SW push (`sw-push.js`, `firebase-messaging-sw.js` s'il existe)
 
-### 2. Remplacer tous les `green-*` / `emerald-*` par tokens sémantiques
+### Edge functions (supprimées du repo + Supabase)
+- `send-push-notification`
+- `send-daily-reminders`
+- `send-daily-verse`
+- Toute autre fonction qui dépend de OneSignal/VAPID
 
-**Pages auth** (look brun/or au lieu de vert) :
-- `src/pages/Login.tsx`, `Signup.tsx`, `SignupStep1.tsx`, `SignupStep2.tsx`, `ForgotPassword.tsx`, `Index.tsx`
-- `src/components/AuthForm.tsx`
-- Spinners : `border-green-500` → `border-primary`
-- Boutons : `bg-green-600 hover:bg-green-700` → `bg-primary hover:bg-primary/90`
-- Liens : `text-green-600 hover:text-green-700` → `text-primary hover:text-primary/80`
-- Bordures cards : `border-t-green-500` → `border-t-primary`
-- Titres succès : `text-green-600` → `text-primary`
-- Encarts info : `bg-green-50 border-green-200 text-green-800` → `bg-secondary border-border text-secondary-foreground`
+## 2. Suppression côté base de données (migration)
 
-**Composants** :
-- `src/components/ProgressStats.tsx` spinner → `border-primary`
-- `src/components/DayNavigationControls.tsx` bouton "jour courant" → tons `secondary`/`primary`
-- `src/components/admin/UserStatsTable.tsx` spinner → `border-primary`
-- `src/components/animations/CelebrationEffects.tsx` : seul cas où le vert peut rester (validation/réussite). Réponse utilisateur : **remplacer par or** → `text-sun`, `shadow-sun/50`, `from-sun to-sun-deep`
+- `DROP TABLE` : `push_subscriptions`, `notification_preferences`, `notification_logs`, `user_devices`
+- `DROP FUNCTION` : `get_user_push_subscription_status`, `get_user_notification_history`, `cleanup_old_notification_logs`, `create_default_notification_preferences`
+- `DROP TRIGGER` associé à la création auto de préférences
+- Supprimer les cron jobs pg_cron liés (envoi quotidien, rappel lecture, cleanup logs) — via insert tool car contient l'URL projet
+- `sync_current_day_numbers` : à garder (utile au-delà des notifs) — **à confirmer**
 
-### 3. Conserver
-- Tons rouges `destructive` (erreurs)
-- Verts dans graphiques de statistiques si présents et lisibles → re-mappés vers `accent`/`primary` également pour cohérence
+## 3. Suppression des secrets
 
-### 4. Dark mode
-- Tokens déjà adaptés (primary devient or pour le contraste)
-- Vérifier que les nouvelles classes sémantiques fonctionnent visuellement dans `.dark`
+À supprimer (via `delete_secret`) :
+- `ONESIGNAL_APP_ID`
+- `ONESIGNAL_REST_API_KEY`
+- `FCM_SERVER_KEY`
+- `VAPID_PUBLIC_KEY`
+- `VAPID_PRIVATE_KEY`
 
-## Hors scope
-- Pas de changement de logique métier
-- Pas de modification des images/illustrations
-- Pas de refonte de layout
+## 4. Nettoyage mémoire projet
 
-## Fichiers impactés (≈10)
-`Login.tsx`, `Signup.tsx`, `SignupStep1.tsx`, `SignupStep2.tsx`, `ForgotPassword.tsx`, `Index.tsx`, `AuthForm.tsx`, `ProgressStats.tsx`, `DayNavigationControls.tsx`, `UserStatsTable.tsx`, `CelebrationEffects.tsx`
+Supprimer les entrées d'index mémoire devenues obsolètes :
+- Notification System, Notification Automation, Notification Schema, Sync Day, Toggle, iOS Interactions, Multi-device, OneSignal Subscription, Notification Center UI, Logs Cleanup, Badge Notifications (partie push)
 
-## Vérification
-Après build, relancer `rg "green-|emerald-"` dans `src/` → doit retourner 0 résultat (hors commentaires).
+## 5. Vérification finale
+
+- `rg -i "onesignal|vapid|web-push|pushManager|notification_preferences|push_subscriptions"` dans `src/` et `supabase/` → 0 résultat
+- Build OK
+- L'app tourne sans erreur console
+- Tables et fonctions push absentes via `psql`/Supabase
+
+## Hors scope (étape suivante)
+
+La reconstruction VAPID propre (nouvelles clés générées, schéma neuf, SW dédié, multi-device, iOS PWA, admin broadcast) sera traitée dans un message **séparé**, une fois la table rase confirmée.
+
+## Ordre d'exécution
+
+1. Migration DROP (tables + fonctions + triggers)
+2. Insert tool : suppression des cron jobs
+3. Suppression des edge functions (repo + Supabase via tool)
+4. Suppression code frontend + désinstall package
+5. Suppression des SW push dans `public/`
+6. Suppression des secrets
+7. Mise à jour de l'index mémoire
+8. Vérification finale (grep + build)
