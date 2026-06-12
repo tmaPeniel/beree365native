@@ -98,31 +98,6 @@ const CookiesPolicy = () => {
                 </AccordionContent>
               </AccordionItem>
 
-              <AccordionItem value="analytics">
-              <AccordionTrigger>
-                  <div className="flex items-center gap-2">
-                    <Info className="h-4 w-4 text-muted-foreground" />
-                    Cookies analytiques (optionnels)
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="text-muted-foreground space-y-4">
-                  <p>
-                    Ces cookies nous aident à comprendre comment les visiteurs interagissent avec le site. 
-                    Ils sont optionnels et vous pouvez les refuser.
-                  </p>
-                  
-                  <div className="space-y-3">
-                    <div className="bg-muted/50 p-3 rounded-lg">
-                      <p className="font-medium text-foreground">OneSignal</p>
-                      <p className="text-sm">
-                        Service de notifications push. Stocke un identifiant unique pour vous envoyer 
-                        des notifications si vous les avez activées.
-                      </p>
-                      <p className="text-xs mt-1">Durée : Jusqu'à révocation</p>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
             </Accordion>
           </CardContent>
         </Card>

@@ -8,17 +8,14 @@ import ProgressStats from "@/components/ProgressStats";
 import ReadingPlan from "@/components/ReadingPlan";
 import VerseOfDay from "@/components/VerseOfDay";
 import TodayDisplay from "@/components/TodayDisplay";
-import NotificationCenter from "@/components/notifications/NotificationCenter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
-import { usePremium } from "@/hooks/usePremium";
 import { useDateService } from "@/hooks/useDateService";
 import { usePlanDuration } from "@/hooks/usePlanDuration";
 import PlanDates from "@/components/ui/PlanDate";
 const Dashboard = () => {
   const isMobile = useIsMobile();
   const { profile, isLoading } = useAuth();
-  const { isPremium } = usePremium();
   const { currentDayNumber, isLoading: dayLoading, getStats, planDuration } = useDateService();
   const { planName, planDuration: hookPlanDuration } = usePlanDuration();
   const today = new Date();
@@ -53,7 +50,7 @@ const Dashboard = () => {
             </h1>
             <p className="text-sm md:text-base text-muted-foreground">SISAP Editions Powered</p>
           </div>
-          {isPremium && <NotificationCenter />}
+          
         </div>
       </div>
 

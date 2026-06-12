@@ -31,13 +31,10 @@ const ProfilePrivacy = () => {
     setIsExporting(true);
     try {
       // Récupérer toutes les données de l'utilisateur
-      const [profileRes, progressRes, badgesRes, notifPrefsRes, notifLogsRes, devicesRes] = await Promise.all([
+      const [profileRes, progressRes, badgesRes] = await Promise.all([
         supabase.from('profiles').select('*').eq('id', user.id).single(),
         supabase.from('user_progress').select('*').eq('user_id', user.id),
         supabase.from('user_badges').select('*, badges(*)').eq('user_id', user.id),
-        supabase.from('notification_preferences').select('*').eq('user_id', user.id),
-        supabase.from('notification_logs').select('*').eq('user_id', user.id),
-        supabase.from('user_devices').select('*').eq('user_id', user.id)
       ]);
 
       const userData = {
@@ -49,9 +46,6 @@ const ProfilePrivacy = () => {
         profile: profileRes.data,
         progress: progressRes.data,
         badges: badgesRes.data,
-        notificationPreferences: notifPrefsRes.data,
-        notificationLogs: notifLogsRes.data,
-        devices: devicesRes.data
       };
 
       // Créer et télécharger le fichier JSON
@@ -152,7 +146,6 @@ Ces droits peuvent être exercés depuis cette page ou en nous contactant.`
       title: "Sous-traitants",
       content: `Nous utilisons les services suivants pour héberger et traiter vos données :
 • Supabase (hébergement base de données et authentification) - Données hébergées en Europe
-• OneSignal (notifications push) - Certifié Privacy Shield
 
 Ces sous-traitants sont tenus contractuellement de protéger vos données.`
     }
