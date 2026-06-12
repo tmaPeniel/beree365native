@@ -1,132 +1,37 @@
-# Système de notifications Web Push (VAPID) — inspiré de Cap
+## Problem
 
-Reconstruction propre, sans FCM. Architecture client pure Web Push API + VAPID, et logique serveur portée sur Supabase Edge Functions (Bérée est un SPA Vite, pas TanStack Start comme Cap — donc les `createServerFn` deviennent des edge functions).
+`send-test-push` returns `{ sent: 0 }` even though your user has 2 valid push subscriptions in `push_subscriptions` (both created today, after the VAPID keys were set).
 
-## 1. Génération des clés VAPID
+Root cause: the shared helper `supabase/functions/_shared/webpush.ts` uses the `npm:web-push` library. That library relies on Node.js `crypto` APIs (Buffer, asymmetric key import via PEM, `createECDH`) that are not fully supported in Supabase Edge Runtime (Deno). It silently fails for every subscription, returning `ok: false, gone: false`, so the counter stays at 0. Boot/shutdown logs show no thrown error because we catch it and return a generic `error` string per subscription that's never logged.
 
-Demande des secrets via le tool secrets :
-- `VAPID_PUBLIC_KEY` (exposable au client)
-- `VAPID_PRIVATE_KEY` (server-only)
-- `VAPID_SUBJECT` (ex : `mailto:contact@beree365.app`)
+## Fix
 
-L'utilisateur génère la paire localement avec `npx web-push generate-vapid-keys` ou via un site dédié, puis colle les valeurs dans la fenêtre sécurisée. La publique sera aussi codée en dur dans `src/lib/push/vapid.ts` (constante), exactement comme Cap.
+Replace the web-push wrapper with a **Deno-native Web Push implementation** built on the standard Web Crypto API. No external npm runtime crypto required, works reliably in Edge Functions.
 
-## 2. Schéma DB (migration unique)
+### What changes
 
-Trois tables, calquées sur Cap mais adaptées au contexte Bérée (verset du jour, rappels de lecture, badges) :
+1. **Rewrite `supabase/functions/_shared/webpush.ts`** to implement VAPID + Web Push encryption from scratch using `crypto.subtle`:
+   - Parse the stored VAPID private key (base64url) into a P-256 `CryptoKey`.
+   - Generate the VAPID JWT (ES256) for the push service origin, signed with the private key.
+   - Implement RFC 8291 payload encryption (aes128gcm content-encoding): ECDH with the subscription's `p256dh`, HKDF-derive CEK + nonce using the `auth` secret, AES-GCM encrypt the payload, prepend the binary header (salt + rs + idlen + appServerPublicKey).
+   - POST to `sub.endpoint` with headers `Authorization: vapid t=<jwt>, k=<publicKey>`, `Content-Encoding: aes128gcm`, `Content-Type: application/octet-stream`, `TTL: 86400`, `Urgency: normal`.
+   - Return `{ ok, gone, status, error }`. `gone` true on 404/410 so callers prune stale rows (already wired).
 
-```sql
--- Multi-device : une ligne par endpoint
-push_subscriptions (
-  id uuid PK, user_id uuid REFERENCES auth.users ON DELETE CASCADE,
-  endpoint text UNIQUE, p256dh text, auth text,
-  user_agent text, created_at timestamptz
-)
+2. **Add brief logging in `send-test-push`** to surface per-subscription failures while debugging: log status + error returned by `sendPush`. Helps confirm the fix and catch any subscription-specific issues (e.g., a stale endpoint).
 
--- Préférences par utilisateur
-notification_preferences (
-  user_id uuid PK REFERENCES auth.users ON DELETE CASCADE,
-  daily_verse_enabled boolean DEFAULT true,
-  reading_reminder_enabled boolean DEFAULT true,
-  badges_enabled boolean DEFAULT true,
-  daily_verse_time time DEFAULT '08:00',
-  reading_reminder_time time DEFAULT '20:00',
-  timezone text DEFAULT 'UTC',
-  created_at, updated_at
-)
+3. **No DB / no client / no secrets changes.** VAPID keys, `push_subscriptions` table, service worker, registration flow, and the `usePushNotifications` hook are all correct and stay as-is. The existing 2 subscriptions for your account will start receiving notifications immediately after redeploy.
 
--- Anti-doublon (évite de renvoyer le même verset deux fois le même jour)
-notifications_sent (
-  id uuid PK, user_id uuid, kind text, ref_id text,
-  sent_at timestamptz,
-  UNIQUE (user_id, kind, ref_id)
-)
-```
+### Files touched
 
-RLS : chaque utilisateur ne lit/écrit que ses lignes. `GRANT` pour `authenticated` + `service_role` (les edge functions cron utilisent le service role). Trigger `updated_at` sur `notification_preferences`.
+- `supabase/functions/_shared/webpush.ts` — rewrite (still exports `sendPush(sub, payload)` with the same signature, so callers in `send-test-push`, `send-daily-verse`, `send-reading-reminders`, `send-badge-notification` keep working unchanged).
+- `supabase/functions/send-test-push/index.ts` — add `console.log` of failures + include `sent`, `failed`, `errors[]` in the response so the UI / debugging shows what went wrong if it ever does again.
 
-## 3. Service worker (`public/sw.js`)
+### Verification
 
-Réécriture minimale, alignée sur celle de Cap mais combinée avec Workbox (déjà utilisé pour le PWA) :
+After redeploy, click **Tester** in Profil → Notifications. Expected: browser shows the "Bérée 365 — Tes notifications sont bien activées" toast on the device, response shows `{ sent: 2 }` (or 1 if only this device is currently subscribed). The Edge Function logs will also confirm.
 
-- garde `precacheAndRoute(self.__WB_MANIFEST)`, `cleanupOutdatedCaches`, `skipWaiting`, `clientsClaim`
-- ajoute `push` : parse JSON `{ title, body, url, tag, icon }`, affiche la notification avec icône `/beree-logo.png`
-- ajoute `notificationclick` : focus une fenêtre existante et `client.navigate(url)`, sinon `clients.openWindow(url)`
-- garde le handler `message` existant
+### Technical notes (for the curious)
 
-## 4. Client : helpers + hook
-
-### `src/lib/push/vapid.ts`
-Constante `VAPID_PUBLIC_KEY` (la même valeur que le secret).
-
-### `src/lib/push/push.ts` (copié quasi tel quel de Cap)
-- `pushSupported()`, `isIOS()`, `isStandalone()`, `permissionState()`
-- `getRegistration()` — récupère le SW `/sw.js`, **bypass des hôtes preview** (`id-preview--*.lovable.app`, etc.) pour éviter les souscriptions parasites
-- `getCurrentSubscription()`, `subscribeToPush()`, `unsubscribeFromPush()`
-
-### `src/hooks/usePushNotifications.ts`
-Wrapper React :
-- `isSupported`, `permission`, `isSubscribed`, `isLoading`
-- `subscribe()` → appel SW puis edge function `register-push-subscription`
-- `unsubscribe()` → désabonnement SW puis `unregister-push-subscription`
-- `sendTest()` → edge function `send-test-push`
-
-## 5. Edge Functions (Supabase, Deno)
-
-Toutes utilisent `npm:web-push@3` et lisent `VAPID_*` depuis `Deno.env`. Toutes incluent CORS, validation Zod, et `getClaims()` pour les non-cron.
-
-| Fonction | Auth | Rôle |
-|---|---|---|
-| `register-push-subscription` | JWT user | Upsert sur `push_subscriptions` (par endpoint) |
-| `unregister-push-subscription` | JWT user | Delete par endpoint pour l'utilisateur |
-| `get-notification-preferences` | JWT user | Lit/crée les prefs avec timezone détectée |
-| `update-notification-preferences` | JWT user | Patch sur les toggles + horaires |
-| `send-test-push` | JWT user | Envoi à tous les endpoints de l'utilisateur ; supprime les 404/410 |
-| `send-daily-verse` | service role (cron) | Pour chaque user avec `daily_verse_enabled=true` à l'heure locale, envoie le verset du jour |
-| `send-reading-reminders` | service role (cron) | Idem pour rappel de lecture |
-| `send-badge-notification` | service role (depuis `useBadgeCalculation`) | Envoi push quand un badge se débloque, si `badges_enabled` |
-
-Module partagé `_shared/webpush.ts` (inspiré de `webpush.server.ts` de Cap) : `sendPush(sub, payload)` retournant `{ ok, gone, error }`, et la suppression auto des subs `gone`. Anti-doublon via insert dans `notifications_sent` (kind = `daily_verse|reading_reminder|badge`, ref_id = `YYYY-MM-DD` ou badge_id).
-
-## 6. Cron jobs (pg_cron via insert tool)
-
-- `send-daily-verse` : toutes les 15 min (couvre tous les fuseaux + horaires personnalisés)
-- `send-reading-reminders` : toutes les 15 min
-- `cleanup-old-notifications-sent` : quotidien (purge `notifications_sent` > 30 jours)
-
-Chaque job appelle l'edge function via `net.http_post` avec apikey anon + header service-role spécial. Les jobs orphelins restants (`send-daily-reading-reminders`, `send-daily-verses`, `sync-onesignal-daily`, `cleanup-notification-logs`) ne pourront pas être supprimés par moi (permission refusée déjà constaté) → je redonnerai la commande SQL à exécuter manuellement.
-
-## 7. UI Settings
-
-Recrée `src/pages/ProfileNotifications.tsx` (et la route `/profile/notifications` dans `App.tsx`) basé sur le `NotificationsSection` de Cap :
-- Bouton **Activer / Désactiver** (gère les états : non supporté, refusé, iOS sans PWA installée)
-- Bannière iOS expliquant l'install obligatoire en PWA (`isIOS && !isStandalone`)
-- 3 lignes de préférences avec switches + sélecteur d'heure : Verset du jour, Rappel de lecture, Badges débloqués
-- Bouton « Envoyer une notification de test » visible quand abonné
-
-Re-ajoute aussi le lien vers cette page dans `ProfileSettings.tsx` (section Notifications), et la mention du sous-traitant "Web Push (Mozilla autopush / Google FCM endpoints)" dans `ProfilePrivacy.tsx` et `CookiesPolicy.tsx`.
-
-## 8. Intégration badges
-
-Dans `useBadgeCalculation.tsx`, après détection d'un nouveau badge, appel à l'edge function `send-badge-notification` (en plus du toast in-app existant).
-
-## 9. Mémoire projet
-
-Mise à jour de l'index :
-- Remplace la ligne « Notifications: Push system fully removed » par « **Notifications**: Web Push standard (VAPID), multi-device, edge functions Deno avec npm:web-push, anti-doublon via `notifications_sent`. »
-- Nouveaux fichiers mémoire : `architecture/push-notifications-vapid`, `database/schema/push-notifications`, `notifications/cron-strategy`.
-
-## 10. Vérification
-
-- Build sans erreur
-- Active depuis Settings sur Chrome desktop → notif de test reçue
-- Vérifie la ligne dans `push_subscriptions`
-- Test deuxième appareil → deuxième ligne
-- Désactivation → suppression de la ligne correspondante
-- Logs edge function disponibles dans le dashboard
-
-## Hors scope
-
-- Backfill des anciennes données OneSignal (table purgée, sans retour)
-- App native (Capacitor) — purement web/PWA pour l'instant
-- Notifications transactionnelles (paiement, etc.)
+- We are not adding any npm dependency. Pure Web Crypto + a tiny base64url helper.
+- VAPID JWT `aud` is the origin of the endpoint (`https://fcm.googleapis.com` for Chrome, `https://updates.push.services.mozilla.com` for Firefox, `https://*.notify.windows.com` for Edge).
+- `aes128gcm` is the modern content-encoding supported by all current push services; we don't need the older `aesgcm` fallback.
