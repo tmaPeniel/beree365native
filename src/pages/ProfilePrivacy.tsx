@@ -152,7 +152,6 @@ Ces droits peuvent être exercés depuis cette page ou en nous contactant.`
       title: "Sous-traitants",
       content: `Nous utilisons les services suivants pour héberger et traiter vos données :
 • Supabase (hébergement base de données et authentification) - Données hébergées en Europe
-• OneSignal (notifications push) - Certifié Privacy Shield
 
 Ces sous-traitants sont tenus contractuellement de protéger vos données.`
     }

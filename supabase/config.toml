@@ -1,13 +1,4 @@
 project_id = "xizlfyrjhzkzdchjezfn"
 
-[functions.send-push-notification]
-verify_jwt = true
-
-[functions.send-daily-reminders]
-verify_jwt = false
-
-[functions.send-daily-verse]
-verify_jwt = false
-
 [functions.delete-user-account]
 verify_jwt = false
