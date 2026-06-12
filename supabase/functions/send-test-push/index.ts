@@ -37,6 +37,7 @@ Deno.serve(async (req) => {
       });
     }
     let sent = 0;
+    const errors: Array<{ id: string; status?: number; error?: string }> = [];
     for (const s of subs) {
       const res = await sendPush(s, {
         title: 'Bérée 365',
@@ -44,10 +45,15 @@ Deno.serve(async (req) => {
         url: '/dashboard',
         tag: 'test',
       });
-      if (res.ok) sent++;
+      if (res.ok) {
+        sent++;
+      } else {
+        console.error('send-test-push failure', { id: s.id, status: res.status, error: res.error });
+        errors.push({ id: s.id, status: res.status, error: res.error });
+      }
       if (res.gone) await admin.from('push_subscriptions').delete().eq('id', s.id);
     }
-    return new Response(JSON.stringify({ sent }), {
+    return new Response(JSON.stringify({ sent, total: subs.length, errors }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (e) {
