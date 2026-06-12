@@ -71,106 +71,6 @@ export type Database = {
         }
         Relationships: []
       }
-      notification_logs: {
-        Row: {
-          body: string
-          error_message: string | null
-          id: string
-          is_deleted: boolean | null
-          is_read: boolean | null
-          notification_type: string
-          onesignal_notification_id: string | null
-          onesignal_player_id: string | null
-          read_at: string | null
-          sent_at: string
-          success: boolean
-          title: string
-          user_id: string
-        }
-        Insert: {
-          body: string
-          error_message?: string | null
-          id?: string
-          is_deleted?: boolean | null
-          is_read?: boolean | null
-          notification_type: string
-          onesignal_notification_id?: string | null
-          onesignal_player_id?: string | null
-          read_at?: string | null
-          sent_at?: string
-          success?: boolean
-          title: string
-          user_id: string
-        }
-        Update: {
-          body?: string
-          error_message?: string | null
-          id?: string
-          is_deleted?: boolean | null
-          is_read?: boolean | null
-          notification_type?: string
-          onesignal_notification_id?: string | null
-          onesignal_player_id?: string | null
-          read_at?: string | null
-          sent_at?: string
-          success?: boolean
-          title?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notification_logs_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      notification_preferences: {
-        Row: {
-          badge_encouragement_enabled: boolean
-          created_at: string
-          daily_verse_enabled: boolean
-          daily_verse_time: string
-          id: string
-          reading_reminder_enabled: boolean
-          reading_reminder_time: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          badge_encouragement_enabled?: boolean
-          created_at?: string
-          daily_verse_enabled?: boolean
-          daily_verse_time?: string
-          id?: string
-          reading_reminder_enabled?: boolean
-          reading_reminder_time?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          badge_encouragement_enabled?: boolean
-          created_at?: string
-          daily_verse_enabled?: boolean
-          daily_verse_time?: string
-          id?: string
-          reading_reminder_enabled?: boolean
-          reading_reminder_time?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "notification_preferences_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       profiles: {
         Row: {
           created_at: string | null
@@ -371,48 +271,6 @@ export type Database = {
           },
         ]
       }
-      user_devices: {
-        Row: {
-          created_at: string | null
-          device_platform: string | null
-          device_token: string | null
-          id: string
-          is_active: boolean | null
-          last_seen_at: string | null
-          onesignal_player_id: string | null
-          push_auth: string | null
-          push_endpoint: string | null
-          push_p256dh: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string | null
-          device_platform?: string | null
-          device_token?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_seen_at?: string | null
-          onesignal_player_id?: string | null
-          push_auth?: string | null
-          push_endpoint?: string | null
-          push_p256dh?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string | null
-          device_platform?: string | null
-          device_token?: string | null
-          id?: string
-          is_active?: boolean | null
-          last_seen_at?: string | null
-          onesignal_player_id?: string | null
-          push_auth?: string | null
-          push_endpoint?: string | null
-          push_p256dh?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
       user_progress: {
         Row: {
           chapter_id: string | null
@@ -509,29 +367,9 @@ export type Database = {
       }
       calculate_user_badges: { Args: { _user_id: string }; Returns: undefined }
       change_user_plan: { Args: { new_plan_id: string }; Returns: undefined }
-      cleanup_old_notification_logs: { Args: never; Returns: undefined }
       expire_premium_subscriptions: { Args: never; Returns: undefined }
       get_canonical_plan_id: { Args: never; Returns: string }
       get_completed_days_count: { Args: { p_user_id: string }; Returns: number }
-      get_user_notification_history: {
-        Args: never
-        Returns: {
-          id: string
-          notification_type: string
-          sent_at: string
-          status_message: string
-          success: boolean
-        }[]
-      }
-      get_user_push_subscription_status: {
-        Args: never
-        Returns: {
-          created_at: string
-          endpoint_preview: string
-          id: string
-          is_active: boolean
-        }[]
-      }
       get_user_stats: {
         Args: never
         Returns: {
