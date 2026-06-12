@@ -2,3 +2,12 @@ project_id = "xizlfyrjhzkzdchjezfn"
 
 [functions.delete-user-account]
 verify_jwt = false
+
+[functions.get-vapid-public-key]
+verify_jwt = false
+
+[functions.send-daily-verse]
+verify_jwt = false
+
+[functions.send-reading-reminders]
+verify_jwt = false
