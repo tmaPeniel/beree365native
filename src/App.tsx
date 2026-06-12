@@ -22,6 +22,7 @@ import Profile from "./pages/Profile";
 import ProfileStatistics from "./pages/ProfileStatistics";
 import ProfileBadges from "./pages/ProfileBadges";
 import ProfileSettings from "./pages/ProfileSettings";
+import ProfileNotifications from "./pages/ProfileNotifications";
 
 import ProfileAbout from "./pages/ProfileAbout";
 import ProfileEdit from "./pages/ProfileEdit";
@@ -186,6 +187,16 @@ function App() {
                       </AppLayout>
                     </ProtectedRoute>
                   } 
+                />
+                <Route
+                  path="/profile/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProfileNotifications />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
                 />
                 <Route 
                   path="/reading" 

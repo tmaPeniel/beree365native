@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowLeft, User, Moon, Shield, HelpCircle } from "lucide-react";
+import { ArrowLeft, User, Moon, Shield, HelpCircle, Bell } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,6 +33,18 @@ const ProfileSettings = () => {
           description: "Choisir le thème d'affichage",
           icon: Moon,
           action: "theme-selector" as const,
+        },
+      ],
+    },
+    {
+      title: "Notifications",
+      options: [
+        {
+          label: "Notifications push",
+          description: "Verset du jour, rappels, badges",
+          icon: Bell,
+          action: "navigate" as const,
+          to: "/profile/notifications",
         },
       ],
     },

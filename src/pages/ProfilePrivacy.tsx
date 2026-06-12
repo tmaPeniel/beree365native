@@ -146,6 +146,7 @@ Ces droits peuvent être exercés depuis cette page ou en nous contactant.`
       title: "Sous-traitants",
       content: `Nous utilisons les services suivants pour héberger et traiter vos données :
 • Supabase (hébergement base de données et authentification) - Données hébergées en Europe
+• Web Push standard (VAPID) — les messages sont relayés par les serveurs push de votre navigateur (Mozilla autopush, Google FCM endpoints, Apple Push). Aucun compte tiers requis.
 
 Ces sous-traitants sont tenus contractuellement de protéger vos données.`
     }
