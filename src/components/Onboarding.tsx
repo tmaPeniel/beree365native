@@ -1,33 +1,86 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useMemo } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { Button } from './ui/button';
 import onboardingWelcome from '@/assets/onboarding-welcome.png';
 import onboardingPlan from '@/assets/onboarding-plan.png';
 import onboardingProgress from '@/assets/onboarding-progress.png';
+import onboardingInstallIos from '@/assets/onboarding-install-ios.png';
+import onboardingInstallAndroid from '@/assets/onboarding-install-android.png';
 
 interface OnboardingProps {
   onComplete: () => void;
 }
 
-const slides = [
-  {
-    image: onboardingWelcome,
-    title: 'Bienvenue sur Bérée 365',
-    description: 'Parcourez la Bible en un an avec un plan de lecture adapté à votre rythme.',
-  },
-  {
-    image: onboardingPlan,
-    title: 'Votre plan de lecture',
-    description: 'Choisissez parmi 4 plans adaptés : canonique ou chronologique, en 6 ou 12 mois.',
-  },
-  {
-    image: onboardingProgress,
-    title: 'Suivez votre progression',
-    description: 'Débloquez des badges, consultez vos statistiques et découvrez un verset chaque jour.',
-  },
-];
+type Platform = 'ios' | 'android' | 'desktop';
+
+const detectPlatform = (): Platform => {
+  if (typeof navigator === 'undefined') return 'desktop';
+  const ua = navigator.userAgent || '';
+  if (/iPad|iPhone|iPod/.test(ua)) return 'ios';
+  // iPadOS 13+ reports as Mac with touch
+  if (/Macintosh/.test(ua) && 'ontouchend' in document) return 'ios';
+  if (/Android/i.test(ua)) return 'android';
+  return 'desktop';
+};
+
+const isStandalone = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  // iOS
+  if ((navigator as any).standalone === true) return true;
+  return window.matchMedia?.('(display-mode: standalone)').matches ?? false;
+};
+
+const buildSlides = (platform: Platform) => {
+  const installSlide =
+    platform === 'ios'
+      ? {
+          image: onboardingInstallIos,
+          title: 'Installez l\u2019application',
+          description:
+            'Dans Safari, touchez le bouton Partager en bas de l\u2019\u00e9cran, puis « Sur l\u2019\u00e9cran d\u2019accueil » pour ajouter B\u00e9r\u00e9e 365.',
+        }
+      : platform === 'android'
+        ? {
+            image: onboardingInstallAndroid,
+            title: 'Installez l\u2019application',
+            description:
+              'Dans Chrome, ouvrez le menu \u22ee en haut \u00e0 droite, puis « Installer l\u2019application » ou « Ajouter \u00e0 l\u2019\u00e9cran d\u2019accueil ».',
+          }
+        : {
+            image: onboardingInstallAndroid,
+            title: 'Installez l\u2019application',
+            description:
+              'Ouvrez B\u00e9r\u00e9e 365 depuis Safari sur iPhone ou Chrome sur Android, puis ajoutez l\u2019application \u00e0 votre \u00e9cran d\u2019accueil.',
+          };
+
+  return [
+    {
+      image: onboardingWelcome,
+      title: 'Bienvenue sur B\u00e9r\u00e9e 365',
+      description: 'Parcourez la Bible en un an avec un plan de lecture adapt\u00e9 \u00e0 votre rythme.',
+    },
+    {
+      image: onboardingPlan,
+      title: 'Votre plan de lecture',
+      description: 'Choisissez parmi 4 plans adapt\u00e9s : canonique ou chronologique, en 6 ou 12 mois.',
+    },
+    {
+      image: onboardingProgress,
+      title: 'Suivez votre progression',
+      description: 'D\u00e9bloquez des badges, consultez vos statistiques et d\u00e9couvrez un verset chaque jour.',
+    },
+    installSlide,
+  ];
+};
 
 const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
+  const slides = useMemo(() => {
+    const platform = detectPlatform();
+    const all = buildSlides(platform);
+    // Si l'app est déjà installée (standalone), on saute la slide d'installation
+    return isStandalone() ? all.slice(0, 3) : all;
+  }, []);
+
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState<'left' | 'right'>('left');
   const [isVisible, setIsVisible] = useState(true);

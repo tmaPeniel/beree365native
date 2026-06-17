@@ -44,24 +44,24 @@ export default defineConfig(({ mode, command }) => ({
         orientation: 'any',
         scope: '/',
         start_url: '/',
-        theme_color: '#a86d20',
+        theme_color: '#ffffff',
         background_color: '#ffffff',
         categories: ['education', 'lifestyle', 'books'],
         icons: [
           {
-            src: '/beree-192x192.png',
+            src: '/beree-logo.png',
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/beree-512x512.png',
+            src: '/beree-logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/beree-512x512.png',
+            src: '/beree-logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'
@@ -73,14 +73,14 @@ export default defineConfig(({ mode, command }) => ({
             short_name: "Aujourd'hui",
             description: "Accéder à la lecture du jour",
             url: "/reading",
-            icons: [{ src: "/beree-192x192.png", sizes: "192x192" }]
+            icons: [{ src: "/beree-logo.png", sizes: "192x192" }]
           },
           {
             name: "Tableau de bord",
             short_name: "Dashboard",
             description: "Voir mes statistiques de lecture",
             url: "/dashboard",
-            icons: [{ src: "/beree-192x192.png", sizes: "192x192" }]
+            icons: [{ src: "/beree-logo.png", sizes: "192x192" }]
           }
         ]
       }
