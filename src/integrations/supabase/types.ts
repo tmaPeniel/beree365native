@@ -131,6 +131,74 @@ export type Database = {
         }
         Relationships: []
       }
+      premium_code_redemptions: {
+        Row: {
+          code_id: string
+          id: string
+          redeemed_at: string
+          user_id: string
+        }
+        Insert: {
+          code_id: string
+          id?: string
+          redeemed_at?: string
+          user_id: string
+        }
+        Update: {
+          code_id?: string
+          id?: string
+          redeemed_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "premium_code_redemptions_code_id_fkey"
+            columns: ["code_id"]
+            isOneToOne: false
+            referencedRelation: "premium_signup_codes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      premium_signup_codes: {
+        Row: {
+          code: string
+          created_at: string
+          duration_months: number
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          notes: string | null
+          updated_at: string
+          used_count: number
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          duration_months?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          notes?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          duration_months?: number
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          notes?: string | null
+          updated_at?: string
+          used_count?: number
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -490,6 +558,7 @@ export type Database = {
         Args: { days_threshold?: number; p_user_id: string }
         Returns: boolean
       }
+      redeem_premium_signup_code: { Args: { _code: string }; Returns: Json }
       sync_current_day_numbers: { Args: never; Returns: undefined }
       update_user_activity: { Args: { p_user_id: string }; Returns: undefined }
     }

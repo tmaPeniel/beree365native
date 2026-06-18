@@ -15,22 +15,23 @@ import { toast } from "sonner";
  * @param {string} planId ID du plan de lecture sélectionné
  * @returns {Promise<{success: boolean, user?: any, error?: string}>}
  */
-export const signUp = async (email: string, password: string, fullName: string, startDate: string, planId: string) => {
+export const signUp = async (email: string, password: string, fullName: string, startDate: string, planId?: string) => {
   try {
     console.log("Démarrage de l'inscription avec:", { email, fullName, startDate });
-    
+
+    const metadata: Record<string, any> = {
+      full_name: fullName,
+      start_date: startDate,
+    };
+    if (planId) metadata.plan_id = planId;
+
     // Créer le compte utilisateur avec les métadonnées pour les triggers
     const { data: authData, error: signUpError } = await supabase.auth.signUp({
       email,
       password,
-      options: {
-        data: {
-          full_name: fullName,
-          start_date: startDate,
-          plan_id: planId
-        }
-      }
+      options: { data: metadata }
     });
+
 
     if (signUpError) throw signUpError;
     
