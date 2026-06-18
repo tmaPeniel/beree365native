@@ -1,37 +1,57 @@
-## Problem
+## Objectif
 
-`send-test-push` returns `{ sent: 0 }` even though your user has 2 valid push subscriptions in `push_subscriptions` (both created today, after the VAPID keys were set).
+Supprimer l'étape "choisir un plan" lors de l'inscription. À la place, ajouter un champ optionnel "Code secret" dans le formulaire d'inscription : s'il est valide, l'utilisateur reçoit automatiquement l'accès **premium 12 mois**. Sinon, il est créé en gratuit (plan canonique par défaut). Les codes sont gérés en base.
 
-Root cause: the shared helper `supabase/functions/_shared/webpush.ts` uses the `npm:web-push` library. That library relies on Node.js `crypto` APIs (Buffer, asymmetric key import via PEM, `createECDH`) that are not fully supported in Supabase Edge Runtime (Deno). It silently fails for every subscription, returning `ok: false, gone: false`, so the counter stays at 0. Boot/shutdown logs show no thrown error because we catch it and return a generic `error` string per subscription that's never logged.
+## 1. Base de données
 
-## Fix
+Nouvelle table `public.premium_signup_codes` :
+- `code` (texte, unique, normalisé en majuscule)
+- `duration_months` (entier, défaut 12)
+- `max_uses` (entier nullable, NULL = illimité)
+- `used_count` (entier, défaut 0)
+- `expires_at` (date d'expiration du code lui-même, nullable)
+- `is_active` (booléen, défaut true)
+- `notes` (texte libre pour l'admin)
 
-Replace the web-push wrapper with a **Deno-native Web Push implementation** built on the standard Web Crypto API. No external npm runtime crypto required, works reliably in Edge Functions.
+Table `redemptions` pour tracer qui a utilisé quel code : `premium_code_redemptions(user_id, code_id, redeemed_at)`.
 
-### What changes
+RLS : aucune lecture publique. Toute la logique passe par une fonction SECURITY DEFINER `redeem_premium_signup_code(_code text)` qui :
+- vérifie code actif, non expiré, capacité restante
+- accorde 12 mois de premium à `auth.uid()` (réutilise la logique d'`admin_grant_premium` mais sans le check admin)
+- incrémente `used_count`, insère une ligne dans `redemptions`
+- renvoie `{ success, error }`
 
-1. **Rewrite `supabase/functions/_shared/webpush.ts`** to implement VAPID + Web Push encryption from scratch using `crypto.subtle`:
-   - Parse the stored VAPID private key (base64url) into a P-256 `CryptoKey`.
-   - Generate the VAPID JWT (ES256) for the push service origin, signed with the private key.
-   - Implement RFC 8291 payload encryption (aes128gcm content-encoding): ECDH with the subscription's `p256dh`, HKDF-derive CEK + nonce using the `auth` secret, AES-GCM encrypt the payload, prepend the binary header (salt + rs + idlen + appServerPublicKey).
-   - POST to `sub.endpoint` with headers `Authorization: vapid t=<jwt>, k=<publicKey>`, `Content-Encoding: aes128gcm`, `Content-Type: application/octet-stream`, `TTL: 86400`, `Urgency: normal`.
-   - Return `{ ok, gone, status, error }`. `gone` true on 404/410 so callers prune stale rows (already wired).
+Les admins peuvent gérer la table via le dashboard Supabase (CRUD direct par `service_role`). Pas d'UI admin dans cette itération — à demander séparément si besoin.
 
-2. **Add brief logging in `send-test-push`** to surface per-subscription failures while debugging: log status + error returned by `sendPush`. Helps confirm the fix and catch any subscription-specific issues (e.g., a stale endpoint).
+## 2. Frontend — Inscription
 
-3. **No DB / no client / no secrets changes.** VAPID keys, `push_subscriptions` table, service worker, registration flow, and the `usePushNotifications` hook are all correct and stay as-is. The existing 2 subscriptions for your account will start receiving notifications immediately after redeploy.
+**`SignupStep1.tsx`** :
+- Ajouter un champ optionnel `premiumCode` (texte, max 50 car., trim, majuscule).
+- À la soumission : appeler directement `signUp(...)` (plus de stockage `localStorage`, plus de navigation vers `/signup/plan`).
+- Après création réussie du compte, si `premiumCode` est non vide : appeler `supabase.rpc('redeem_premium_signup_code', { _code })`. En cas d'échec, toast non bloquant ("Code invalide, compte créé en version gratuite") et continuer.
+- Rediriger vers `/dashboard`.
+- Renommer le sous-titre : retirer "Étape 1 sur 2".
 
-### Files touched
+**`SignupStep2.tsx`** et route `/signup/plan` : supprimés.
 
-- `supabase/functions/_shared/webpush.ts` — rewrite (still exports `sendPush(sub, payload)` with the same signature, so callers in `send-test-push`, `send-daily-verse`, `send-reading-reminders`, `send-badge-notification` keep working unchanged).
-- `supabase/functions/send-test-push/index.ts` — add `console.log` of failures + include `sent`, `failed`, `errors[]` in the response so the UI / debugging shows what went wrong if it ever does again.
+**`signUp` dans `authCore.ts`** : la signature `planId` devient inutile pour le flux d'inscription standard. Le trigger `handle_new_user` assigne déjà le plan par défaut (Plan Classique / canonique) quand aucun plan n'est fourni. On retire le paramètre `planId` (ou on le rend optionnel pour ne casser aucun appelant) et on n'envoie plus `plan_id` dans les métadonnées.
 
-### Verification
+## 3. Validation & sécurité
 
-After redeploy, click **Tester** in Profil → Notifications. Expected: browser shows the "Bérée 365 — Tes notifications sont bien activées" toast on the device, response shows `{ sent: 2 }` (or 1 if only this device is currently subscribed). The Edge Function logs will also confirm.
+- Schéma Zod du code : `z.string().trim().toUpperCase().max(50).optional()`.
+- La RPC `redeem_premium_signup_code` est la seule voie d'attribution du premium côté client ; elle vérifie tout côté serveur.
+- La table `premium_signup_codes` n'est pas lisible par `anon`/`authenticated` (pas de GRANT SELECT), pour éviter qu'un utilisateur puisse énumérer les codes.
 
-### Technical notes (for the curious)
+## Récapitulatif des fichiers
 
-- We are not adding any npm dependency. Pure Web Crypto + a tiny base64url helper.
-- VAPID JWT `aud` is the origin of the endpoint (`https://fcm.googleapis.com` for Chrome, `https://updates.push.services.mozilla.com` for Firefox, `https://*.notify.windows.com` for Edge).
-- `aes128gcm` is the modern content-encoding supported by all current push services; we don't need the older `aesgcm` fallback.
+- `supabase/migrations/...` (nouveau) — tables + RPC `redeem_premium_signup_code`
+- `src/pages/SignupStep1.tsx` — champ code + appel direct à `signUp` + RPC
+- `src/pages/SignupStep2.tsx` — supprimé
+- `src/App.tsx` — retirer la route `/signup/plan` et l'import
+- `src/services/auth/authCore.ts` — `signUp` sans `planId`
+- mémoire projet : noter la nouvelle règle (inscription + code premium)
+
+## Hors scope (à confirmer si tu veux les ajouter)
+
+- UI d'administration des codes dans `/admin` (création, désactivation, stats d'utilisation).
+- Internationalisation / messages d'erreur détaillés sur le code.
