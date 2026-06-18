@@ -16,7 +16,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import SignupStep1 from "./pages/SignupStep1";
-import SignupStep2 from "./pages/SignupStep2";
+
 import Dashboard from "./pages/Dashboard";
 import Profile from "./pages/Profile";
 import ProfileStatistics from "./pages/ProfileStatistics";
@@ -73,7 +73,7 @@ function App() {
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
                 <Route path="/signup/step1" element={<SignupStep1 />} />
-                <Route path="/signup/plan" element={<SignupStep2 />} />
+                
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/terms" element={<Terms />} />
