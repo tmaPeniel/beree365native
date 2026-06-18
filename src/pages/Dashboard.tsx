@@ -8,7 +8,6 @@ import ProgressStats from "@/components/ProgressStats";
 import ReadingPlan from "@/components/ReadingPlan";
 import VerseOfDay from "@/components/VerseOfDay";
 import TodayDisplay from "@/components/TodayDisplay";
-import NotificationCenter from "@/components/notifications/NotificationCenter";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { useDateService } from "@/hooks/useDateService";
@@ -51,7 +50,7 @@ const Dashboard = () => {
             </h1>
             <p className="text-sm md:text-base text-muted-foreground">SISAP Editions Powered</p>
           </div>
-          <NotificationCenter />
+          
         </div>
       </div>
 

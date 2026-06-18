@@ -1,13 +1,13 @@
 project_id = "xizlfyrjhzkzdchjezfn"
 
-[functions.send-push-notification]
-verify_jwt = true
+[functions.delete-user-account]
+verify_jwt = false
 
-[functions.send-daily-reminders]
+[functions.get-vapid-public-key]
 verify_jwt = false
 
 [functions.send-daily-verse]
 verify_jwt = false
 
-[functions.delete-user-account]
+[functions.send-reading-reminders]
 verify_jwt = false

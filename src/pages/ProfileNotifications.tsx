@@ -1,136 +1,203 @@
-/**
- * Page de gestion des notifications push natives (Web Push API)
- */
-
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Bell, BellOff, Send, RefreshCw } from 'lucide-react';
+import React from 'react';
+import { ArrowLeft, Bell, BellOff, Smartphone, Send } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/hooks/useAuth';
-import { useUnifiedPushNotifications } from '@/hooks/useUnifiedPushNotifications';
-import { pushService } from '@/services/pushService';
-import { toast } from '@/hooks/use-toast';
-import { NotificationPreferencesCard } from '@/components/notifications/NotificationPreferencesCard';
+import { toast } from 'sonner';
+import { usePushNotifications } from '@/hooks/usePushNotifications';
+import { useNotificationPreferences } from '@/hooks/useNotificationPreferences';
+import { isIOS, isStandalone } from '@/lib/push/push';
 
-export default function ProfileNotifications() {
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  const { 
-    isSubscribed, 
-    isLoading, 
-    isInitializing,
-    permission,
-    subscribe, 
-    unsubscribe,
-    reinitialize
-  } = useUnifiedPushNotifications();
+const ProfileNotifications = () => {
+  const { isSupported, permission, isSubscribed, isLoading, subscribe, unsubscribe, sendTest } =
+    usePushNotifications();
+  const { prefs, update } = useNotificationPreferences();
 
-  const [title, setTitle] = useState('📖 Rappel de lecture');
-  const [message, setMessage] = useState("N'oubliez pas votre lecture quotidienne !");
-  const [isSending, setIsSending] = useState(false);
+  const ios = typeof window !== 'undefined' && isIOS();
+  const standalone = typeof window !== 'undefined' && isStandalone();
+  const iosBlocked = ios && !standalone;
 
-  useEffect(() => {
-    if (!user) navigate('/login');
-  }, [user, navigate]);
-
-  const handleSendTest = async () => {
-    if (!user || !isSubscribed || !title.trim() || !message.trim()) {
-      toast({
-        title: 'Erreur',
-        description: 'Vérifiez que vous êtes connecté, abonné et que les champs sont remplis',
-        variant: 'destructive',
-      });
-      return;
-    }
-
-    setIsSending(true);
+  const handleEnable = async () => {
     try {
-      const success = await pushService.sendNotification({
-        title: title.trim(),
-        message: message.trim(),
-        userId: user.id,
-      });
-
-      toast({
-        title: success ? 'Notification envoyée' : 'Erreur',
-        description: success ? 'Notification envoyée avec succès' : "Échec de l'envoi",
-        variant: success ? 'default' : 'destructive',
-      });
-    } finally {
-      setIsSending(false);
+      const ok = await subscribe();
+      if (!ok) {
+        toast.error('Permission refusée ou navigateur incompatible');
+        return;
+      }
+      toast.success('Notifications activées');
+      try { await sendTest(); } catch (_) {}
+    } catch (e) {
+      toast.error((e as Error).message);
     }
   };
 
-  if (!user) return null;
+  const handleDisable = async () => {
+    try {
+      await unsubscribe();
+      toast.success('Notifications désactivées');
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
+
+  const handleTest = async () => {
+    try {
+      const r = await sendTest();
+      toast.success(`Notification envoyée (${r.sent})`);
+    } catch (e) {
+      toast.error((e as Error).message);
+    }
+  };
 
   return (
-    <div className="container max-w-4xl mx-auto py-6 px-4">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="outline" size="icon" onClick={() => navigate('/profile/settings')}>
-          <ArrowLeft className="h-4 w-4" />
-        </Button>
-        <div>
-          <h1 className="text-2xl font-bold">Notifications Push</h1>
-          <p className="text-sm text-muted-foreground">Gérez vos notifications</p>
+    <div className="min-h-screen bg-background">
+      <div className="bg-card border-b sticky top-0 z-10">
+        <div className="px-6 py-4 flex items-center gap-4">
+          <Link to="/profile/settings">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <h1 className="text-xl font-bold">Notifications</h1>
         </div>
       </div>
 
-      <div className="flex gap-2 mb-6">
-        <Badge variant={permission === 'granted' ? 'default' : 'destructive'}>
-          <Bell className="h-3 w-3 mr-1" />
-          {permission === 'granted' ? 'Autorisées' : 'Refusées'}
-        </Badge>
+      <div className="px-6 py-6 space-y-6 max-w-2xl mx-auto">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Bell className="h-5 w-5" /> Notifications push
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {!isSupported && (
+              <p className="text-sm text-muted-foreground">
+                Ton navigateur ne supporte pas les notifications push.
+              </p>
+            )}
+
+            {isSupported && iosBlocked && (
+              <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-3 text-sm flex gap-2">
+                <Smartphone className="h-4 w-4 mt-0.5 shrink-0 text-amber-600" />
+                <div>
+                  <div className="font-medium">Sur iPhone, installe d'abord Bérée 365</div>
+                  <p className="text-muted-foreground mt-1">
+                    Partager → « Sur l'écran d'accueil ». Reviens ensuite ici pour activer les notifications.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {isSupported && permission === 'denied' && (
+              <p className="text-sm text-muted-foreground">
+                Les notifications sont bloquées. Réactive-les dans les réglages de ton navigateur.
+              </p>
+            )}
+
+            {isSupported && !iosBlocked && permission !== 'denied' && (
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="font-medium">Activer les notifications</div>
+                  <p className="text-xs text-muted-foreground">
+                    Reçois tes rappels même quand l'app est fermée.
+                  </p>
+                </div>
+                {isSubscribed ? (
+                  <Button variant="outline" onClick={handleDisable} disabled={isLoading}>
+                    <BellOff className="h-4 w-4 mr-2" /> Désactiver
+                  </Button>
+                ) : (
+                  <Button onClick={handleEnable} disabled={isLoading}>
+                    <Bell className="h-4 w-4 mr-2" /> Activer
+                  </Button>
+                )}
+              </div>
+            )}
+
+            {isSubscribed && (
+              <Button variant="ghost" size="sm" onClick={handleTest}>
+                <Send className="h-4 w-4 mr-2" /> Envoyer une notification de test
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+
+        {prefs && (
+          <Card>
+            <CardHeader>
+              <CardTitle>Préférences</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <PrefRow
+                label="Sagesse du jour"
+                desc="Verset envoyé tous les matins"
+                checked={prefs.daily_verse_enabled}
+                onChange={(v) => update({ daily_verse_enabled: v })}
+                extra={
+                  <Input
+                    type="time"
+                    className="w-28"
+                    value={prefs.daily_verse_time?.slice(0, 5) ?? '08:00'}
+                    onChange={(e) => update({ daily_verse_time: e.target.value })}
+                  />
+                }
+              />
+              <PrefRow
+                label="Rappel de lecture"
+                desc="Rappel pour ta lecture du jour"
+                checked={prefs.reading_reminder_enabled}
+                onChange={(v) => update({ reading_reminder_enabled: v })}
+                extra={
+                  <Input
+                    type="time"
+                    className="w-28"
+                    value={prefs.reading_reminder_time?.slice(0, 5) ?? '20:00'}
+                    onChange={(e) => update({ reading_reminder_time: e.target.value })}
+                  />
+                }
+              />
+              <PrefRow
+                label="Badges débloqués"
+                desc="Notification lorsqu'un nouveau badge est obtenu"
+                checked={prefs.badges_enabled}
+                onChange={(v) => update({ badges_enabled: v })}
+              />
+            </CardContent>
+          </Card>
+        )}
       </div>
+    </div>
+  );
+};
 
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            {isSubscribed ? <Bell className="h-5 w-5 text-primary" /> : <BellOff className="h-5 w-5" />}
-            État des notifications
-          </CardTitle>
-          <CardDescription>
-            {isSubscribed ? 'Vous recevez les notifications' : 'Notifications désactivées'}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex gap-2">
-            <Button onClick={() => isSubscribed ? unsubscribe() : subscribe()} disabled={isLoading} className="flex-1" variant={isSubscribed ? 'destructive' : 'default'}>
-              {isLoading ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : isSubscribed ? <BellOff className="h-4 w-4 mr-2" /> : <Bell className="h-4 w-4 mr-2" />}
-              {isSubscribed ? 'Désactiver' : 'Activer'}
-            </Button>
-            <Button onClick={reinitialize} disabled={isLoading} variant="outline">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Test de notification</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <Label htmlFor="title">Titre</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} disabled={!isSubscribed} />
-          </div>
-          <div>
-            <Label htmlFor="message">Message</Label>
-            <Textarea id="message" value={message} onChange={(e) => setMessage(e.target.value)} disabled={!isSubscribed} rows={3} />
-          </div>
-          <Button onClick={handleSendTest} disabled={!isSubscribed || isSending} className="w-full">
-            {isSending ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <Send className="h-4 w-4 mr-2" />}
-            Envoyer un test
-          </Button>
-        </CardContent>
-      </Card>
-
-      <NotificationPreferencesCard />
+function PrefRow({
+  label,
+  desc,
+  checked,
+  onChange,
+  extra,
+}: {
+  label: string;
+  desc: string;
+  checked: boolean;
+  onChange: (v: boolean) => void;
+  extra?: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="min-w-0">
+        <div className="font-medium text-sm">{label}</div>
+        <div className="text-xs text-muted-foreground">{desc}</div>
+      </div>
+      <div className="flex items-center gap-3">
+        {extra}
+        <Switch checked={checked} onCheckedChange={onChange} />
+      </div>
     </div>
   );
 }
+
+export default ProfileNotifications;

@@ -23,6 +23,7 @@ import ProfileStatistics from "./pages/ProfileStatistics";
 import ProfileBadges from "./pages/ProfileBadges";
 import ProfileSettings from "./pages/ProfileSettings";
 import ProfileNotifications from "./pages/ProfileNotifications";
+
 import ProfileAbout from "./pages/ProfileAbout";
 import ProfileEdit from "./pages/ProfileEdit";
 import ProfileHelp from "./pages/ProfileHelp";
@@ -34,6 +35,8 @@ import ReadingPlanManagement from "./pages/ReadingPlanManagement";
 import VerseList from "./pages/VerseList";
 import Reading from "./pages/Reading";
 import Admin from "./pages/Admin";
+import Premium from "./pages/Premium";
+import ProfileSubscription from "./pages/ProfileSubscription";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/admin/AdminRoute";
 import NotFound from "./pages/NotFound";
@@ -146,16 +149,6 @@ function App() {
                   } 
                 />
                 <Route 
-                  path="/profile/notifications" 
-                  element={
-                    <ProtectedRoute>
-                      <AppLayout>
-                        <ProfileNotifications />
-                      </AppLayout>
-                    </ProtectedRoute>
-                  } 
-                />
-                <Route 
                   path="/profile/edit" 
                   element={
                     <ProtectedRoute>
@@ -195,6 +188,16 @@ function App() {
                     </ProtectedRoute>
                   } 
                 />
+                <Route
+                  path="/profile/notifications"
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProfileNotifications />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  }
+                />
                 <Route 
                   path="/reading" 
                   element={
@@ -214,6 +217,26 @@ function App() {
                           <Admin />
                         </AppLayout>
                       </AdminRoute>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/premium" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <Premium />
+                      </AppLayout>
+                    </ProtectedRoute>
+                  } 
+                />
+                <Route 
+                  path="/profile/subscription" 
+                  element={
+                    <ProtectedRoute>
+                      <AppLayout>
+                        <ProfileSubscription />
+                      </AppLayout>
                     </ProtectedRoute>
                   } 
                 />
