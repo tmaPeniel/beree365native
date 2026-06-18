@@ -244,7 +244,7 @@ const Admin = () => {
                   <CardContent>
                     <UserStatsTable 
                       users={allUsers
-                        .filter(user => user.completed_chapters_count > 0)
+                        .filter(user => user.is_active && user.completed_chapters_count > 0)
                         .sort((a, b) => b.completed_chapters_count - a.completed_chapters_count)
                         .slice(0, 5)
                       } 
