@@ -1,6 +1,6 @@
 /**
- * Première étape de l'inscription
- * Collecte les informations de base de l'utilisateur
+ * Inscription (étape unique)
+ * Collecte les informations de base + code premium optionnel
  */
 
 import React, { useState } from 'react';
@@ -12,53 +12,96 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { AlertCircle, Eye, EyeOff, ArrowRight } from 'lucide-react';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { AlertCircle, Eye, EyeOff, CheckCircle, KeyRound } from 'lucide-react';
 import { cn } from "@/lib/utils";
+import { signUp } from '@/services/authService';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
-// Schéma pour la première étape
-const step1Schema = z.object({
+const signupSchema = z.object({
   email: z.string().email({ message: "Adresse email invalide" }),
   password: z.string().min(6, { message: "Le mot de passe doit contenir au moins 6 caractères" }),
   name: z.string().min(2, { message: "Le nom doit contenir au moins 2 caractères" }),
   startDate: z.date({ required_error: "La date de début est requise" }),
+  premiumCode: z.string().trim().max(50, { message: "Code trop long" }).optional().or(z.literal('')),
   acceptTerms: z.boolean().refine(val => val === true, {
     message: "Vous devez accepter les CGU pour vous inscrire"
   })
 });
 
-type Step1FormValues = z.infer<typeof step1Schema>;
+type SignupFormValues = z.infer<typeof signupSchema>;
 
 const SignupStep1 = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  
-  const form = useForm<Step1FormValues>({
-    resolver: zodResolver(step1Schema),
+  const [isLoading, setIsLoading] = useState(false);
+
+  const form = useForm<SignupFormValues>({
+    resolver: zodResolver(signupSchema),
     defaultValues: {
       email: "",
       password: "",
       name: "",
       startDate: new Date(),
+      premiumCode: "",
       acceptTerms: false
     },
   });
-  
-  const handleSubmit = (values: Step1FormValues) => {
-    // Stocker les données temporairement dans localStorage
-    localStorage.setItem('signupData', JSON.stringify(values));
-    // Naviguer vers la sélection du plan
-    navigate('/signup/plan');
+
+  const handleSubmit = async (values: SignupFormValues) => {
+    setIsLoading(true);
+    try {
+      const startDateStr = values.startDate instanceof Date
+        ? values.startDate.toISOString().split('T')[0]
+        : new Date(values.startDate).toISOString().split('T')[0];
+
+      const result = await signUp(values.email, values.password, values.name, startDateStr);
+
+      if (!result.success) {
+        return;
+      }
+
+      const code = (values.premiumCode ?? '').trim();
+      if (code.length > 0) {
+        const { data, error } = await supabase.rpc('redeem_premium_signup_code', { _code: code });
+        if (error) {
+          console.warn('Redeem error:', error);
+          toast.error("Code premium invalide. Compte créé en version gratuite.");
+        } else {
+          const res = data as { success: boolean; error?: string; duration_months?: number } | null;
+          if (res?.success) {
+            toast.success(`Code accepté ! Premium activé pour ${res.duration_months ?? 12} mois 🎉`);
+          } else {
+            const map: Record<string, string> = {
+              invalid_code: "Code invalide.",
+              inactive_code: "Ce code n'est plus actif.",
+              expired_code: "Ce code a expiré.",
+              code_exhausted: "Ce code a atteint sa limite d'utilisation.",
+              already_redeemed: "Ce code a déjà été utilisé.",
+              empty_code: "Code vide.",
+            };
+            toast.error(map[res?.error ?? ''] ?? "Code premium invalide. Compte créé en version gratuite.");
+          }
+        }
+      }
+
+      navigate('/dashboard');
+    } catch (e) {
+      console.error('Signup error', e);
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in">
+    <div className="min-h-screen flex items-center justify-center bg-background animate-fade-in p-4">
       <Card className="w-[350px] md:w-[450px] shadow-lg border-t-4 border-t-primary">
         <CardHeader className="text-center">
           <h1 className="font-bold text-xl md:text-2xl">Inscription</h1>
-          <p className="text-sm text-muted-foreground">Étape 1 sur 2 - Informations personnelles</p>
+          <p className="text-sm text-muted-foreground">Créez votre compte</p>
         </CardHeader>
-        
+
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-4">
@@ -72,17 +115,17 @@ const SignupStep1 = () => {
                       {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        placeholder="Nom complet" 
+                      <Input
+                        placeholder="Nom complet"
                         className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
-                        {...field} 
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="email"
@@ -93,18 +136,18 @@ const SignupStep1 = () => {
                       {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        type="email" 
-                        placeholder="votre@email.com" 
+                      <Input
+                        type="email"
+                        placeholder="votre@email.com"
                         className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
-                        {...field} 
+                        {...field}
                       />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="password"
@@ -116,11 +159,11 @@ const SignupStep1 = () => {
                     </FormLabel>
                     <FormControl>
                       <div className="relative">
-                        <Input 
-                          type={showPassword ? "text" : "password"} 
-                          placeholder="••••••••" 
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="••••••••"
                           className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive", "pr-10")}
-                          {...field} 
+                          {...field}
                         />
                         <Button
                           type="button"
@@ -141,7 +184,7 @@ const SignupStep1 = () => {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="startDate"
@@ -152,8 +195,8 @@ const SignupStep1 = () => {
                       {fieldState.error && <AlertCircle className="inline w-4 h-4 ml-1" />}
                     </FormLabel>
                     <FormControl>
-                      <Input 
-                        type="date" 
+                      <Input
+                        type="date"
                         className={cn(fieldState.error && "border-destructive focus-visible:ring-destructive")}
                         onChange={(e) => {
                           const date = e.target.value ? new Date(e.target.value) : new Date();
@@ -166,7 +209,30 @@ const SignupStep1 = () => {
                   </FormItem>
                 )}
               />
-              
+
+              <FormField
+                control={form.control}
+                name="premiumCode"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="flex items-center gap-1">
+                      <KeyRound className="w-4 h-4" /> Code secret <span className="text-muted-foreground font-normal">(optionnel)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="Code premium"
+                        autoCapitalize="characters"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormDescription className="text-xs">
+                      Si vous avez reçu un code, saisissez-le pour activer la version premium.
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="acceptTerms"
@@ -195,18 +261,28 @@ const SignupStep1 = () => {
                   </FormItem>
                 )}
               />
-              
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
-                Suivant <ArrowRight className="ml-2 h-4 w-4" />
+
+              <Button type="submit" disabled={isLoading} className="w-full bg-primary hover:bg-primary/90">
+                {isLoading ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2" />
+                    Inscription...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="mr-2 h-4 w-4" />
+                    S'inscrire
+                  </>
+                )}
               </Button>
             </form>
           </Form>
         </CardContent>
-        
+
         <CardFooter className="flex justify-center">
-          <Button 
-            variant="link" 
-            onClick={() => navigate('/login')} 
+          <Button
+            variant="link"
+            onClick={() => navigate('/login')}
             className="text-primary hover:text-primary/80 w-full"
           >
             Déjà un compte? Se connecter
