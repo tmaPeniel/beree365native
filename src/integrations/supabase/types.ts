@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      audio_readings: {
+        Row: {
+          created_at: string | null
+          day_number: number
+          duration_seconds: number | null
+          id: string
+          plan_id: string
+          source_type: string
+          source_url: string | null
+          updated_at: string | null
+          youtube_url: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          day_number: number
+          duration_seconds?: number | null
+          id?: string
+          plan_id: string
+          source_type?: string
+          source_url?: string | null
+          updated_at?: string | null
+          youtube_url?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          day_number?: number
+          duration_seconds?: number | null
+          id?: string
+          plan_id?: string
+          source_type?: string
+          source_url?: string | null
+          updated_at?: string | null
+          youtube_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_readings_plan_id_fkey"
+            columns: ["plan_id"]
+            isOneToOne: false
+            referencedRelation: "reading_plans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       badges: {
         Row: {
           color: string

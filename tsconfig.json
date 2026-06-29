@@ -1,24 +1,31 @@
 {
+  "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "allowJs": true,
+    "baseUrl": ".",
+    "module": "ESNext",
     "noImplicitAny": false,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
     "paths": {
       "@/*": [
-        "./src/*"
+        "src/*"
       ]
     },
     "skipLibCheck": true,
+    "strict": false,
     "strictNullChecks": false
   },
-  "files": [],
-  "references": [
-    {
-      "path": "./tsconfig.app.json"
-    },
-    {
-      "path": "./tsconfig.node.json"
-    }
+  "include": [
+    "app",
+    "src",
+    "*.ts",
+    "*.js",
+    ".expo/types/**/*.ts",
+    "expo-env.d.ts"
+  ],
+  "exclude": [
+    "dist",
+    "node_modules"
   ]
 }

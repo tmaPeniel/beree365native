@@ -1,0 +1,42 @@
+{
+  "expo": {
+    "name": "Beree 365",
+    "slug": "beree-365",
+    "scheme": "beree365",
+    "version": "1.0.0",
+    "platforms": [
+      "ios",
+      "android"
+    ],
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "icon": "./src/assets/beree-icon.png",
+    "splash": {
+      "image": "./src/assets/beree-logo.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#F8FAF7"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.sisap.beree365"
+    },
+    "android": {
+      "package": "com.sisap.beree365",
+      "adaptiveIcon": {
+        "foregroundImage": "./src/assets/beree-icon.png",
+        "backgroundColor": "#F8FAF7"
+      }
+    },
+    "plugins": [
+      "expo-router",
+      "expo-notifications",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
