@@ -751,7 +751,7 @@ function DayCard({
       >
       <View style={styles.dayCardHeader}>
         <View style={styles.dayCardTitleBlock}>
-          <Text maxFontSizeMultiplier={1.3} style={styles.dayCardTitle}>
+          <Text allowFontScaling={false} numberOfLines={1} style={styles.dayCardTitle}>
             Jour {day.day_number}
           </Text>
         </View>
@@ -764,6 +764,8 @@ function DayCard({
           ]}
         >
           <Text
+            allowFontScaling={false}
+            numberOfLines={1}
             style={[
               styles.dayStateBadgeText,
               isCompleted && styles.dayStateBadgeTextDone,
@@ -1407,12 +1409,15 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
   },
   dayCardHeader: {
-    alignItems: "flex-start",
+    alignItems: "center",
+    flexDirection: "row",
     gap: 7,
+    justifyContent: "space-between",
     width: "100%",
   },
   dayCardTitleBlock: {
-    width: "100%",
+    flex: 1,
+    minWidth: 0,
   },
   dayCardTitle: {
     color: COLORS.ink,
@@ -1420,18 +1425,18 @@ const styles = StyleSheet.create({
     fontVariant: ["tabular-nums"],
     fontWeight: "900",
     lineHeight: 19,
-    width: "100%",
   },
   dayStateBadge: {
     alignItems: "center",
-    alignSelf: "stretch",
+    alignSelf: "center",
     backgroundColor: "#f4eee8",
-    borderRadius: 8,
+    borderRadius: 999,
+    flexShrink: 0,
     justifyContent: "center",
-    minHeight: 30,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    width: "100%",
+    maxWidth: "55%",
+    minHeight: 28,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
   },
   dayStateBadgeInProgress: {
     backgroundColor: "#f3dfbc",
@@ -1446,9 +1451,8 @@ const styles = StyleSheet.create({
     color: COLORS.muted,
     fontSize: 11,
     fontWeight: "800",
-    lineHeight: 16,
+    lineHeight: 15,
     textAlign: "center",
-    width: "100%",
   },
   dayStateBadgeTextDone: {
     color: "#fff",
