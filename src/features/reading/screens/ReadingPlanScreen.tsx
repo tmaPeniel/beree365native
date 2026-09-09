@@ -764,14 +764,13 @@ function DayCard({
           ]}
         >
           <Text
-            maxFontSizeMultiplier={1.15}
             style={[
               styles.dayStateBadgeText,
               isCompleted && styles.dayStateBadgeTextDone,
               isToday && styles.dayStateBadgeTextToday,
             ]}
           >
-            {isToday ? "Aujourd'hui" : getDayStateLabel(readingState)}
+            {isToday ? "Aujourd’hui" : getDayStateLabel(readingState)}
           </Text>
         </View>
       </View>
@@ -1410,6 +1409,7 @@ const styles = StyleSheet.create({
   dayCardHeader: {
     alignItems: "flex-start",
     gap: 7,
+    width: "100%",
   },
   dayCardTitleBlock: {
     width: "100%",
@@ -1423,12 +1423,15 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   dayStateBadge: {
-    alignSelf: "flex-start",
+    alignItems: "center",
+    alignSelf: "stretch",
     backgroundColor: "#f4eee8",
-    borderRadius: 999,
-    maxWidth: "100%",
-    paddingHorizontal: 7,
-    paddingVertical: 4,
+    borderRadius: 8,
+    justifyContent: "center",
+    minHeight: 30,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    width: "100%",
   },
   dayStateBadgeInProgress: {
     backgroundColor: "#f3dfbc",
@@ -1441,10 +1444,11 @@ const styles = StyleSheet.create({
   },
   dayStateBadgeText: {
     color: COLORS.muted,
-    flexShrink: 1,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "800",
+    lineHeight: 16,
     textAlign: "center",
+    width: "100%",
   },
   dayStateBadgeTextDone: {
     color: "#fff",
