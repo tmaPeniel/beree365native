@@ -1,4 +1,4 @@
-import { fetch as expoFetch } from "expo/fetch";
+import { File } from "expo-file-system";
 import { supabase } from "@/integrations/supabase/client";
 
 const AVATAR_BUCKET = "avatars";
@@ -30,18 +30,18 @@ export async function uploadProfileAvatar({
   try {
     const contentType = mimeType || "image/jpeg";
     const extension = extensionForMimeType(contentType);
-    const response = await expoFetch(uri);
+    const imageFile = new File(uri);
 
-    if (!response.ok) {
+    if (!imageFile.exists) {
       throw new Error("La photo sélectionnée n'a pas pu être lue.");
     }
+    if (imageFile.size && imageFile.size > MAX_AVATAR_BYTES) {
+      throw new Error("La photo dépasse la taille maximale de 8 Mo.");
+    }
 
-    const imageData = await response.arrayBuffer();
+    const imageData = await imageFile.arrayBuffer();
     if (!imageData.byteLength) {
       throw new Error("La photo sélectionnée est vide.");
-    }
-    if (imageData.byteLength > MAX_AVATAR_BYTES) {
-      throw new Error("La photo dépasse la taille maximale de 8 Mo.");
     }
 
     const objectPath = `${userId}/avatar.${extension}`;
