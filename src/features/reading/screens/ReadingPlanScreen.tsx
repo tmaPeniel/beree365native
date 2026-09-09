@@ -621,8 +621,16 @@ function GridView({
               pressed && canGoPrevious && styles.monthButtonPressed,
             ]}
           >
-            <ChevronLeft size={16} color={COLORS.ink} />
-            <Text maxFontSizeMultiplier={1.15} style={styles.monthButtonText}>
+            <View pointerEvents="none" style={styles.monthButtonIconLeft}>
+              <ChevronLeft size={16} color={COLORS.ink} />
+            </View>
+            <Text
+              adjustsFontSizeToFit
+              allowFontScaling={false}
+              minimumFontScale={0.85}
+              numberOfLines={1}
+              style={styles.monthButtonText}
+            >
               Précédent
             </Text>
           </Pressable>
@@ -635,10 +643,18 @@ function GridView({
               pressed && canGoNext && styles.monthButtonPressed,
             ]}
           >
-            <Text maxFontSizeMultiplier={1.15} style={styles.monthButtonText}>
+            <Text
+              adjustsFontSizeToFit
+              allowFontScaling={false}
+              minimumFontScale={0.85}
+              numberOfLines={1}
+              style={styles.monthButtonText}
+            >
               Suivant
             </Text>
-            <ChevronRight size={16} color={COLORS.ink} />
+            <View pointerEvents="none" style={styles.monthButtonIconRight}>
+              <ChevronRight size={16} color={COLORS.ink} />
+            </View>
           </Pressable>
         </View>
       </MotionView>
@@ -816,9 +832,14 @@ function DayCard({
             pressed && !isCompleted && styles.completeButtonPressed,
           ]}
         >
-          <Check size={14} color={isCompleted ? "#fff" : COLORS.ink} />
+          <View pointerEvents="none" style={styles.completeButtonIcon}>
+            <Check size={13} color={isCompleted ? "#fff" : COLORS.ink} />
+          </View>
           <Text
-            maxFontSizeMultiplier={1.15}
+            adjustsFontSizeToFit
+            allowFontScaling={false}
+            minimumFontScale={0.82}
+            numberOfLines={1}
             style={[styles.completeButtonText, isCompleted && styles.completeButtonTextDone]}
           >
             {isCompleted ? "Terminé" : "Tout cocher"}
@@ -1321,11 +1342,11 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     borderWidth: 1,
     flex: 1,
-    flexDirection: "row",
-    gap: 6,
     justifyContent: "center",
     minHeight: 42,
-    paddingHorizontal: 10,
+    minWidth: 0,
+    paddingHorizontal: 4,
+    position: "relative",
   },
   monthButtonDisabled: {
     opacity: 0.35,
@@ -1333,12 +1354,21 @@ const styles = StyleSheet.create({
   monthButtonPressed: {
     backgroundColor: COLORS.chip,
   },
+  monthButtonIconLeft: {
+    left: 8,
+    position: "absolute",
+  },
+  monthButtonIconRight: {
+    position: "absolute",
+    right: 8,
+  },
   monthButtonText: {
     color: COLORS.ink,
-    flexShrink: 1,
     fontSize: 12,
     fontWeight: "700",
+    paddingHorizontal: 23,
     textAlign: "center",
+    width: "100%",
   },
   monthTitle: {
     color: COLORS.ink,
@@ -1508,11 +1538,11 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 999,
     borderWidth: 1,
-    flexDirection: "row",
-    gap: 6,
     justifyContent: "center",
-    paddingHorizontal: 10,
+    minHeight: 34,
+    paddingHorizontal: 4,
     paddingVertical: 8,
+    position: "relative",
     width: "100%",
   },
   completeButtonDone: {
@@ -1522,12 +1552,17 @@ const styles = StyleSheet.create({
   completeButtonPressed: {
     backgroundColor: COLORS.chip,
   },
+  completeButtonIcon: {
+    left: 8,
+    position: "absolute",
+  },
   completeButtonText: {
     color: COLORS.ink,
-    flexShrink: 1,
     fontSize: 11,
     fontWeight: "800",
+    paddingHorizontal: 20,
     textAlign: "center",
+    width: "100%",
   },
   completeButtonTextDone: {
     color: "#fff",
