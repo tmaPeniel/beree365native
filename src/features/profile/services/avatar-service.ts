@@ -1,8 +1,9 @@
-import { fetch as expoFetch } from "expo/fetch";
+import { File } from "expo-file-system";
 import { supabase } from "@/integrations/supabase/client";
 
 const AVATAR_BUCKET = "avatars";
 const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
+const AVATAR_EXTENSIONS = ["jpg", "png", "webp", "heic", "heif"] as const;
 
 type UploadAvatarInput = {
   mimeType?: string | null;
@@ -12,6 +13,10 @@ type UploadAvatarInput = {
 
 type UploadAvatarResult =
   | { success: true; avatarUrl: string }
+  | { success: false; error: string };
+
+type RemoveAvatarResult =
+  | { success: true }
   | { success: false; error: string };
 
 function extensionForMimeType(mimeType?: string | null) {
@@ -30,18 +35,18 @@ export async function uploadProfileAvatar({
   try {
     const contentType = mimeType || "image/jpeg";
     const extension = extensionForMimeType(contentType);
-    const response = await expoFetch(uri);
+    const imageFile = new File(uri);
 
-    if (!response.ok) {
+    if (!imageFile.exists) {
       throw new Error("La photo sélectionnée n'a pas pu être lue.");
     }
+    if (imageFile.size && imageFile.size > MAX_AVATAR_BYTES) {
+      throw new Error("La photo dépasse la taille maximale de 8 Mo.");
+    }
 
-    const imageData = await response.arrayBuffer();
+    const imageData = await imageFile.arrayBuffer();
     if (!imageData.byteLength) {
       throw new Error("La photo sélectionnée est vide.");
-    }
-    if (imageData.byteLength > MAX_AVATAR_BYTES) {
-      throw new Error("La photo dépasse la taille maximale de 8 Mo.");
     }
 
     const objectPath = `${userId}/avatar.${extension}`;
@@ -69,6 +74,31 @@ export async function uploadProfileAvatar({
     return {
       success: false,
       error: error?.message || "Impossible de mettre à jour la photo de profil.",
+    };
+  }
+}
+
+export async function removeProfileAvatar(userId: string): Promise<RemoveAvatarResult> {
+  try {
+    const objectPaths = AVATAR_EXTENSIONS.map((extension) => `${userId}/avatar.${extension}`);
+    const { error: removeError } = await supabase.storage
+      .from(AVATAR_BUCKET)
+      .remove(objectPaths);
+
+    if (removeError) throw removeError;
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", userId);
+
+    if (profileError) throw profileError;
+
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || "Impossible de retirer la photo de profil.",
     };
   }
 }

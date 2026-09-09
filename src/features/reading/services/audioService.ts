@@ -7,6 +7,7 @@ export interface AudioSource {
   id: string;
   planId: string;
   dayNumber: number;
+  passageReferences?: string[];
   sourceType: AudioSourceType;
   sourceUrl: string;
   durationSeconds?: number;

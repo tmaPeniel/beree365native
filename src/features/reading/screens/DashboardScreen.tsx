@@ -768,7 +768,7 @@ const dashboardStyles = StyleSheet.create({
   },
   headerWelcomeText: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 22,
     lineHeight: 28,
   },
@@ -806,7 +806,7 @@ const dashboardStyles = StyleSheet.create({
   },
   notificationDotText: {
     color: "#FFFFFF",
-    fontFamily: fonts.bold,
+    fontFamily: fonts.medium,
     fontSize: 9,
     lineHeight: 12,
   },
@@ -822,7 +822,7 @@ const dashboardStyles = StyleSheet.create({
   },
   profileBadgeText: {
     color: "#FFFFFF",
-    fontFamily: fonts.bold,
+    fontFamily: fonts.medium,
     fontSize: 12,
     letterSpacing: 0,
   },
@@ -839,14 +839,14 @@ const dashboardStyles = StyleSheet.create({
   },
   dayText: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 22,
     lineHeight: 29,
     textAlign: "center",
   },
   dayNumber: {
     color: colors.primary,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
   },
   dateText: {
     color: colors.muted,
@@ -869,13 +869,13 @@ const dashboardStyles = StyleSheet.create({
   },
   wisdomEyebrow: {
     color: "#FFFFFF",
-    fontFamily: fonts.bold,
+    fontFamily: fonts.medium,
     fontSize: 13,
     lineHeight: 19,
   },
   referenceText: {
     color: "#FFFFFF",
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 16,
     lineHeight: 24,
     marginTop: 1,
@@ -904,7 +904,7 @@ const dashboardStyles = StyleSheet.create({
   },
   quoteText: {
     color: "#FFFFFF",
-    fontFamily: fonts.boldItalic,
+    fontFamily: fonts.regularItalic,
     fontSize: 16,
     lineHeight: 27,
     textAlign: "center",
@@ -1052,7 +1052,7 @@ const dashboardStyles = StyleSheet.create({
   },
   metricValue: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.medium,
     fontSize: 13,
   },
   progressCircleWrap: {
@@ -1165,7 +1165,7 @@ const dashboardStyles = StyleSheet.create({
   },
   notificationSheetTitle: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 22,
     lineHeight: 28,
   },
@@ -1246,7 +1246,7 @@ const dashboardStyles = StyleSheet.create({
   notificationRowTitle: {
     color: colors.text,
     flex: 1,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.medium,
     fontSize: 14,
     lineHeight: 20,
   },
@@ -1287,7 +1287,7 @@ const dashboardStyles = StyleSheet.create({
   },
   notificationEmptyTitle: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 16,
     lineHeight: 22,
     marginTop: 4,

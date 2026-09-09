@@ -440,7 +440,7 @@ const screenStyles = StyleSheet.create({
   },
   emptyTitle: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 19,
   },
   header: {
@@ -499,7 +499,7 @@ const screenStyles = StyleSheet.create({
   },
   planName: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 20,
     lineHeight: 25,
   },
@@ -547,7 +547,7 @@ const screenStyles = StyleSheet.create({
   },
   summaryTitle: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 16,
   },
 });

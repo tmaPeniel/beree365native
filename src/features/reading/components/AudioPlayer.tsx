@@ -10,6 +10,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -21,6 +22,7 @@ import {
   extractYouTubeVideoId,
   type AudioSource,
 } from "@/features/reading/services/audioService";
+import { fonts } from "@/shared/theme/styles";
 import Svg, { Circle } from "react-native-svg";
 
 const COLORS = {
@@ -301,17 +303,64 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
   const currentTimeRef = useRef(0);
   const lastCommandIdRef = useRef<number | null>(null);
   const playerRef = useRef<YoutubeIframeRef | null>(null);
+  const titleScrollRef = useRef<ScrollView | null>(null);
+  const titleScrollPosition = useRef(new Animated.Value(0)).current;
   const pauseTokenRef = useRef(0);
   const playRequestedRef = useRef(false);
   const playerReadyRef = useRef(false);
   const startTokenRef = useRef(0);
   const videoId = useMemo(() => extractYouTubeVideoId(source.sourceUrl), [source.sourceUrl]);
+  const passageTitle = useMemo(
+    () => source.passageReferences?.length
+      ? source.passageReferences.join(", ")
+      : "Lecture audio du jour",
+    [source.passageReferences],
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(source.durationSeconds || 0);
   const [hasPlayerError, setHasPlayerError] = useState(false);
   const [playerKey, setPlayerKey] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
+  const [titleContentWidth, setTitleContentWidth] = useState(0);
+  const [titleViewportWidth, setTitleViewportWidth] = useState(0);
+
+  useEffect(() => {
+    const listenerId = titleScrollPosition.addListener(({ value }) => {
+      titleScrollRef.current?.scrollTo({ animated: false, x: value, y: 0 });
+    });
+
+    return () => titleScrollPosition.removeListener(listenerId);
+  }, [titleScrollPosition]);
+
+  useEffect(() => {
+    titleScrollPosition.stopAnimation();
+    titleScrollPosition.setValue(0);
+
+    const overflowWidth = Math.max(0, titleContentWidth - titleViewportWidth);
+    if (overflowWidth <= 1) return undefined;
+
+    const marquee = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1200),
+        Animated.timing(titleScrollPosition, {
+          duration: Math.max(2800, overflowWidth * 35),
+          easing: Easing.linear,
+          toValue: overflowWidth,
+          useNativeDriver: false,
+        }),
+        Animated.delay(900),
+        Animated.timing(titleScrollPosition, {
+          duration: 0,
+          toValue: 0,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+
+    marquee.start();
+    return () => marquee.stop();
+  }, [passageTitle, titleContentWidth, titleScrollPosition, titleViewportWidth]);
 
   useEffect(() => {
     pauseTokenRef.current += 1;
@@ -502,6 +551,10 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
   }
 
   const progress = duration > 0 ? clamp(currentTime / duration, 0, 1) : 0;
+  const displayedDayNumber =
+    Number.isFinite(source.dayNumber) && source.dayNumber > 0
+      ? Math.round(source.dayNumber)
+      : 1;
 
   return (
     <SafeAreaView
@@ -568,8 +621,29 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
         </View>
 
         <View style={[styles.trackIdentity, isCompact && styles.trackIdentityCompact]}>
-          <Text numberOfLines={2} style={[styles.trackTitle, isCompact && styles.trackTitleCompact]}>Lecture audio du jour</Text>
-          <Text style={styles.trackSubtitle}>Plan de lecture · Jour {source.dayNumber}</Text>
+          <ScrollView
+            ref={titleScrollRef}
+            accessibilityLabel={`Lecture de ${passageTitle}`}
+            bounces={false}
+            contentContainerStyle={styles.trackTitleContent}
+            directionalLockEnabled
+            horizontal
+            onContentSizeChange={(width) => setTitleContentWidth(width)}
+            onLayout={(event) => setTitleViewportWidth(event.nativeEvent.layout.width)}
+            showsHorizontalScrollIndicator={false}
+            style={styles.trackTitleViewport}
+          >
+            <Text
+              style={[styles.trackTitle, isCompact && styles.trackTitleCompact]}
+            >
+              {passageTitle}
+            </Text>
+          </ScrollView>
+          <View style={styles.trackMetaRow}>
+            <Text style={styles.trackSubtitle}>Plan de lecture</Text>
+            <View style={styles.trackMetaDot} />
+            <Text style={styles.trackDay}>Jour {displayedDayNumber}</Text>
+          </View>
         </View>
 
         <View style={styles.progressBlock}>
@@ -802,8 +876,8 @@ const styles = StyleSheet.create({
   nowPlayingLabel: {
     color: COLORS.playerInk,
     flex: 1,
+    fontFamily: fonts.semibold,
     fontSize: 16,
-    fontWeight: "700",
     letterSpacing: 0.1,
     textAlign: "center",
   },
@@ -832,12 +906,13 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     color: COLORS.playerInk,
-    fontSize: 20,
-    fontWeight: "800",
+    fontFamily: fonts.semibold,
+    fontSize: 22,
     textAlign: "center",
   },
   errorText: {
     color: COLORS.playerMuted,
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 21,
     textAlign: "center",
@@ -892,31 +967,62 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.playerInk,
-    fontSize: 17,
-    fontWeight: "800",
+    fontFamily: fonts.semibold,
+    fontSize: 16,
   },
   trackIdentity: {
     alignItems: "center",
     gap: 7,
-    paddingHorizontal: 12,
+    width: "100%",
   },
   trackIdentityCompact: {
     gap: 3,
   },
+  trackTitleViewport: {
+    flexGrow: 0,
+    width: "100%",
+  },
+  trackTitleContent: {
+    alignItems: "center",
+    flexGrow: 1,
+    justifyContent: "center",
+  },
   trackTitle: {
     color: COLORS.playerInk,
-    fontSize: 23,
-    fontWeight: "800",
-    lineHeight: 29,
+    flexShrink: 0,
+    fontFamily: fonts.semibold,
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: "center",
   },
   trackTitleCompact: {
-    fontSize: 20,
-    lineHeight: 24,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  trackMetaRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+  },
+  trackMetaDot: {
+    backgroundColor: COLORS.playerMuted,
+    borderRadius: 999,
+    height: 3,
+    opacity: 0.7,
+    width: 3,
+  },
+  trackDay: {
+    color: COLORS.copperSoft,
+    fontFamily: fonts.semibold,
+    fontSize: 13,
+    fontVariant: ["tabular-nums"],
+    lineHeight: 21,
   },
   trackSubtitle: {
     color: COLORS.playerMuted,
-    fontSize: 15,
+    fontFamily: fonts.regular,
+    fontSize: 13,
     lineHeight: 21,
     textAlign: "center",
   },
@@ -970,8 +1076,8 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: COLORS.playerMuted,
+    fontFamily: fonts.semibold,
     fontSize: 11,
-    fontWeight: "900",
     lineHeight: 14,
     marginTop: 2,
   },
@@ -1017,15 +1123,15 @@ const styles = StyleSheet.create({
   },
   timeText: {
     color: COLORS.playerMuted,
+    fontFamily: fonts.medium,
     fontSize: 13,
     fontVariant: ["tabular-nums"],
-    fontWeight: "700",
     minWidth: 36,
   },
   unavailableText: {
     color: "#ffd2ca",
+    fontFamily: fonts.medium,
     fontSize: 13,
-    fontWeight: "700",
   },
   skeletonTitle: {
     backgroundColor: COLORS.playerTrack,

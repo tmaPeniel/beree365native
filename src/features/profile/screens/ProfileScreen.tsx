@@ -231,7 +231,7 @@ const profileStyles = StyleSheet.create({
   },
   name: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 22,
     letterSpacing: 0,
     textAlign: "center",
@@ -292,7 +292,7 @@ const profileStyles = StyleSheet.create({
   },
   menuTitle: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 15,
     letterSpacing: 0,
   },
