@@ -907,7 +907,7 @@ const styles = StyleSheet.create({
   errorTitle: {
     color: COLORS.playerInk,
     fontFamily: fonts.semibold,
-    fontSize: 20,
+    fontSize: 22,
     textAlign: "center",
   },
   errorText: {
@@ -968,7 +968,7 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.playerInk,
     fontFamily: fonts.semibold,
-    fontSize: 17,
+    fontSize: 16,
   },
   trackIdentity: {
     alignItems: "center",
@@ -991,13 +991,13 @@ const styles = StyleSheet.create({
     color: COLORS.playerInk,
     flexShrink: 0,
     fontFamily: fonts.semibold,
-    fontSize: 19,
-    lineHeight: 26,
+    fontSize: 16,
+    lineHeight: 24,
     textAlign: "center",
   },
   trackTitleCompact: {
-    fontSize: 16,
-    lineHeight: 22,
+    fontSize: 14,
+    lineHeight: 20,
   },
   trackMetaRow: {
     alignItems: "center",
@@ -1015,14 +1015,14 @@ const styles = StyleSheet.create({
   trackDay: {
     color: COLORS.copperSoft,
     fontFamily: fonts.semibold,
-    fontSize: 15,
+    fontSize: 13,
     fontVariant: ["tabular-nums"],
     lineHeight: 21,
   },
   trackSubtitle: {
     color: COLORS.playerMuted,
     fontFamily: fonts.regular,
-    fontSize: 15,
+    fontSize: 13,
     lineHeight: 21,
     textAlign: "center",
   },

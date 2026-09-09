@@ -943,12 +943,14 @@ const styles = StyleSheet.create({
   title: {
     color: COLORS.ink,
     fontFamily: fonts.semibold,
-    fontSize: 20,
+    fontSize: 22,
+    lineHeight: 28,
   },
   subtitle: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 13,
+    lineHeight: 20,
     marginTop: 14,
   },
   viewSwitcher: {
@@ -979,17 +981,17 @@ const styles = StyleSheet.create({
   loadingText: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 13,
   },
   emptyTitle: {
     color: COLORS.ink,
     fontFamily: fonts.semibold,
-    fontSize: 17,
+    fontSize: 16,
   },
   emptyText: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 14,
+    fontSize: 13,
     lineHeight: 20,
     textAlign: "center",
   },
@@ -1209,7 +1211,7 @@ const styles = StyleSheet.create({
   passageDescription: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 11,
+    fontSize: 12,
     marginTop: 3,
   },
   searchBox: {
@@ -1305,12 +1307,12 @@ const styles = StyleSheet.create({
   searchEmptyTitle: {
     color: COLORS.ink,
     fontFamily: fonts.semibold,
-    fontSize: 15,
+    fontSize: 16,
   },
   searchEmptyText: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 12,
+    fontSize: 13,
     lineHeight: 17,
     marginTop: 6,
     textAlign: "center",
@@ -1385,7 +1387,7 @@ const styles = StyleSheet.create({
   monthTitle: {
     color: COLORS.ink,
     fontFamily: fonts.semibold,
-    fontSize: 18,
+    fontSize: 16,
     textAlign: "center",
     textTransform: "capitalize",
     width: "100%",
@@ -1531,8 +1533,8 @@ const styles = StyleSheet.create({
   dayCardPassageText: {
     color: COLORS.ink,
     fontFamily: fonts.medium,
-    fontSize: 11,
-    lineHeight: 15,
+    fontSize: 12,
+    lineHeight: 17,
   },
   dayCardPassageTextBlock: {
     flex: 1,
@@ -1541,8 +1543,8 @@ const styles = StyleSheet.create({
   dayCardPassageDescription: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 10,
-    lineHeight: 14,
+    fontSize: 11,
+    lineHeight: 16,
     marginTop: 2,
   },
   dayCardPassageDone: {
@@ -1579,7 +1581,7 @@ const styles = StyleSheet.create({
   completeButtonText: {
     color: COLORS.ink,
     fontFamily: fonts.medium,
-    fontSize: 11,
+    fontSize: 12,
     paddingHorizontal: 20,
     textAlign: "center",
     width: "100%",
