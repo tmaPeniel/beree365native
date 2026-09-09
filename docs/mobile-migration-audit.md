@@ -64,4 +64,4 @@ Le projet est maintenant une application Expo React Native native-only. Les poin
 - TODO: verifier les deep links Supabase pour `beree365://reset-password`.
 - TODO: valider le code secret Premium cote serveur avant toute activation; le champ est present dans l'interface d'inscription mais n'accorde actuellement aucun droit.
 - TODO: choisir le fournisseur de paiement Premium : RevenueCat ou in-app purchase Expo.
-- TODO: ajouter `expo-image-picker` pour activer camera/galerie sur l'avatar du profil.
+- Le changement d'avatar est actif avec `expo-image-picker`, `expo-image` et le bucket Supabase `avatars`.

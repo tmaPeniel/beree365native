@@ -177,6 +177,7 @@ export type Database = {
       }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string | null
           current_day_number: number
           device_platform: string | null
@@ -194,6 +195,7 @@ export type Database = {
           start_date: string | null
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string | null
           current_day_number?: number
           device_platform?: string | null
@@ -211,6 +213,7 @@ export type Database = {
           start_date?: string | null
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string | null
           current_day_number?: number
           device_platform?: string | null

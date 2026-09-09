@@ -16,6 +16,7 @@ import {
 } from "lucide-react-native";
 import { signOut } from "@/features/auth/services/auth";
 import { useAuth } from "@/features/auth/hooks/useAuth";
+import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { MotionView, PressableScale } from "@/shared/animation/Motion";
 import { colors, fonts } from "@/shared/theme/styles";
 
@@ -29,17 +30,6 @@ type MenuItem = {
 };
 
 const ICON_SIZE = 20;
-
-function getInitials(name?: string | null, email?: string | null) {
-  const source = name?.trim() || email?.split("@")[0] || "Utilisateur";
-  const parts = source.split(/\s+/).filter(Boolean);
-
-  if (parts.length === 1) {
-    return parts[0].slice(0, 2).toUpperCase();
-  }
-
-  return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
-}
 
 function ProfileMenuItem({ delay = 0, item }: { delay?: number; item: MenuItem }) {
   const Icon = item.icon;
@@ -83,7 +73,7 @@ export function ProfileScreen() {
   const { profile, user } = useAuth();
   const fullName = profile?.full_name || "Utilisateur";
   const email = user?.email ?? "";
-  const initials = getInitials(profile?.full_name, user?.email);
+  const initials = getProfileInitials(profile?.full_name, user?.email);
 
   const logout = () => {
     Alert.alert("Deconnexion", "Voulez-vous vraiment vous deconnecter ?", [
@@ -167,9 +157,7 @@ export function ProfileScreen() {
     >
       <MotionView style={profileStyles.header}>
         <View style={profileStyles.avatarWrap}>
-          <View style={profileStyles.avatar}>
-            <Text style={profileStyles.avatarText}>{initials}</Text>
-          </View>
+          <ProfileAvatar avatarUrl={profile?.avatar_url} initials={initials} />
           <View style={profileStyles.crownBadge}>
             <Crown color="#3F2A19" size={15} strokeWidth={2} />
           </View>
@@ -229,20 +217,6 @@ const profileStyles = StyleSheet.create({
   },
   avatarWrap: {
     marginBottom: 14,
-  },
-  avatar: {
-    alignItems: "center",
-    backgroundColor: "#F3E9E2",
-    borderRadius: 999,
-    height: 72,
-    justifyContent: "center",
-    width: 72,
-  },
-  avatarText: {
-    color: colors.primary,
-    fontFamily: fonts.bold,
-    fontSize: 17,
-    letterSpacing: 0,
   },
   crownBadge: {
     alignItems: "center",

@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery } from "@tanstack/react-query";
+import * as ImagePicker from "expo-image-picker";
 import { router, usePathname } from "expo-router";
 import {
+  ActivityIndicator,
   Alert,
   FlatList,
   Modal,
@@ -22,6 +24,7 @@ import {
   Award,
   Bell,
   BookOpen,
+  Camera,
   ChevronLeft,
   CalendarClock,
   ChevronRight,
@@ -34,11 +37,12 @@ import {
   Shield,
   Sparkles,
   Trash2,
-  Upload,
 } from "lucide-react-native";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { updateUserProfile } from "@/features/auth/services/auth";
+import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
+import { uploadProfileAvatar } from "@/features/profile/services/avatar-service";
 import {
   Badge,
   getAllBadges,
@@ -417,7 +421,74 @@ export function EditProfileScreen() {
   const { profile, refreshProfile, user } = useAuth();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [startDate, setStartDate] = useState(profile?.start_date || "");
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const initials = getProfileInitials(fullName, user?.email);
+
+  useEffect(() => {
+    setAvatarUrl(profile?.avatar_url || null);
+  }, [profile?.avatar_url]);
+
+  const pickAvatar = async (source: "camera" | "library") => {
+    if (!user?.id || isUploadingAvatar) return;
+
+    const permission = source === "camera"
+      ? await ImagePicker.requestCameraPermissionsAsync()
+      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+
+    if (!permission.granted) {
+      Alert.alert(
+        "Autorisation nécessaire",
+        source === "camera"
+          ? "Autorisez l'accès à l'appareil photo pour prendre votre portrait."
+          : "Autorisez l'accès à vos photos pour choisir votre avatar.",
+      );
+      return;
+    }
+
+    const result = source === "camera"
+      ? await ImagePicker.launchCameraAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          mediaTypes: ["images"],
+          quality: 0.72,
+        })
+      : await ImagePicker.launchImageLibraryAsync({
+          allowsEditing: true,
+          aspect: [1, 1],
+          mediaTypes: ["images"],
+          quality: 0.72,
+        });
+
+    if (result.canceled || !result.assets[0]) return;
+
+    setIsUploadingAvatar(true);
+    const asset = result.assets[0];
+    const uploadResult = await uploadProfileAvatar({
+      mimeType: asset.mimeType,
+      uri: asset.uri,
+      userId: user.id,
+    });
+    setIsUploadingAvatar(false);
+
+    if (uploadResult.success === false) {
+      Alert.alert("Photo de profil", uploadResult.error);
+      return;
+    }
+
+    setAvatarUrl(uploadResult.avatarUrl);
+    await refreshProfile();
+  };
+
+  const chooseAvatarSource = () => {
+    Alert.alert("Changer la photo", "Choisissez une source.", [
+      { text: "Annuler", style: "cancel" },
+      { text: "Appareil photo", onPress: () => void pickAvatar("camera") },
+      { text: "Photothèque", onPress: () => void pickAvatar("library") },
+    ]);
+  };
+
   const save = async () => {
     if (!user?.id) return;
     if (fullName.trim().length < 2) return Alert.alert("Profil", "Le nom doit contenir au moins 2 caracteres.");
@@ -428,7 +499,76 @@ export function EditProfileScreen() {
     await refreshProfile();
     router.back();
   };
-  return <View style={styles.screen}><ScrollView contentContainerStyle={s.content}><Header title="Modifier le profil" subtitle="Mettez a jour vos informations personnelles." /><Pressable onPress={() => Alert.alert("Avatar", "Ajouter expo-image-picker pour activer camera et galerie.")} style={s.avatarPicker}><Upload color={colors.primary} size={26} /><Text style={s.rowTitle}>Changer l'avatar</Text><Text style={styles.subheading}>Camera ou galerie a brancher avec expo-image-picker.</Text></Pressable><View style={s.card}><Text style={s.inputLabel}>Nom complet</Text><TextInput onChangeText={setFullName} placeholder="Votre nom" placeholderTextColor={colors.muted} style={styles.input} value={fullName} /><Text style={s.inputLabel}>Date de debut</Text><TextInput onChangeText={setStartDate} placeholder="YYYY-MM-DD" placeholderTextColor={colors.muted} style={styles.input} value={startDate} /></View></ScrollView><View style={[s.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}><Pressable disabled={isSaving} onPress={save} style={styles.primaryButton}><Text style={styles.primaryButtonText}>{isSaving ? "Enregistrement..." : "Enregistrer"}</Text></Pressable></View></View>;
+
+  return (
+    <View style={styles.screen}>
+      <ScrollView contentContainerStyle={s.content}>
+        <Header
+          title="Modifier le profil"
+          subtitle="Mettez à jour vos informations personnelles."
+        />
+
+        <Pressable
+          accessibilityLabel="Changer la photo de profil"
+          accessibilityRole="button"
+          disabled={isUploadingAvatar}
+          onPress={chooseAvatarSource}
+          style={({ pressed }) => [
+            s.avatarPicker,
+            pressed && !isUploadingAvatar && s.avatarPickerPressed,
+          ]}
+        >
+          <View style={s.avatarPreviewWrap}>
+            <ProfileAvatar avatarUrl={avatarUrl} initials={initials} size={96} />
+            <View style={s.avatarActionBadge}>
+              {isUploadingAvatar ? (
+                <ActivityIndicator color="#FFFFFF" size="small" />
+              ) : (
+                <Camera color="#FFFFFF" size={17} strokeWidth={2.2} />
+              )}
+            </View>
+          </View>
+          <View style={s.avatarPickerCopy}>
+            <Text style={s.rowTitle}>
+              {isUploadingAvatar ? "Envoi de la photo…" : "Changer la photo"}
+            </Text>
+            <Text style={styles.subheading}>Prendre une photo ou en choisir une dans la photothèque.</Text>
+          </View>
+        </Pressable>
+
+        <View style={s.card}>
+          <Text style={s.inputLabel}>Nom complet</Text>
+          <TextInput
+            onChangeText={setFullName}
+            placeholder="Votre nom"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={fullName}
+          />
+          <Text style={s.inputLabel}>Date de début</Text>
+          <TextInput
+            onChangeText={setStartDate}
+            placeholder="YYYY-MM-DD"
+            placeholderTextColor={colors.muted}
+            style={styles.input}
+            value={startDate}
+          />
+        </View>
+      </ScrollView>
+
+      <View style={[s.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <Pressable
+          disabled={isSaving || isUploadingAvatar}
+          onPress={save}
+          style={[styles.primaryButton, (isSaving || isUploadingAvatar) && s.disabledButton]}
+        >
+          <Text style={styles.primaryButtonText}>
+            {isSaving ? "Enregistrement..." : "Enregistrer"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  );
 }
 
 export function MarkdownInfoScreen({ content, title }: { content: string; title: string }) {
@@ -447,7 +587,11 @@ export function StaticInfoScreen({ title, text }: { title: string; text: string 
 const s = StyleSheet.create({
   activeChip: { backgroundColor: colors.primary, borderColor: colors.primary },
   activeChipText: { color: "#FFFFFF" },
-  avatarPicker: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 8, padding: 20 },
+  avatarActionBadge: { alignItems: "center", backgroundColor: colors.primary, borderColor: colors.surface, borderRadius: 999, borderWidth: 3, bottom: -2, height: 34, justifyContent: "center", position: "absolute", right: -2, width: 34 },
+  avatarPicker: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, flexDirection: "row", gap: 16, padding: 16 },
+  avatarPickerCopy: { flex: 1, gap: 5 },
+  avatarPickerPressed: { backgroundColor: colors.surfaceSoft, transform: [{ scale: 0.99 }] },
+  avatarPreviewWrap: { position: "relative" },
   badgeEmoji: { fontSize: 26 },
   badgeEmojiLarge: { fontSize: 40 },
   badgeIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 24, height: 58, justifyContent: "center", width: 58 },
@@ -466,6 +610,7 @@ const s = StyleSheet.create({
   content: { gap: 16, padding: 20, paddingBottom: 112 },
   deleteButton: { alignItems: "center", borderColor: colors.border, borderRadius: 999, borderWidth: 1, height: 36, justifyContent: "center", width: 36 },
   detail: { color: colors.primaryDark, fontFamily: fonts.semibold, fontSize: 14 },
+  disabledButton: { opacity: 0.55 },
   faded: { opacity: 0.45 },
   header: { gap: 4 },
   detailHeaderCopy: { flex: 1, gap: 4, minWidth: 0 },

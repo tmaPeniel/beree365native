@@ -1,5 +1,5 @@
-import type { BottomTabBarProps } from "@react-navigation/bottom-tabs";
 import { LinearGradient } from "expo-linear-gradient";
+import type { BottomTabBarProps } from "expo-router/tabs";
 import { useEffect, useMemo } from "react";
 import {
   LayoutAnimation,
