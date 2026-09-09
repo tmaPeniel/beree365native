@@ -25,16 +25,16 @@
 - Le schema Supabase actif expose `audio_readings` avec `plan_id`, `day_number`, `source_type`, `source_url`, `youtube_url` et `duration_seconds`.
 - La requete audio filtre toujours par `plan_id` et `day_number`; elle ne charge jamais un audio uniquement par numero de jour.
 - `audioService.ts` normalise la source en `AudioSource` avec `sourceType: "youtube" | "mp3"` pour preparer une future lecture MP3 sans changer l'interface de l'ecran.
-- `AudioPlayer.tsx` affiche un FAB audio flottant au-dessus de la navigation. Le FAB agit comme mini-player : Play ouvre le panneau et lance/reprend l'audio, Pause arrete directement la lecture quand le panneau est masque.
+- `AudioPlayer.tsx` affiche un FAB audio flottant au-dessus de la navigation. Un appui ouvre désormais un lecteur immersif plein écran et lance ou reprend l'audio.
 - Le FAB ferme suit le rendu de reference : cercle cuivre compact, icone Play/Pause blanche et anneau de progression cuivre/clair autour du bouton.
-- Quand le panneau lecteur est ouvert, le FAB est masque. Seul le bouton `X` du panneau ou le tap sur le fond ferme l'interface.
-- Le panneau lecteur personnalise Beree suit le rendu modal de reference : carte blanche compacte, icone audio pale, titre, jour, barre de progression fine, temps courant/duree, retour 10 secondes, Play/Pause central et avance 10 secondes.
+- Quand le lecteur est ouvert, le FAB est masque. Le lecteur utilise une modale native plein écran afin de recouvrir aussi la barre d'onglets. Le bouton chevron en haut réduit l'interface ; un nouvel appui sur le FAB restaure le plein écran.
+- Le lecteur personnalisé Bérée suit une direction sombre et immersive : logo de marque recadré dans le disque cuivre, titre du jour, forme d'onde pressable, temps courant/durée, retour 10 secondes, Play/Pause central et avance 10 secondes.
 - Les commandes Play/Pause envoyees par le FAB sont dedupliquees par identifiant pour eviter plusieurs ordres de lecture simultanes.
-- La barre de progression du panneau est pressable : un appui sur la barre deplace directement la lecture a la position correspondante.
-- Le FAB utilise une pulsation discrete quand l'audio est disponible, un rebond au toucher, et le panneau lecteur apparait/disparait avec une animation fade + slide.
-- Quand le panneau est ouvert, un backdrop `expo-blur` floute reellement le reste de l'ecran avec une intensite forte, le mode Android `dimezisBlurView`, et une teinte cuivre tres legere separee du flou pour eviter l'effet simple fond gris. Un appui sur le fond ferme le panneau.
-- Quand le panneau lecteur est masque, le player reste monte afin de conserver sa position et son etat de lecture.
-- Pour les sources YouTube, `react-native-youtube-iframe` est rendu dans une zone masquee : l'utilisateur ne voit ni la video, ni les controles, ni l'interface YouTube.
+- La forme d'onde sert de barre de progression : un appui déplace directement la lecture à la position correspondante et distingue clairement la portion déjà lue.
+- Le FAB utilise une pulsation discrète quand l'audio est disponible, un rebond au toucher, et le lecteur apparaît/disparaît avec une animation courte de fondu + translation.
+- Le plein écran respecte les zones sûres iOS et Android et bascule temporairement la barre d'état en mode clair.
+- Quand le lecteur est réduit, le player reste monté afin de conserver sa position et son état de lecture.
+- Pour les sources YouTube, `react-native-youtube-iframe` est rendu hors écran dans une zone d'un pixel : l'utilisateur ne voit ni la vidéo, ni les contrôles, ni l'interface YouTube.
 - Si aucun audio n'existe, le composant n'est pas affiche. Si le chargement est en cours, un skeleton discret apparait. Si une erreur survient, l'ecran de lecture reste utilisable et affiche seulement "Audio indisponible".
 
 ## Raccord backend

@@ -14,7 +14,7 @@ export const getUserProfile = async (userId: string): Promise<Profile | null> =>
 
 export const updateUserProfile = async (
   userId: string,
-  updates: { full_name?: string; start_date?: string }
+  updates: { avatar_url?: string | null; full_name?: string; start_date?: string }
 ): Promise<{ success: boolean; data?: Profile; error?: string }> => {
   try {
     const { data, error } = await supabase

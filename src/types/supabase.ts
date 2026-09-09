@@ -7,6 +7,7 @@
 // Type pour le profil utilisateur
 export type Profile = {
   id: string;
+  avatar_url?: string | null;
   full_name: string | null;
   start_date: string;
   current_day_number: number;

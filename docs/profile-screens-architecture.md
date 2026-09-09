@@ -11,7 +11,7 @@ Ce document decrit l'architecture fonctionnelle cible des ecrans Profil natifs. 
 - `ReadingPlanSelection` : implemente depuis `/reading-plan` pour afficher les plans de lecture, distinguer selection/disponible/Premium/indisponible, confirmer le changement et rafraichir les caches de lecture.
 - `ProfilePrivacy` : implemente avec consentements locaux, export JSON via partage et appel Edge Function de suppression.
 - `ProfileHelp`, `ProfileAbout`, `Terms`, `CookiesPolicy` : implementes avec un rendu markdown natif leger.
-- `ProfileEdit` : implemente avec formulaire natif et sauvegarde profil ; avatar pret cote UI, `expo-image-picker` reste a ajouter pour camera/galerie.
+- `ProfileEdit` : implemente avec formulaire natif, sauvegarde profil et changement d'avatar depuis l'appareil photo ou la phototheque.
 
 ## Routes et responsabilites
 
@@ -112,7 +112,9 @@ Ce document decrit l'architecture fonctionnelle cible des ecrans Profil natifs. 
 - Presentation cible : modal `formSheet` quand la plateforme le supporte, sinon ecran natif standard.
 - Avatar tappable :
   - Choix camera ou galerie avec `expo-image-picker`.
-  - Upload et sauvegarde de l'URL avatar cote Supabase.
+  - Recadrage carre, apercu natif avec `expo-image`, puis upload dans le bucket public Supabase `avatars`.
+  - Sauvegarde de l'URL dans `profiles.avatar_url` et rafraichissement immediat du profil.
+  - Limite serveur de 8 Mo et politiques Storage restreignant l'ecriture au dossier de l'utilisateur connecte.
 - Champs valides :
   - Nom complet.
   - Email si modifiable selon les regles auth.
@@ -125,7 +127,7 @@ Ce document decrit l'architecture fonctionnelle cible des ecrans Profil natifs. 
 - Graphiques : `victory-native` ou `react-native-svg-charts`.
 - Markdown : `react-native-markdown-display`.
 - WebView optionnelle : `react-native-webview`.
-- Image picker : `expo-image-picker`.
+- Images de profil : `expo-image-picker` et `expo-image`.
 - Paiement : RevenueCat ou `expo-in-app-purchases`, decision business requise.
 - Swipe actions : `react-native-gesture-handler` avec une abstraction locale reutilisable.
 

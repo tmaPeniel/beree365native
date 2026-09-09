@@ -1,5 +1,5 @@
-import { BlurView } from "expo-blur";
-import { Headphones, Pause, Play, RotateCcw, RotateCw, X } from "lucide-react-native";
+import { StatusBar } from "expo-status-bar";
+import { ChevronDown, Headphones, Pause, Play, RotateCcw, RotateCw } from "lucide-react-native";
 import type { ReactNode } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -7,12 +7,15 @@ import {
   Animated,
   Easing,
   type GestureResponderEvent,
+  Image,
+  Modal,
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import YoutubePlayer, { PLAYER_STATES, type YoutubeIframeRef } from "react-native-youtube-iframe";
 import {
   extractYouTubeVideoId,
@@ -21,13 +24,13 @@ import {
 import Svg, { Circle } from "react-native-svg";
 
 const COLORS = {
-  card: "#ffffff",
-  cardSoft: "#fbfaf8",
-  ink: "#2f261f",
-  muted: "#7e6f64",
-  border: "#eadfd4",
-  copper: "#b76620",
-  copperDark: "#2d2018",
+  playerBackground: "#221a16",
+  playerSurface: "#30231d",
+  playerInk: "#fffaf4",
+  playerMuted: "#cab8ab",
+  playerTrack: "#59443a",
+  copper: "#d9773f",
+  copperSoft: "#f0a072",
   danger: "#b42318",
 };
 
@@ -38,6 +41,11 @@ const RING_STROKE_WIDTH = 3;
 const SKIP_SECONDS = 10;
 const PLAYER_COMMAND_TIMEOUT_MS = 700;
 const START_SEEK_DELAY_MS = 120;
+const WAVEFORM_HEIGHTS = [
+  18, 35, 26, 44, 23, 31, 52, 28, 38, 21, 47, 33, 25, 41, 56, 30, 22, 45,
+  37, 29, 50, 25, 40, 32, 20, 47, 34, 26, 54, 39, 24, 43, 30, 51, 28, 36,
+  22, 46, 31, 41, 27, 49, 34, 23, 44, 29,
+] as const;
 
 type PlaybackCommand = {
   action: "pause" | "play";
@@ -68,7 +76,6 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
   const insets = useSafeAreaInsets();
   const fabPressAnim = useRef(new Animated.Value(1)).current;
   const fabPulseAnim = useRef(new Animated.Value(0)).current;
-  const panelAnim = useRef(new Animated.Value(0)).current;
   const playbackCommandIdRef = useRef(0);
   const [hasOpenedPlayer, setHasOpenedPlayer] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -82,7 +89,6 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
   const canOpenPlayer = !!source && !loading && !error;
 
   useEffect(() => {
-    panelAnim.setValue(0);
     setHasOpenedPlayer(false);
     setIsExpanded(false);
     setPlaybackCommand(null);
@@ -92,16 +98,7 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
       hasStarted: false,
       isPlaying: false,
     });
-  }, [panelAnim, source?.id]);
-
-  useEffect(() => {
-    Animated.timing(panelAnim, {
-      duration: isExpanded ? 240 : 170,
-      easing: isExpanded ? Easing.out(Easing.cubic) : Easing.in(Easing.cubic),
-      toValue: isExpanded ? 1 : 0,
-      useNativeDriver: true,
-    }).start();
-  }, [isExpanded, panelAnim]);
+  }, [source?.id]);
 
   useEffect(() => {
     if (!canOpenPlayer || isExpanded) {
@@ -129,14 +126,6 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
   }
 
   const bottomOffset = Math.max(insets.bottom, 10) + 82;
-  const panelScale = panelAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.96, 1],
-  });
-  const panelTranslateY = panelAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [18, 0],
-  });
   const pulseOpacity = fabPulseAnim.interpolate({
     inputRange: [0, 0.72, 1],
     outputRange: [0.24, 0.08, 0],
@@ -144,10 +133,6 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
   const pulseScale = fabPulseAnim.interpolate({
     inputRange: [0, 1],
     outputRange: [1, 1.55],
-  });
-  const backdropOpacity = panelAnim.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0, 1],
   });
   const requestPlayback = (action: PlaybackCommand["action"]) => {
     playbackCommandIdRef.current += 1;
@@ -161,69 +146,36 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
 
   const handleFabPress = () => {
     if (!canOpenPlayer) return;
-
-    if (isExpanded) {
-      setIsExpanded(false);
-      return;
-    }
-
-    if (playbackStatus.isPlaying) {
-      requestPlayback("pause");
-      return;
-    }
-
     setHasOpenedPlayer(true);
     setIsExpanded(true);
-    requestPlayback("play");
+    if (!playbackStatus.isPlaying) requestPlayback("play");
   };
 
   return (
     <>
+      {isExpanded ? <StatusBar style="light" /> : null}
+
       {source && hasOpenedPlayer ? (
-        <Animated.View
-          pointerEvents={isExpanded ? "auto" : "none"}
-          style={[styles.backdrop, { opacity: backdropOpacity }]}
+        <Modal
+          animationType="slide"
+          hardwareAccelerated
+          onRequestClose={() => setIsExpanded(false)}
+          presentationStyle="fullScreen"
+          statusBarTranslucent
+          visible={isExpanded}
         >
-          <BlurView
-            blurReductionFactor={1.2}
-            experimentalBlurMethod="dimezisBlurView"
-            intensity={92}
-            tint="systemThinMaterial"
-            style={StyleSheet.absoluteFill}
-          />
-          <View pointerEvents="none" style={styles.backdropTint} />
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Fermer le lecteur audio"
-            onPress={() => setIsExpanded(false)}
-            style={styles.backdropPressable}
-          />
-        </Animated.View>
+          <View style={styles.fullScreenPlayer}>
+            <AudioPlayer
+              command={playbackCommand}
+              onClose={() => setIsExpanded(false)}
+              onStatusChange={setPlaybackStatus}
+              source={source}
+            />
+          </View>
+        </Modal>
       ) : null}
 
       <View pointerEvents="box-none" style={[styles.floatingWrap, { bottom: bottomOffset }]}>
-        {source ? (
-          <Animated.View
-            pointerEvents={isExpanded ? "auto" : "none"}
-            style={[
-              styles.floatingPanel,
-              {
-                opacity: panelAnim,
-                transform: [{ translateY: panelTranslateY }, { scale: panelScale }],
-              },
-            ]}
-          >
-            {hasOpenedPlayer ? (
-              <AudioPlayer
-                command={playbackCommand}
-                onClose={() => setIsExpanded(false)}
-                onStatusChange={setPlaybackStatus}
-                source={source}
-              />
-            ) : null}
-          </Animated.View>
-        ) : null}
-
         {!isExpanded ? (
           <Animated.View
             style={[
@@ -248,7 +200,7 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
 
             <Pressable
               accessibilityRole="button"
-              accessibilityLabel={playbackStatus.isPlaying ? "Mettre en pause" : "Lancer la lecture audio"}
+              accessibilityLabel="Ouvrir le lecteur audio"
               disabled={!canOpenPlayer}
               onPress={handleFabPress}
               onPressIn={() => {
@@ -279,7 +231,7 @@ export function FloatingAudioPlayer({ error, loading, source }: FloatingAudioPla
               {loading ? (
                 <ActivityIndicator color="#fff" />
               ) : playbackStatus.isPlaying ? (
-                <Pause size={23} color="#fff" />
+                <Headphones size={23} color="#fff" />
               ) : (
                 <Play size={24} color="#fff" fill="#fff" />
               )}
@@ -303,12 +255,7 @@ export function AudioPlayer({ command, onClose, onStatusChange, source }: AudioP
     );
   }
 
-  return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Lecture audio du jour</Text>
-      <Text style={styles.unavailableText}>Audio indisponible</Text>
-    </View>
-  );
+  return <AudioPlayerError onClose={onClose} />;
 }
 
 export function AudioPlayerLoading() {
@@ -321,16 +268,36 @@ export function AudioPlayerLoading() {
   );
 }
 
-export function AudioPlayerError() {
+export function AudioPlayerError({ onClose }: { onClose?: () => void } = {}) {
   return (
-    <View style={styles.card}>
-      <Text style={styles.title}>Lecture audio du jour</Text>
-      <Text style={styles.unavailableText}>Audio indisponible</Text>
-    </View>
+    <SafeAreaView edges={["top", "bottom", "left", "right"]} style={styles.playerScreen}>
+      <View style={styles.playerHeader}>
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel="Réduire le lecteur audio"
+          disabled={!onClose}
+          onPress={onClose}
+          style={styles.dismissButton}
+        >
+          {onClose ? <ChevronDown size={27} color={COLORS.playerInk} strokeWidth={2.2} /> : null}
+        </Pressable>
+        <Text numberOfLines={1} style={styles.nowPlayingLabel}>Lecture en cours</Text>
+        <View style={styles.headerBalance} />
+      </View>
+      <View style={styles.errorBody}>
+        <View style={styles.errorIcon}>
+          <Headphones color="#ffb49d" size={30} />
+        </View>
+        <Text style={styles.errorTitle}>Audio indisponible</Text>
+        <Text style={styles.errorText}>Impossible de lancer la lecture pour le moment.</Text>
+      </View>
+    </SafeAreaView>
   );
 }
 
 function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioPlayerProps) {
+  const { height: screenHeight } = useWindowDimensions();
+  const isCompact = screenHeight < 720;
   const currentTimeRef = useRef(0);
   const lastCommandIdRef = useRef<number | null>(null);
   const playerRef = useRef<YoutubeIframeRef | null>(null);
@@ -531,13 +498,21 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
   }, []);
 
   if (!videoId || hasPlayerError) {
-    return <AudioPlayerError />;
+    return <AudioPlayerError onClose={onClose} />;
   }
 
   const progress = duration > 0 ? clamp(currentTime / duration, 0, 1) : 0;
 
   return (
-    <View style={styles.card}>
+    <SafeAreaView
+      edges={["top", "bottom", "left", "right"]}
+      style={[
+        styles.playerScreen,
+        {
+          paddingHorizontal: isCompact ? 20 : 24,
+        },
+      ]}
+    >
       <View pointerEvents="none" style={styles.hiddenPlayer}>
         <YoutubePlayer
           key={`${source.id}-${playerKey}`}
@@ -564,73 +539,99 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
         />
       </View>
 
-      <View style={styles.header}>
-        <View style={styles.headerIdentity}>
-          <View style={styles.audioBadge}>
-            <Headphones size={15} color={COLORS.copper} />
-          </View>
-          <View style={styles.headerText}>
-            <Text style={styles.title}>Lecture audio du jour</Text>
-            <Text style={styles.dayText}>Jour {source.dayNumber}</Text>
-          </View>
-        </View>
+      <View style={styles.playerHeader}>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Fermer le lecteur audio"
+          accessibilityLabel="Réduire le lecteur audio"
           onPress={onClose}
-          style={styles.closeButton}
+          style={styles.dismissButton}
         >
-          <X size={19} color={COLORS.ink} />
+          <ChevronDown size={27} color={COLORS.playerInk} strokeWidth={2.2} />
         </Pressable>
+        <Text numberOfLines={1} style={styles.nowPlayingLabel}>Lecture en cours</Text>
+        <View style={styles.headerBalance} />
       </View>
 
-      <View style={styles.progressBlock}>
-        <Pressable
-          accessibilityRole="adjustable"
-          accessibilityLabel="Position de lecture audio"
-          accessibilityValue={{ now: Math.round(progress * 100), min: 0, max: 100 }}
-          disabled={!duration}
-          hitSlop={{ bottom: 12, top: 12 }}
-          onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
-          onPress={seekFromTrackPress}
-          style={styles.track}
-        >
-          <View style={[styles.trackFill, { width: `${Math.max(progress * 100, isPlaying ? 2 : 0)}%` }]} />
-          <View style={[styles.trackThumb, { left: `${Math.max(progress * 100, 0)}%` }]} />
-        </Pressable>
-        <View style={styles.timeRow}>
-          <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
-          <Text style={styles.timeText}>{formatTime(duration)}</Text>
+      <View style={styles.playerBody}>
+        <View style={[styles.artworkStage, isCompact && styles.artworkStageCompact]}>
+          <View style={[styles.artworkGlow, isCompact && styles.artworkGlowCompact]} />
+          <View style={[styles.artworkRing, isCompact && styles.artworkRingCompact]}>
+            <View style={[styles.coverArt, isCompact && styles.coverArtCompact]}>
+              <Image
+                accessibilityLabel="Logo Bérée 365"
+                resizeMode="contain"
+                source={require("../../../assets/beree-icon.png")}
+                style={styles.coverArtImage}
+              />
+            </View>
+          </View>
+        </View>
+
+        <View style={[styles.trackIdentity, isCompact && styles.trackIdentityCompact]}>
+          <Text numberOfLines={2} style={[styles.trackTitle, isCompact && styles.trackTitleCompact]}>Lecture audio du jour</Text>
+          <Text style={styles.trackSubtitle}>Plan de lecture · Jour {source.dayNumber}</Text>
+        </View>
+
+        <View style={styles.progressBlock}>
+          <Pressable
+            accessibilityRole="adjustable"
+            accessibilityLabel="Position de lecture audio"
+            accessibilityValue={{ now: Math.round(progress * 100), min: 0, max: 100 }}
+            disabled={!duration}
+            hitSlop={{ bottom: 14, top: 14 }}
+            onLayout={(event) => setTrackWidth(event.nativeEvent.layout.width)}
+            onPress={seekFromTrackPress}
+            style={[styles.waveformPressable, isCompact && styles.waveformPressableCompact]}
+          >
+            <View pointerEvents="none" style={styles.waveform}>
+              {WAVEFORM_HEIGHTS.map((height, index) => (
+                <View
+                  key={`${height}-${index}`}
+                  style={[
+                    styles.waveformBar,
+                    { height, opacity: index / (WAVEFORM_HEIGHTS.length - 1) <= progress ? 1 : 0.52 },
+                    index / (WAVEFORM_HEIGHTS.length - 1) <= progress
+                      ? styles.waveformBarPlayed
+                      : styles.waveformBarRemaining,
+                  ]}
+                />
+              ))}
+            </View>
+          </Pressable>
+          <View style={styles.timeRow}>
+            <Text style={styles.timeText}>{formatTime(currentTime)}</Text>
+            <Text style={styles.timeText}>{formatTime(duration)}</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.controls}>
+      <View style={[styles.controls, isCompact && styles.controlsCompact]}>
         <IconButton
           accessibilityLabel="Reculer de 10 secondes"
           onPress={() => void seekBy(-SKIP_SECONDS)}
         >
-          <RotateCcw size={21} color={COLORS.ink} />
-          <Text style={styles.skipText}>{SKIP_SECONDS}</Text>
+          <RotateCcw size={24} color={COLORS.playerInk} />
+          <Text style={styles.skipText}>{SKIP_SECONDS} s</Text>
         </IconButton>
 
         <Pressable
           accessibilityRole="button"
           accessibilityLabel={isPlaying ? "Mettre en pause" : "Lancer la lecture audio"}
           onPress={togglePlayback}
-          style={styles.playButton}
+          style={[styles.playButton, isCompact && styles.playButtonCompact]}
         >
-          {isPlaying ? <Pause size={27} color="#fff" /> : <Play size={27} color="#fff" fill="#fff" />}
+          {isPlaying ? <Pause size={30} color="#fff" fill="#fff" /> : <Play size={30} color="#fff" fill="#fff" />}
         </Pressable>
 
         <IconButton
           accessibilityLabel="Avancer de 10 secondes"
           onPress={() => void seekBy(SKIP_SECONDS)}
         >
-          <RotateCw size={21} color={COLORS.ink} />
-          <Text style={styles.skipText}>{SKIP_SECONDS}</Text>
+          <RotateCw size={24} color={COLORS.playerInk} />
+          <Text style={styles.skipText}>{SKIP_SECONDS} s</Text>
         </IconButton>
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -717,42 +718,23 @@ function clamp(value: number, min: number, max: number) {
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: COLORS.card,
-    borderColor: "rgba(43,31,18,0.1)",
-    borderRadius: 12,
-    borderWidth: 1,
-    gap: 12,
-    overflow: "hidden",
-    paddingHorizontal: 16,
-    paddingBottom: 15,
-    paddingTop: 15,
-    shadowColor: "#000",
-    shadowOffset: { height: 10, width: 0 },
-    shadowOpacity: 0.13,
-    shadowRadius: 18,
-  },
-  backdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "transparent",
-    zIndex: 20,
-  },
-  backdropTint: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(43,31,18,0.1)",
-  },
-  backdropPressable: {
-    ...StyleSheet.absoluteFillObject,
+    alignSelf: "center",
+    backgroundColor: COLORS.playerSurface,
+    borderRadius: 16,
+    gap: 10,
+    margin: 24,
+    padding: 20,
   },
   floatingWrap: {
     alignItems: "flex-end",
     left: 13,
     position: "absolute",
     right: 13,
-    zIndex: 30,
+    zIndex: 60,
   },
-  floatingPanel: {
-    alignSelf: "stretch",
-    marginBottom: 12,
+  fullScreenPlayer: {
+    backgroundColor: COLORS.playerBackground,
+    flex: 1,
   },
   fabMotion: {
     borderRadius: 999,
@@ -778,105 +760,233 @@ const styles = StyleSheet.create({
   fab: {
     alignItems: "center",
     backgroundColor: COLORS.copper,
-    borderColor: "rgba(255,255,255,0.68)",
     borderRadius: 999,
-    borderWidth: 1,
+    boxShadow: "0 4px 8px rgba(217, 119, 63, 0.3)",
     height: FAB_SIZE,
     justifyContent: "center",
-    shadowColor: COLORS.copper,
-    shadowOffset: { height: 5, width: 0 },
-    shadowOpacity: 0.26,
-    shadowRadius: 10,
     width: FAB_SIZE,
   },
   fabDisabled: {
     opacity: 0.52,
   },
   hiddenPlayer: {
-    height: HIDDEN_PLAYER_SIZE,
-    left: 0,
-    opacity: 0.01,
+    height: 1,
+    left: -HIDDEN_PLAYER_SIZE * 2,
+    opacity: 0,
     overflow: "hidden",
     position: "absolute",
-    top: 0,
-    width: HIDDEN_PLAYER_SIZE,
+    top: -HIDDEN_PLAYER_SIZE * 2,
+    width: 1,
+    zIndex: -1,
   },
-  header: {
+  playerScreen: {
+    backgroundColor: COLORS.playerBackground,
+    flex: 1,
+    paddingBottom: 12,
+    paddingHorizontal: 24,
+    paddingTop: 8,
+  },
+  playerHeader: {
     alignItems: "center",
     flexDirection: "row",
+    gap: 8,
     justifyContent: "space-between",
-    gap: 12,
   },
-  headerIdentity: {
+  dismissButton: {
     alignItems: "center",
-    flex: 1,
-    flexDirection: "row",
-    gap: 10,
-  },
-  audioBadge: {
-    alignItems: "center",
-    backgroundColor: "#fbf1ea",
     borderRadius: 999,
-    height: 31,
+    height: 44,
     justifyContent: "center",
-    width: 31,
+    width: 44,
   },
-  headerText: {
+  nowPlayingLabel: {
+    color: COLORS.playerInk,
     flex: 1,
+    fontSize: 16,
+    fontWeight: "700",
+    letterSpacing: 0.1,
+    textAlign: "center",
+  },
+  headerBalance: {
+    width: 44,
+  },
+  playerBody: {
+    flex: 1,
+    justifyContent: "space-evenly",
+  },
+  errorBody: {
+    alignItems: "center",
+    flex: 1,
+    gap: 10,
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  errorIcon: {
+    alignItems: "center",
+    backgroundColor: "rgba(180,35,24,0.18)",
+    borderRadius: 999,
+    height: 68,
+    justifyContent: "center",
+    marginBottom: 8,
+    width: 68,
+  },
+  errorTitle: {
+    color: COLORS.playerInk,
+    fontSize: 20,
+    fontWeight: "800",
+    textAlign: "center",
+  },
+  errorText: {
+    color: COLORS.playerMuted,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+  },
+  artworkStage: {
+    alignItems: "center",
+    justifyContent: "center",
+    minHeight: 254,
+  },
+  artworkStageCompact: {
+    minHeight: 188,
+  },
+  artworkGlow: {
+    backgroundColor: "rgba(217,119,63,0.21)",
+    borderRadius: 999,
+    height: 236,
+    position: "absolute",
+    width: 236,
+  },
+  artworkGlowCompact: {
+    height: 180,
+    width: 180,
+  },
+  artworkRing: {
+    alignItems: "center",
+    borderColor: COLORS.copper,
+    borderRadius: 999,
+    borderWidth: 2,
+    height: 218,
+    justifyContent: "center",
+    width: 218,
+  },
+  artworkRingCompact: {
+    height: 168,
+    width: 168,
+  },
+  coverArt: {
+    backgroundColor: "#fffdf9",
+    borderRadius: 999,
+    height: 208,
+    overflow: "hidden",
+    width: 208,
+  },
+  coverArtCompact: {
+    height: 158,
+    width: 158,
+  },
+  coverArtImage: {
+    height: "100%",
+    transform: [{ scale: 1.45 }],
+    width: "100%",
   },
   title: {
-    color: COLORS.ink,
-    fontSize: 14,
+    color: COLORS.playerInk,
+    fontSize: 17,
     fontWeight: "800",
-    lineHeight: 18,
   },
-  dayText: {
-    color: COLORS.muted,
-    fontSize: 12,
-    lineHeight: 16,
-  },
-  closeButton: {
+  trackIdentity: {
     alignItems: "center",
-    borderRadius: 999,
-    height: 32,
-    justifyContent: "center",
-    width: 32,
+    gap: 7,
+    paddingHorizontal: 12,
+  },
+  trackIdentityCompact: {
+    gap: 3,
+  },
+  trackTitle: {
+    color: COLORS.playerInk,
+    fontSize: 23,
+    fontWeight: "800",
+    lineHeight: 29,
+    textAlign: "center",
+  },
+  trackTitleCompact: {
+    fontSize: 20,
+    lineHeight: 24,
+  },
+  trackSubtitle: {
+    color: COLORS.playerMuted,
+    fontSize: 15,
+    lineHeight: 21,
+    textAlign: "center",
   },
   progressBlock: {
-    gap: 5,
+    gap: 9,
+    paddingHorizontal: 2,
+  },
+  waveformPressable: {
+    height: 62,
+    justifyContent: "center",
+  },
+  waveformPressableCompact: {
+    height: 48,
+  },
+  waveform: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 3,
+    justifyContent: "space-between",
+  },
+  waveformBar: {
+    borderRadius: 999,
+    flex: 1,
+    maxWidth: 4,
+    minWidth: 2,
+  },
+  waveformBarPlayed: {
+    backgroundColor: COLORS.copperSoft,
+  },
+  waveformBarRemaining: {
+    backgroundColor: COLORS.playerMuted,
   },
   controls: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "center",
-    gap: 34,
+    justifyContent: "space-between",
+    paddingHorizontal: 38,
+    paddingTop: 10,
+  },
+  controlsCompact: {
+    paddingHorizontal: 30,
     paddingTop: 4,
   },
   iconButton: {
     alignItems: "center",
     backgroundColor: "transparent",
     borderRadius: 999,
-    height: 42,
+    height: 58,
     justifyContent: "center",
-    width: 42,
+    width: 52,
   },
   skipText: {
-    color: COLORS.muted,
-    fontSize: 8,
+    color: COLORS.playerMuted,
+    fontSize: 11,
     fontWeight: "900",
-    lineHeight: 10,
-    marginTop: -2,
+    lineHeight: 14,
+    marginTop: 2,
   },
   playButton: {
     alignItems: "center",
     backgroundColor: COLORS.copper,
     borderRadius: 999,
-    height: 50,
+    boxShadow: "0 6px 8px rgba(217, 119, 63, 0.28)",
+    height: 74,
     justifyContent: "center",
-    shadowColor: COLORS.copper,
-    shadowOpacity: 0.26,
-    shadowRadius: 10,
-    width: 50,
+    width: 74,
+  },
+  playButtonCompact: {
+    height: 64,
+    width: 64,
   },
   timeRow: {
     alignItems: "center",
@@ -906,32 +1016,32 @@ const styles = StyleSheet.create({
     width: 17,
   },
   timeText: {
-    color: COLORS.muted,
-    fontSize: 10,
+    color: COLORS.playerMuted,
+    fontSize: 13,
     fontVariant: ["tabular-nums"],
     fontWeight: "700",
     minWidth: 36,
   },
   unavailableText: {
-    color: COLORS.danger,
+    color: "#ffd2ca",
     fontSize: 13,
     fontWeight: "700",
   },
   skeletonTitle: {
-    backgroundColor: "#eee6dc",
+    backgroundColor: COLORS.playerTrack,
     borderRadius: 6,
     height: 18,
     width: "58%",
   },
   skeletonControls: {
     alignSelf: "center",
-    backgroundColor: "#eee6dc",
+    backgroundColor: COLORS.playerTrack,
     borderRadius: 999,
     height: 56,
     width: 56,
   },
   skeletonTrack: {
-    backgroundColor: "#eee6dc",
+    backgroundColor: COLORS.playerTrack,
     borderRadius: 999,
     height: 8,
     width: "100%",
