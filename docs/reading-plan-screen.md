@@ -5,7 +5,7 @@
 - Vue Focus : vue mobile par défaut, centrée sur un jour avec rail horizontal scrollable sur tous les jours du plan et auto-positionnement sur le jour courant.
 - Les pastilles du rail Focus ont une largeur fixe et désactivent le scaling texte localement pour éviter la troncature des numéros à deux ou trois chiffres.
 - Les pastilles du rail Focus indiquent l'état de lecture avec la palette de l'application : neutre pour non lu, beige/doré doux pour en cours, cuivre doux pour terminé.
-- Vue Grille : organisation par blocs mensuels, cartes de jour en deux colonnes et recherche locale sur les passages.
+- Vue Grille : organisation par blocs mensuels, cartes de jour en deux colonnes et recherche locale sur les passages. Toute la carte ouvre directement le jour en vue Focus ; les actions de progression restent indépendantes.
 - La préférence de vue est persistée localement sous la clé `reading-view-mode` avec les valeurs `focus` ou `grid`.
 
 ## Logique métier raccordée côté UI et données
@@ -28,7 +28,7 @@
 - `AudioPlayer.tsx` affiche un FAB audio flottant au-dessus de la navigation. Un appui ouvre désormais un lecteur immersif plein écran et lance ou reprend l'audio.
 - Le FAB ferme suit le rendu de reference : cercle cuivre compact, icone Play/Pause blanche et anneau de progression cuivre/clair autour du bouton.
 - Quand le lecteur est ouvert, le FAB est masque. Le lecteur utilise une modale native plein écran afin de recouvrir aussi la barre d'onglets. Le bouton chevron en haut réduit l'interface ; un nouvel appui sur le FAB restaure le plein écran.
-- Le lecteur personnalisé Bérée suit une direction sombre et immersive : logo de marque recadré dans le disque cuivre, titre du jour, forme d'onde pressable, temps courant/durée, retour 10 secondes, Play/Pause central et avance 10 secondes.
+- Le lecteur personnalisé Bérée suit une direction sombre et immersive : logo de marque recadré dans le disque cuivre, passages du jour dans un rail horizontal, numéro du jour mis en évidence, forme d'onde pressable, temps courant/durée, retour 10 secondes, Play/Pause central et avance 10 secondes.
 - Les commandes Play/Pause envoyees par le FAB sont dedupliquees par identifiant pour eviter plusieurs ordres de lecture simultanes.
 - La forme d'onde sert de barre de progression : un appui déplace directement la lecture à la position correspondante et distingue clairement la portion déjà lue.
 - Le FAB utilise une pulsation discrète quand l'audio est disponible, un rebond au toucher, et le lecteur apparaît/disparaît avec une animation courte de fondu + translation.

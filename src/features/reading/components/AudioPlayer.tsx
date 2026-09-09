@@ -10,6 +10,7 @@ import {
   Image,
   Modal,
   Pressable,
+  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -502,6 +503,9 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
   }
 
   const progress = duration > 0 ? clamp(currentTime / duration, 0, 1) : 0;
+  const passageReferences = source.passageReferences?.length
+    ? source.passageReferences
+    : ["Lecture audio du jour"];
 
   return (
     <SafeAreaView
@@ -568,8 +572,30 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
         </View>
 
         <View style={[styles.trackIdentity, isCompact && styles.trackIdentityCompact]}>
-          <Text numberOfLines={2} style={[styles.trackTitle, isCompact && styles.trackTitleCompact]}>Lecture audio du jour</Text>
-          <Text style={styles.trackSubtitle}>Plan de lecture · Jour {source.dayNumber}</Text>
+          <Text style={styles.passagesLabel}>Passages lus</Text>
+          <ScrollView
+            accessibilityLabel="Passages lus dans cet audio"
+            contentContainerStyle={styles.passageRail}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.passageRailViewport}
+          >
+            {passageReferences.map((reference, index) => (
+              <View key={`${reference}-${index}`} style={styles.passageChip}>
+                <Text
+                  numberOfLines={1}
+                  style={[styles.passageChipText, isCompact && styles.passageChipTextCompact]}
+                >
+                  {reference}
+                </Text>
+              </View>
+            ))}
+          </ScrollView>
+          <View style={styles.trackMetaRow}>
+            <Text style={styles.trackSubtitle}>Plan de lecture</Text>
+            <View style={styles.trackMetaDot} />
+            <Text style={styles.trackDay}>Jour {source.dayNumber}</Text>
+          </View>
         </View>
 
         <View style={styles.progressBlock}>
@@ -898,21 +924,60 @@ const styles = StyleSheet.create({
   trackIdentity: {
     alignItems: "center",
     gap: 7,
-    paddingHorizontal: 12,
+    width: "100%",
   },
   trackIdentityCompact: {
     gap: 3,
   },
-  trackTitle: {
-    color: COLORS.playerInk,
-    fontSize: 23,
-    fontWeight: "800",
-    lineHeight: 29,
-    textAlign: "center",
+  passagesLabel: {
+    color: COLORS.playerMuted,
+    fontSize: 12,
+    fontWeight: "700",
   },
-  trackTitleCompact: {
-    fontSize: 20,
-    lineHeight: 24,
+  passageRail: {
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  passageRailViewport: {
+    flexGrow: 0,
+    maxWidth: "100%",
+  },
+  passageChip: {
+    backgroundColor: COLORS.playerSurface,
+    borderColor: COLORS.playerTrack,
+    borderRadius: 999,
+    borderWidth: 1,
+    justifyContent: "center",
+    minHeight: 38,
+    paddingHorizontal: 14,
+  },
+  passageChipText: {
+    color: COLORS.playerInk,
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  passageChipTextCompact: {
+    fontSize: 14,
+  },
+  trackMetaRow: {
+    alignItems: "center",
+    flexDirection: "row",
+    gap: 8,
+    justifyContent: "center",
+  },
+  trackMetaDot: {
+    backgroundColor: COLORS.playerMuted,
+    borderRadius: 999,
+    height: 3,
+    opacity: 0.7,
+    width: 3,
+  },
+  trackDay: {
+    color: COLORS.copperSoft,
+    fontSize: 15,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "800",
+    lineHeight: 21,
   },
   trackSubtitle: {
     color: COLORS.playerMuted,

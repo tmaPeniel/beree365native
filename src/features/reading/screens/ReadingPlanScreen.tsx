@@ -96,6 +96,16 @@ export function ReadingPlanScreen() {
     loading: audioLoading,
     error: audioError,
   } = useDailyAudio(profile?.selected_plan_id, selectedDay?.day_number);
+  const audioWithPassages = useMemo(() => {
+    if (!audio) return null;
+
+    return {
+      ...audio,
+      passageReferences: selectedDay?.passages
+        .map((passage) => passage.reference.trim())
+        .filter(Boolean) || [],
+    };
+  }, [audio, selectedDay]);
   const monthKeys = useMemo(
     () => getMonthKeys(readingDays, startDate),
     [readingDays, startDate],
@@ -329,7 +339,7 @@ export function ReadingPlanScreen() {
           />
         )}
       </ScrollView>
-      <FloatingAudioPlayer error={audioError} loading={audioLoading} source={audio} />
+      <FloatingAudioPlayer error={audioError} loading={audioLoading} source={audioWithPassages} />
     </View>
   );
 }
@@ -686,16 +696,20 @@ function DayCard({
   const isCompleted = readingState === "completed";
 
   return (
-    <MotionView
-      delay={animationDelay}
-      style={[
-        styles.dayCard,
-        { width: cardWidth },
-        readingState === "in-progress" && styles.dayCardInProgress,
-        isCompleted && styles.dayCardDone,
-        isToday && styles.dayCardToday,
-      ]}
-    >
+    <MotionView delay={animationDelay} style={{ width: cardWidth }}>
+      <Pressable
+        accessibilityHint="Affiche les passages détaillés de ce jour"
+        accessibilityLabel={`Ouvrir le jour ${day.day_number} en mode focus`}
+        accessibilityRole="button"
+        onPress={onOpenDay}
+        style={({ pressed }) => [
+          styles.dayCard,
+          readingState === "in-progress" && styles.dayCardInProgress,
+          isCompleted && styles.dayCardDone,
+          isToday && styles.dayCardToday,
+          pressed && styles.dayCardPressed,
+        ]}
+      >
       <View style={styles.dayCardHeader}>
         <View style={styles.dayCardTitleBlock}>
           <Text style={styles.dayCardTitle}>Jour {day.day_number}</Text>
@@ -740,7 +754,10 @@ function DayCard({
       {day.passages.map((passage) => (
         <Pressable
           key={passage.id}
-          onPress={() => onTogglePassage(passage)}
+          onPress={(event) => {
+            event.stopPropagation();
+            onTogglePassage(passage);
+          }}
           style={styles.dayCardPassageRow}
         >
           <View style={[styles.gridCheckbox, passage.status === "completed" && styles.gridCheckboxChecked]}>
@@ -748,13 +765,12 @@ function DayCard({
           </View>
           <View style={styles.dayCardPassageTextBlock}>
             <Text
-              numberOfLines={2}
               style={[styles.dayCardPassageText, passage.status === "completed" && styles.dayCardPassageDone]}
             >
               {passage.reference}
             </Text>
             {!!passage.description && (
-              <Text numberOfLines={2} style={styles.dayCardPassageDescription}>
+              <Text style={styles.dayCardPassageDescription}>
                 {passage.description}
               </Text>
             )}
@@ -763,13 +779,12 @@ function DayCard({
       ))}
 
       <View style={styles.dayCardFooter}>
-        <PressableScale onPress={onOpenDay} pressedScale={0.96} style={styles.openDayButton}>
-          <Text style={styles.openDayButtonText}>Voir</Text>
-          <ChevronRight size={13} color={COLORS.copper} />
-        </PressableScale>
         <PressableScale
           disabled={isCompleted}
-          onPress={onCompleteDay}
+          onPress={(event) => {
+            event.stopPropagation();
+            onCompleteDay();
+          }}
           pressedScale={0.96}
           style={[styles.completeButton, isCompleted && styles.completeButtonDone]}
         >
@@ -779,6 +794,7 @@ function DayCard({
           </Text>
         </PressableScale>
       </View>
+      </Pressable>
     </MotionView>
   );
 }
@@ -1283,6 +1299,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     minHeight: 272,
     padding: 12,
+    width: "100%",
+  },
+  dayCardPressed: {
+    opacity: 0.72,
   },
   dayCardInProgress: {
     backgroundColor: "#fffaf3",
@@ -1298,9 +1318,7 @@ const styles = StyleSheet.create({
   },
   dayCardHeader: {
     alignItems: "flex-start",
-    flexDirection: "row",
-    gap: 8,
-    justifyContent: "space-between",
+    gap: 7,
   },
   dayCardTitleBlock: {
     flex: 1,
@@ -1308,7 +1326,7 @@ const styles = StyleSheet.create({
   },
   dayCardTitle: {
     color: COLORS.ink,
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: "800",
   },
   dayCardDate: {
@@ -1318,6 +1336,7 @@ const styles = StyleSheet.create({
     textTransform: "lowercase",
   },
   dayStateBadge: {
+    alignSelf: "flex-start",
     backgroundColor: "#f4eee8",
     borderRadius: 999,
     paddingHorizontal: 7,
@@ -1334,7 +1353,7 @@ const styles = StyleSheet.create({
   },
   dayStateBadgeText: {
     color: COLORS.muted,
-    fontSize: 9,
+    fontSize: 10,
     fontWeight: "800",
   },
   dayStateBadgeTextDone: {
@@ -1351,7 +1370,8 @@ const styles = StyleSheet.create({
   },
   dayCardProgressText: {
     color: COLORS.muted,
-    fontSize: 10,
+    flexShrink: 1,
+    fontSize: 11,
     fontWeight: "700",
   },
   dayCardProgressTrack: {
@@ -1375,7 +1395,7 @@ const styles = StyleSheet.create({
   },
   dayCardSection: {
     color: COLORS.ink,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: "800",
     marginBottom: 8,
   },
@@ -1401,9 +1421,9 @@ const styles = StyleSheet.create({
   },
   dayCardPassageText: {
     color: COLORS.ink,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: "700",
-    lineHeight: 13,
+    lineHeight: 15,
   },
   dayCardPassageTextBlock: {
     flex: 1,
@@ -1411,8 +1431,8 @@ const styles = StyleSheet.create({
   },
   dayCardPassageDescription: {
     color: COLORS.muted,
-    fontSize: 9,
-    lineHeight: 12,
+    fontSize: 10,
+    lineHeight: 14,
     marginTop: 2,
   },
   dayCardPassageDone: {
@@ -1420,29 +1440,7 @@ const styles = StyleSheet.create({
     textDecorationLine: "line-through",
   },
   dayCardFooter: {
-    alignItems: "center",
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    justifyContent: "space-between",
     marginTop: "auto",
-  },
-  openDayButton: {
-    alignItems: "center",
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    flexGrow: 1,
-    flexDirection: "row",
-    gap: 3,
-    justifyContent: "center",
-    paddingHorizontal: 9,
-    paddingVertical: 6,
-  },
-  openDayButtonText: {
-    color: COLORS.copper,
-    fontSize: 10,
-    fontWeight: "800",
   },
   completeButton: {
     alignItems: "center",
@@ -1450,12 +1448,12 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 999,
     borderWidth: 1,
-    flexGrow: 1,
     flexDirection: "row",
     gap: 6,
     justifyContent: "center",
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 8,
+    width: "100%",
   },
   completeButtonDone: {
     backgroundColor: COLORS.copper,
