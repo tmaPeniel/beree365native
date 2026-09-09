@@ -62,7 +62,7 @@ const avatarStyles = StyleSheet.create({
   },
   initials: {
     color: colors.primary,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     letterSpacing: 0,
   },
 });

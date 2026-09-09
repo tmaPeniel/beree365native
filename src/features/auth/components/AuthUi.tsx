@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Platform, StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
+import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-native";
 import { colors, fonts } from "@/shared/theme/styles";
 
 export const authColors = {
@@ -76,9 +76,8 @@ export const authStyles = StyleSheet.create({
   signupCard: { gap: 16, paddingHorizontal: 20, paddingVertical: 24 },
   title: {
     color: authColors.text,
-    fontFamily: Platform.select({ ios: "Georgia-Bold", android: "serif" }),
+    fontFamily: fonts.semibold,
     fontSize: 19,
-    fontWeight: "700",
     textAlign: "center",
   },
   signupTitle: { fontSize: 20 },
@@ -131,7 +130,7 @@ export const authStyles = StyleSheet.create({
     marginTop: 2,
   },
   primaryButtonDisabled: { opacity: 0.62 },
-  primaryButtonText: { color: "#FFFFFF", fontFamily: fonts.bold, fontSize: 12 },
+  primaryButtonText: { color: "#FFFFFF", fontFamily: fonts.semibold, fontSize: 12 },
   switchText: {
     color: authColors.primary,
     fontFamily: fonts.regular,

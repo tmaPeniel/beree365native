@@ -15,10 +15,9 @@ export const colors = {
 
 export const fonts = {
   regular: "Inter_400Regular",
+  regularItalic: "Inter_400Regular_Italic",
   medium: "Inter_500Medium",
   semibold: "Inter_600SemiBold",
-  bold: "Inter_700Bold",
-  boldItalic: "Inter_700Bold_Italic",
 };
 
 export const styles = StyleSheet.create({
@@ -38,13 +37,13 @@ export const styles = StyleSheet.create({
   },
   title: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 30,
     letterSpacing: 0,
   },
   heading: {
     color: colors.text,
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 22,
     letterSpacing: 0,
   },
@@ -89,7 +88,7 @@ export const styles = StyleSheet.create({
   },
   primaryButtonText: {
     color: "#FFFFFF",
-    fontFamily: fonts.bold,
+    fontFamily: fonts.semibold,
     fontSize: 16,
   },
   secondaryButton: {

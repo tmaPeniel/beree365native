@@ -3,7 +3,7 @@ import { ActivityIndicator, Alert, Pressable, ScrollView, Text, View } from "rea
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useDateService } from "@/features/reading/hooks/useDateService";
 import { getUserProgressForDay, toggleChapterStatus } from "@/features/reading/services/readingPlan";
-import { colors, styles } from "@/shared/theme/styles";
+import { colors, fonts, styles } from "@/shared/theme/styles";
 
 type DayProgress = Awaited<ReturnType<typeof getUserProgressForDay>>;
 
@@ -93,11 +93,11 @@ export function ReadingScreen() {
                   },
                 ]}
               >
-                <Text style={{ color: colors.text, fontSize: 17, fontWeight: "800" }}>
+                <Text style={{ color: colors.text, fontFamily: fonts.semibold, fontSize: 17 }}>
                   {chapter.reference}
                 </Text>
                 {!!chapter.description && <Text style={styles.subheading}>{chapter.description}</Text>}
-                <Text style={{ color: done ? colors.primary : colors.muted, fontWeight: "800" }}>
+                <Text style={{ color: done ? colors.primary : colors.muted, fontFamily: fonts.medium }}>
                   {done ? "Passage lu" : "Marquer comme lu"}
                 </Text>
               </Pressable>
@@ -106,7 +106,7 @@ export function ReadingScreen() {
         )}
       </View>
 
-      <Text style={{ color: colors.muted, fontSize: 13, lineHeight: 20 }}>
+      <Text style={{ color: colors.muted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 20 }}>
         TODO: migrer la vue complète du plan avec FlatList, recherche biblique et détail par jour.
       </Text>
     </ScrollView>

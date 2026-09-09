@@ -41,6 +41,7 @@ import {
   type ReadingPlanProgressPassage,
 } from "@/features/reading/services/readingPlan";
 import { AnimatedProgressBar, MotionView, PressableScale } from "@/shared/animation/Motion";
+import { fonts } from "@/shared/theme/styles";
 
 type ReadingViewMode = "focus" | "grid";
 type DayReadingState = "pending" | "in-progress" | "completed";
@@ -941,11 +942,12 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 20,
-    fontWeight: "800",
   },
   subtitle: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 14,
     marginTop: 14,
   },
@@ -976,15 +978,17 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 14,
   },
   emptyTitle: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 17,
-    fontWeight: "800",
   },
   emptyText: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 20,
     textAlign: "center",
@@ -1002,14 +1006,15 @@ const styles = StyleSheet.create({
   },
   heroSmall: {
     color: "rgba(255,255,255,0.72)",
+    fontFamily: fonts.regular,
     fontSize: 13,
     marginTop: 44,
     textAlign: "center",
   },
   heroTitle: {
     color: "#fff",
+    fontFamily: fonts.semibold,
     fontSize: 22,
-    fontWeight: "800",
     marginTop: 8,
   },
   heroProgressRow: {
@@ -1020,8 +1025,8 @@ const styles = StyleSheet.create({
   },
   heroProgressLabel: {
     color: "#fff",
+    fontFamily: fonts.medium,
     fontSize: 12,
-    fontWeight: "700",
   },
   heroTrack: {
     backgroundColor: "rgba(255,255,255,0.38)",
@@ -1070,8 +1075,8 @@ const styles = StyleSheet.create({
   },
   dayPillNumber: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 14,
-    fontWeight: "800",
     lineHeight: 19,
     textAlign: "center",
     width: "100%",
@@ -1081,6 +1086,7 @@ const styles = StyleSheet.create({
   },
   dayPillDate: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 9,
     lineHeight: 12,
     marginTop: 3,
@@ -1130,23 +1136,24 @@ const styles = StyleSheet.create({
   },
   focusTitle: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 16,
-    fontWeight: "800",
   },
   focusTitleMuted: {
     color: COLORS.muted,
-    fontWeight: "400",
+    fontFamily: fonts.regular,
   },
   focusDate: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 13,
     marginTop: 12,
     textTransform: "capitalize",
   },
   focusPercent: {
     color: COLORS.muted,
+    fontFamily: fonts.medium,
     fontSize: 13,
-    fontWeight: "800",
   },
   focusPassages: {
     gap: 11,
@@ -1192,8 +1199,8 @@ const styles = StyleSheet.create({
   },
   passageText: {
     color: COLORS.ink,
+    fontFamily: fonts.medium,
     fontSize: 14,
-    fontWeight: "700",
   },
   passageTextDone: {
     color: COLORS.muted,
@@ -1201,6 +1208,7 @@ const styles = StyleSheet.create({
   },
   passageDescription: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 11,
     marginTop: 3,
   },
@@ -1218,6 +1226,7 @@ const styles = StyleSheet.create({
   searchInput: {
     color: COLORS.ink,
     flex: 1,
+    fontFamily: fonts.regular,
     fontSize: 13,
     marginLeft: 10,
     paddingVertical: 8,
@@ -1245,8 +1254,8 @@ const styles = StyleSheet.create({
   },
   currentDayChipText: {
     color: COLORS.copper,
+    fontFamily: fonts.medium,
     fontSize: 13,
-    fontWeight: "800",
   },
   currentDayNumberBadge: {
     alignItems: "center",
@@ -1259,9 +1268,9 @@ const styles = StyleSheet.create({
   },
   currentDayNumberText: {
     color: "#fff",
+    fontFamily: fonts.semibold,
     fontSize: 13,
     fontVariant: ["tabular-nums"],
-    fontWeight: "900",
   },
   searchSummary: {
     alignItems: "center",
@@ -1275,11 +1284,12 @@ const styles = StyleSheet.create({
   },
   searchSummaryTitle: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 13,
-    fontWeight: "800",
   },
   searchSummaryText: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 12,
     marginTop: 3,
   },
@@ -1294,11 +1304,12 @@ const styles = StyleSheet.create({
   },
   searchEmptyTitle: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 15,
-    fontWeight: "800",
   },
   searchEmptyText: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 12,
     lineHeight: 17,
     marginTop: 6,
@@ -1318,8 +1329,8 @@ const styles = StyleSheet.create({
   },
   searchEmptyButtonText: {
     color: COLORS.ink,
+    fontFamily: fonts.medium,
     fontSize: 12,
-    fontWeight: "800",
   },
   monthNav: {
     alignItems: "center",
@@ -1365,16 +1376,16 @@ const styles = StyleSheet.create({
   },
   monthButtonText: {
     color: COLORS.ink,
+    fontFamily: fonts.medium,
     fontSize: 12,
-    fontWeight: "700",
     paddingHorizontal: 23,
     textAlign: "center",
     width: "100%",
   },
   monthTitle: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 18,
-    fontWeight: "900",
     textAlign: "center",
     textTransform: "capitalize",
     width: "100%",
@@ -1421,9 +1432,9 @@ const styles = StyleSheet.create({
   },
   dayCardTitle: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 14,
     fontVariant: ["tabular-nums"],
-    fontWeight: "900",
     lineHeight: 19,
   },
   dayStateBadge: {
@@ -1449,8 +1460,8 @@ const styles = StyleSheet.create({
   },
   dayStateBadgeText: {
     color: COLORS.muted,
+    fontFamily: fonts.medium,
     fontSize: 11,
-    fontWeight: "800",
     lineHeight: 15,
     textAlign: "center",
   },
@@ -1469,8 +1480,8 @@ const styles = StyleSheet.create({
   dayCardProgressText: {
     color: COLORS.muted,
     flexShrink: 1,
+    fontFamily: fonts.medium,
     fontSize: 11,
-    fontWeight: "700",
   },
   dayCardProgressTrack: {
     backgroundColor: "#f0e7df",
@@ -1493,8 +1504,8 @@ const styles = StyleSheet.create({
   },
   dayCardSection: {
     color: COLORS.ink,
+    fontFamily: fonts.semibold,
     fontSize: 12,
-    fontWeight: "800",
     marginBottom: 8,
   },
   dayCardPassageRow: {
@@ -1519,8 +1530,8 @@ const styles = StyleSheet.create({
   },
   dayCardPassageText: {
     color: COLORS.ink,
+    fontFamily: fonts.medium,
     fontSize: 11,
-    fontWeight: "700",
     lineHeight: 15,
   },
   dayCardPassageTextBlock: {
@@ -1529,6 +1540,7 @@ const styles = StyleSheet.create({
   },
   dayCardPassageDescription: {
     color: COLORS.muted,
+    fontFamily: fonts.regular,
     fontSize: 10,
     lineHeight: 14,
     marginTop: 2,
@@ -1566,8 +1578,8 @@ const styles = StyleSheet.create({
   },
   completeButtonText: {
     color: COLORS.ink,
+    fontFamily: fonts.medium,
     fontSize: 11,
-    fontWeight: "800",
     paddingHorizontal: 20,
     textAlign: "center",
     width: "100%",
@@ -1577,7 +1589,7 @@ const styles = StyleSheet.create({
   },
   dayCardProgress: {
     color: COLORS.muted,
+    fontFamily: fonts.medium,
     fontSize: 11,
-    fontWeight: "800",
   },
 });

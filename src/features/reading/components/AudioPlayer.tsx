@@ -22,6 +22,7 @@ import {
   extractYouTubeVideoId,
   type AudioSource,
 } from "@/features/reading/services/audioService";
+import { fonts } from "@/shared/theme/styles";
 import Svg, { Circle } from "react-native-svg";
 
 const COLORS = {
@@ -875,8 +876,8 @@ const styles = StyleSheet.create({
   nowPlayingLabel: {
     color: COLORS.playerInk,
     flex: 1,
+    fontFamily: fonts.semibold,
     fontSize: 16,
-    fontWeight: "700",
     letterSpacing: 0.1,
     textAlign: "center",
   },
@@ -905,12 +906,13 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     color: COLORS.playerInk,
+    fontFamily: fonts.semibold,
     fontSize: 20,
-    fontWeight: "800",
     textAlign: "center",
   },
   errorText: {
     color: COLORS.playerMuted,
+    fontFamily: fonts.regular,
     fontSize: 14,
     lineHeight: 21,
     textAlign: "center",
@@ -965,8 +967,8 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.playerInk,
+    fontFamily: fonts.semibold,
     fontSize: 17,
-    fontWeight: "800",
   },
   trackIdentity: {
     alignItems: "center",
@@ -988,8 +990,8 @@ const styles = StyleSheet.create({
   trackTitle: {
     color: COLORS.playerInk,
     flexShrink: 0,
+    fontFamily: fonts.semibold,
     fontSize: 19,
-    fontWeight: "900",
     lineHeight: 26,
     textAlign: "center",
   },
@@ -1012,13 +1014,14 @@ const styles = StyleSheet.create({
   },
   trackDay: {
     color: COLORS.copperSoft,
+    fontFamily: fonts.semibold,
     fontSize: 15,
     fontVariant: ["tabular-nums"],
-    fontWeight: "800",
     lineHeight: 21,
   },
   trackSubtitle: {
     color: COLORS.playerMuted,
+    fontFamily: fonts.regular,
     fontSize: 15,
     lineHeight: 21,
     textAlign: "center",
@@ -1073,8 +1076,8 @@ const styles = StyleSheet.create({
   },
   skipText: {
     color: COLORS.playerMuted,
+    fontFamily: fonts.semibold,
     fontSize: 11,
-    fontWeight: "900",
     lineHeight: 14,
     marginTop: 2,
   },
@@ -1120,15 +1123,15 @@ const styles = StyleSheet.create({
   },
   timeText: {
     color: COLORS.playerMuted,
+    fontFamily: fonts.medium,
     fontSize: 13,
     fontVariant: ["tabular-nums"],
-    fontWeight: "700",
     minWidth: 36,
   },
   unavailableText: {
     color: "#ffd2ca",
+    fontFamily: fonts.medium,
     fontSize: 13,
-    fontWeight: "700",
   },
   skeletonTitle: {
     backgroundColor: COLORS.playerTrack,
