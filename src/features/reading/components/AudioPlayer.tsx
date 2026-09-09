@@ -503,9 +503,13 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
   }
 
   const progress = duration > 0 ? clamp(currentTime / duration, 0, 1) : 0;
-  const passageReferences = source.passageReferences?.length
-    ? source.passageReferences
-    : ["Lecture audio du jour"];
+  const passageTitle = source.passageReferences?.length
+    ? source.passageReferences.join(", ")
+    : "Lecture audio du jour";
+  const displayedDayNumber =
+    Number.isFinite(source.dayNumber) && source.dayNumber > 0
+      ? Math.round(source.dayNumber)
+      : 1;
 
   return (
     <SafeAreaView
@@ -572,29 +576,26 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
         </View>
 
         <View style={[styles.trackIdentity, isCompact && styles.trackIdentityCompact]}>
-          <Text style={styles.passagesLabel}>Passages lus</Text>
           <ScrollView
-            accessibilityLabel="Passages lus dans cet audio"
-            contentContainerStyle={styles.passageRail}
+            accessibilityLabel={`Lecture de ${passageTitle}`}
+            bounces={false}
+            contentContainerStyle={styles.trackTitleContent}
+            directionalLockEnabled
             horizontal
             showsHorizontalScrollIndicator={false}
-            style={styles.passageRailViewport}
+            style={styles.trackTitleViewport}
           >
-            {passageReferences.map((reference, index) => (
-              <View key={`${reference}-${index}`} style={styles.passageChip}>
-                <Text
-                  numberOfLines={1}
-                  style={[styles.passageChipText, isCompact && styles.passageChipTextCompact]}
-                >
-                  {reference}
-                </Text>
-              </View>
-            ))}
+            <Text
+              numberOfLines={1}
+              style={[styles.trackTitle, isCompact && styles.trackTitleCompact]}
+            >
+              {passageTitle}
+            </Text>
           </ScrollView>
           <View style={styles.trackMetaRow}>
             <Text style={styles.trackSubtitle}>Plan de lecture</Text>
             <View style={styles.trackMetaDot} />
-            <Text style={styles.trackDay}>Jour {source.dayNumber}</Text>
+            <Text style={styles.trackDay}>Jour {displayedDayNumber}</Text>
           </View>
         </View>
 
@@ -929,35 +930,25 @@ const styles = StyleSheet.create({
   trackIdentityCompact: {
     gap: 3,
   },
-  passagesLabel: {
-    color: COLORS.playerMuted,
-    fontSize: 12,
-    fontWeight: "700",
-  },
-  passageRail: {
-    gap: 8,
-    paddingHorizontal: 16,
-  },
-  passageRailViewport: {
+  trackTitleViewport: {
     flexGrow: 0,
     maxWidth: "100%",
+    width: "100%",
   },
-  passageChip: {
-    backgroundColor: COLORS.playerSurface,
-    borderColor: COLORS.playerTrack,
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 38,
-    paddingHorizontal: 14,
+  trackTitleContent: {
+    alignItems: "center",
+    minWidth: "100%",
+    paddingHorizontal: 16,
   },
-  passageChipText: {
+  trackTitle: {
     color: COLORS.playerInk,
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 19,
+    fontWeight: "900",
+    lineHeight: 26,
   },
-  passageChipTextCompact: {
-    fontSize: 14,
+  trackTitleCompact: {
+    fontSize: 16,
+    lineHeight: 22,
   },
   trackMetaRow: {
     alignItems: "center",

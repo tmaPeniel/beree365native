@@ -557,6 +557,10 @@ function GridView({
     });
   }, [isSearching, normalizedQuery, readingDays, startDate]);
   const visibleDays = isSearching ? searchDays : monthDays;
+  const displayedCurrentDay =
+    Number.isFinite(currentDayNumber) && currentDayNumber > 0
+      ? Math.round(currentDayNumber)
+      : 1;
 
   const canGoPrevious = safeMonthIndex > 0;
   const canGoNext = safeMonthIndex < monthKeys.length - 1;
@@ -586,7 +590,12 @@ function GridView({
 
       <PressableScale onPress={onGoToCurrentDay} pressedScale={0.96} style={styles.currentDayChip}>
         <CalendarDays size={14} color={COLORS.copper} />
-        <Text style={styles.currentDayChipText}>Jour {currentDayNumber}</Text>
+        <Text maxFontSizeMultiplier={1.15} style={styles.currentDayChipText}>Jour actuel</Text>
+        <View style={styles.currentDayNumberBadge}>
+          <Text maxFontSizeMultiplier={1.15} style={styles.currentDayNumberText}>
+            {displayedCurrentDay}
+          </Text>
+        </View>
       </PressableScale>
 
       {isSearching ? (
@@ -598,23 +607,39 @@ function GridView({
         </MotionView>
       ) : (
       <MotionView delay={160} style={styles.monthNav}>
-        <Pressable
-          disabled={!canGoPrevious}
-          onPress={() => onChangeMonth(monthKeys[safeMonthIndex - 1])}
-          style={[styles.monthButton, !canGoPrevious && styles.monthButtonDisabled]}
-        >
-          <ChevronLeft size={16} color={COLORS.ink} />
-          <Text style={styles.monthButtonText}>Précédent</Text>
-        </Pressable>
-        <Text style={styles.monthTitle}>{formatMonthTitle(monthKey)}</Text>
-        <Pressable
-          disabled={!canGoNext}
-          onPress={() => onChangeMonth(monthKeys[safeMonthIndex + 1])}
-          style={[styles.monthButton, !canGoNext && styles.monthButtonDisabled]}
-        >
-          <Text style={styles.monthButtonText}>Suivant</Text>
-          <ChevronRight size={16} color={COLORS.ink} />
-        </Pressable>
+        <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={styles.monthTitle}>
+          {formatMonthTitle(monthKey)}
+        </Text>
+        <View style={styles.monthControls}>
+          <Pressable
+            disabled={!canGoPrevious}
+            onPress={() => onChangeMonth(monthKeys[safeMonthIndex - 1])}
+            style={({ pressed }) => [
+              styles.monthButton,
+              !canGoPrevious && styles.monthButtonDisabled,
+              pressed && canGoPrevious && styles.monthButtonPressed,
+            ]}
+          >
+            <ChevronLeft size={16} color={COLORS.ink} />
+            <Text maxFontSizeMultiplier={1.15} numberOfLines={1} style={styles.monthButtonText}>
+              Précédent
+            </Text>
+          </Pressable>
+          <Pressable
+            disabled={!canGoNext}
+            onPress={() => onChangeMonth(monthKeys[safeMonthIndex + 1])}
+            style={({ pressed }) => [
+              styles.monthButton,
+              !canGoNext && styles.monthButtonDisabled,
+              pressed && canGoNext && styles.monthButtonPressed,
+            ]}
+          >
+            <Text maxFontSizeMultiplier={1.15} numberOfLines={1} style={styles.monthButtonText}>
+              Suivant
+            </Text>
+            <ChevronRight size={16} color={COLORS.ink} />
+          </Pressable>
+        </View>
       </MotionView>
       )}
 
@@ -626,7 +651,6 @@ function GridView({
             cardWidth={cardWidth}
             day={day}
             isToday={day.day_number === currentDayNumber}
-            startDate={startDate}
             onCompleteDay={() => onCompleteDay(day)}
             onOpenDay={() => onOpenDay(day)}
             onTogglePassage={onTogglePassage}
@@ -675,7 +699,6 @@ function DayCard({
   cardWidth,
   day,
   isToday,
-  startDate,
   onCompleteDay,
   onOpenDay,
   onTogglePassage,
@@ -684,7 +707,6 @@ function DayCard({
   cardWidth: number;
   day: ReadingPlanProgressDay;
   isToday: boolean;
-  startDate: string;
   onCompleteDay: () => void;
   onOpenDay: () => void;
   onTogglePassage: (passage: ReadingPlanProgressPassage) => void;
@@ -713,7 +735,6 @@ function DayCard({
       <View style={styles.dayCardHeader}>
         <View style={styles.dayCardTitleBlock}>
           <Text style={styles.dayCardTitle}>Jour {day.day_number}</Text>
-          <Text style={styles.dayCardDate}>{formatDayMonth(getDayDate(startDate, day.day_number))}</Text>
         </View>
         <View
           style={[
@@ -724,6 +745,8 @@ function DayCard({
           ]}
         >
           <Text
+            maxFontSizeMultiplier={1.15}
+            numberOfLines={1}
             style={[
               styles.dayStateBadgeText,
               isCompleted && styles.dayStateBadgeTextDone,
@@ -779,20 +802,27 @@ function DayCard({
       ))}
 
       <View style={styles.dayCardFooter}>
-        <PressableScale
+        <Pressable
           disabled={isCompleted}
           onPress={(event) => {
             event.stopPropagation();
             onCompleteDay();
           }}
-          pressedScale={0.96}
-          style={[styles.completeButton, isCompleted && styles.completeButtonDone]}
+          style={({ pressed }) => [
+            styles.completeButton,
+            isCompleted && styles.completeButtonDone,
+            pressed && !isCompleted && styles.completeButtonPressed,
+          ]}
         >
           <Check size={14} color={isCompleted ? "#fff" : COLORS.ink} />
-          <Text style={[styles.completeButtonText, isCompleted && styles.completeButtonTextDone]}>
-            {isCompleted ? "Termine" : "Tout cocher"}
+          <Text
+            maxFontSizeMultiplier={1.15}
+            numberOfLines={1}
+            style={[styles.completeButtonText, isCompleted && styles.completeButtonTextDone]}
+          >
+            {isCompleted ? "Terminé" : "Tout cocher"}
           </Text>
-        </PressableScale>
+        </Pressable>
       </View>
       </Pressable>
     </MotionView>
@@ -820,9 +850,9 @@ function getDayReadingState(day: ReadingPlanProgressDay): DayReadingState {
 }
 
 function getDayStateLabel(state: DayReadingState) {
-  if (state === "completed") return "Termine";
+  if (state === "completed") return "Terminé";
   if (state === "in-progress") return "En cours";
-  return "A lire";
+  return "À lire";
 }
 
 function getDayDate(startDate: string, dayNumber: number) {
@@ -1194,6 +1224,21 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "800",
   },
+  currentDayNumberBadge: {
+    alignItems: "center",
+    backgroundColor: COLORS.copper,
+    borderRadius: 999,
+    justifyContent: "center",
+    minHeight: 24,
+    minWidth: 30,
+    paddingHorizontal: 7,
+  },
+  currentDayNumberText: {
+    color: "#fff",
+    fontSize: 13,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "900",
+  },
   searchSummary: {
     alignItems: "center",
     backgroundColor: "#fff",
@@ -1256,26 +1301,35 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#fff",
     borderRadius: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
+    gap: 12,
     marginBottom: 20,
     padding: 15,
     shadowColor: "#000",
     shadowOpacity: 0.04,
     shadowRadius: 10,
   },
+  monthControls: {
+    flexDirection: "row",
+    gap: 10,
+    width: "100%",
+  },
   monthButton: {
     alignItems: "center",
     borderColor: COLORS.border,
     borderRadius: 10,
     borderWidth: 1,
+    flex: 1,
     flexDirection: "row",
     gap: 6,
+    justifyContent: "center",
+    minHeight: 42,
     paddingHorizontal: 10,
-    paddingVertical: 9,
   },
   monthButtonDisabled: {
     opacity: 0.35,
+  },
+  monthButtonPressed: {
+    backgroundColor: COLORS.chip,
   },
   monthButtonText: {
     color: COLORS.ink,
@@ -1284,8 +1338,9 @@ const styles = StyleSheet.create({
   },
   monthTitle: {
     color: COLORS.ink,
-    fontSize: 16,
-    fontWeight: "800",
+    fontSize: 18,
+    fontWeight: "900",
+    textTransform: "capitalize",
   },
   grid: {
     flexDirection: "row",
@@ -1328,12 +1383,6 @@ const styles = StyleSheet.create({
     color: COLORS.ink,
     fontSize: 13,
     fontWeight: "800",
-  },
-  dayCardDate: {
-    color: COLORS.muted,
-    fontSize: 11,
-    marginTop: 2,
-    textTransform: "lowercase",
   },
   dayStateBadge: {
     alignSelf: "flex-start",
@@ -1459,9 +1508,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.copper,
     borderColor: COLORS.copper,
   },
+  completeButtonPressed: {
+    backgroundColor: COLORS.chip,
+  },
   completeButtonText: {
     color: COLORS.ink,
-    fontSize: 10,
+    flexShrink: 1,
+    fontSize: 11,
     fontWeight: "800",
   },
   completeButtonTextDone: {
