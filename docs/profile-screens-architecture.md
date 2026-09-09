@@ -114,6 +114,7 @@ Ce document decrit l'architecture fonctionnelle cible des ecrans Profil natifs. 
   - Choix camera ou galerie avec `expo-image-picker`.
   - Recadrage carre, apercu natif avec `expo-image`, puis upload dans le bucket public Supabase `avatars`.
   - Sauvegarde de l'URL dans `profiles.avatar_url` et rafraichissement immediat du profil.
+  - Retrait confirme de la photo, avec suppression du fichier Storage et retour aux initiales.
   - Limite serveur de 8 Mo et politiques Storage restreignant l'ecriture au dossier de l'utilisateur connecte.
 - Champs valides :
   - Nom complet.

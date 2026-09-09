@@ -42,7 +42,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { updateUserProfile } from "@/features/auth/services/auth";
 import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
-import { uploadProfileAvatar } from "@/features/profile/services/avatar-service";
+import { removeProfileAvatar, uploadProfileAvatar } from "@/features/profile/services/avatar-service";
 import {
   Badge,
   getAllBadges,
@@ -423,15 +423,16 @@ export function EditProfileScreen() {
   const [startDate, setStartDate] = useState(profile?.start_date || "");
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const [avatarOperation, setAvatarOperation] = useState<"upload" | "remove" | null>(null);
   const initials = getProfileInitials(fullName, user?.email);
+  const isUpdatingAvatar = avatarOperation !== null;
 
   useEffect(() => {
     setAvatarUrl(profile?.avatar_url || null);
   }, [profile?.avatar_url]);
 
   const pickAvatar = async (source: "camera" | "library") => {
-    if (!user?.id || isUploadingAvatar) return;
+    if (!user?.id || isUpdatingAvatar) return;
 
     const permission = source === "camera"
       ? await ImagePicker.requestCameraPermissionsAsync()
@@ -463,14 +464,14 @@ export function EditProfileScreen() {
 
     if (result.canceled || !result.assets[0]) return;
 
-    setIsUploadingAvatar(true);
+    setAvatarOperation("upload");
     const asset = result.assets[0];
     const uploadResult = await uploadProfileAvatar({
       mimeType: asset.mimeType,
       uri: asset.uri,
       userId: user.id,
     });
-    setIsUploadingAvatar(false);
+    setAvatarOperation(null);
 
     if (uploadResult.success === false) {
       Alert.alert("Photo de profil", uploadResult.error);
@@ -479,6 +480,33 @@ export function EditProfileScreen() {
 
     setAvatarUrl(uploadResult.avatarUrl);
     await refreshProfile();
+  };
+
+  const removeAvatar = async () => {
+    if (!user?.id || !avatarUrl || isUpdatingAvatar) return;
+
+    setAvatarOperation("remove");
+    const removeResult = await removeProfileAvatar(user.id);
+    setAvatarOperation(null);
+
+    if (removeResult.success === false) {
+      Alert.alert("Photo de profil", removeResult.error);
+      return;
+    }
+
+    setAvatarUrl(null);
+    await refreshProfile();
+  };
+
+  const confirmAvatarRemoval = () => {
+    Alert.alert(
+      "Retirer la photo ?",
+      "Votre photo de profil sera supprimée. Vos initiales seront affichées à la place.",
+      [
+        { text: "Annuler", style: "cancel" },
+        { text: "Retirer", style: "destructive", onPress: () => void removeAvatar() },
+      ],
+    );
   };
 
   const chooseAvatarSource = () => {
@@ -511,17 +539,17 @@ export function EditProfileScreen() {
         <Pressable
           accessibilityLabel="Changer la photo de profil"
           accessibilityRole="button"
-          disabled={isUploadingAvatar}
+          disabled={isUpdatingAvatar}
           onPress={chooseAvatarSource}
           style={({ pressed }) => [
             s.avatarPicker,
-            pressed && !isUploadingAvatar && s.avatarPickerPressed,
+            pressed && !isUpdatingAvatar && s.avatarPickerPressed,
           ]}
         >
           <View style={s.avatarPreviewWrap}>
             <ProfileAvatar avatarUrl={avatarUrl} initials={initials} size={96} />
             <View style={s.avatarActionBadge}>
-              {isUploadingAvatar ? (
+              {avatarOperation === "upload" ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <Camera color="#FFFFFF" size={17} strokeWidth={2.2} />
@@ -530,11 +558,34 @@ export function EditProfileScreen() {
           </View>
           <View style={s.avatarPickerCopy}>
             <Text style={s.rowTitle}>
-              {isUploadingAvatar ? "Envoi de la photo…" : "Changer la photo"}
+              {avatarOperation === "upload" ? "Envoi de la photo…" : "Changer la photo"}
             </Text>
             <Text style={styles.subheading}>Prendre une photo ou en choisir une dans la photothèque.</Text>
           </View>
         </Pressable>
+
+        {!!avatarUrl && (
+          <Pressable
+            accessibilityLabel="Retirer la photo de profil"
+            accessibilityRole="button"
+            disabled={isUpdatingAvatar}
+            onPress={confirmAvatarRemoval}
+            style={({ pressed }) => [
+              s.removeAvatarButton,
+              pressed && !isUpdatingAvatar && s.removeAvatarButtonPressed,
+              isUpdatingAvatar && s.disabledButton,
+            ]}
+          >
+            {avatarOperation === "remove" ? (
+              <ActivityIndicator color={colors.danger} size="small" />
+            ) : (
+              <Trash2 color={colors.danger} size={18} strokeWidth={2} />
+            )}
+            <Text style={s.removeAvatarText}>
+              {avatarOperation === "remove" ? "Suppression…" : "Retirer la photo"}
+            </Text>
+          </Pressable>
+        )}
 
         <View style={s.card}>
           <Text style={s.inputLabel}>Nom complet</Text>
@@ -558,9 +609,9 @@ export function EditProfileScreen() {
 
       <View style={[s.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Pressable
-          disabled={isSaving || isUploadingAvatar}
+          disabled={isSaving || isUpdatingAvatar}
           onPress={save}
-          style={[styles.primaryButton, (isSaving || isUploadingAvatar) && s.disabledButton]}
+          style={[styles.primaryButton, (isSaving || isUpdatingAvatar) && s.disabledButton]}
         >
           <Text style={styles.primaryButtonText}>
             {isSaving ? "Enregistrement..." : "Enregistrer"}
@@ -630,6 +681,9 @@ const s = StyleSheet.create({
   progressLabel: { color: colors.muted, fontFamily: fonts.semibold, fontSize: 14 },
   progressValue: { color: colors.text, fontFamily: fonts.bold, fontSize: 36 },
   progressWrap: { alignItems: "center", height: 170, justifyContent: "center", width: 170 },
+  removeAvatarButton: { alignItems: "center", alignSelf: "center", flexDirection: "row", gap: 8, minHeight: 44, paddingHorizontal: 14, paddingVertical: 10 },
+  removeAvatarButtonPressed: { opacity: 0.68 },
+  removeAvatarText: { color: colors.danger, fontFamily: fonts.semibold, fontSize: 14 },
   roundIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 42, justifyContent: "center", width: 42 },
   rowBetween: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   rowLeft: { alignItems: "center", flexDirection: "row", gap: 10 },

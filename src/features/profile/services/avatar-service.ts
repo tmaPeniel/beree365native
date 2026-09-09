@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const AVATAR_BUCKET = "avatars";
 const MAX_AVATAR_BYTES = 8 * 1024 * 1024;
+const AVATAR_EXTENSIONS = ["jpg", "png", "webp", "heic", "heif"] as const;
 
 type UploadAvatarInput = {
   mimeType?: string | null;
@@ -12,6 +13,10 @@ type UploadAvatarInput = {
 
 type UploadAvatarResult =
   | { success: true; avatarUrl: string }
+  | { success: false; error: string };
+
+type RemoveAvatarResult =
+  | { success: true }
   | { success: false; error: string };
 
 function extensionForMimeType(mimeType?: string | null) {
@@ -69,6 +74,31 @@ export async function uploadProfileAvatar({
     return {
       success: false,
       error: error?.message || "Impossible de mettre à jour la photo de profil.",
+    };
+  }
+}
+
+export async function removeProfileAvatar(userId: string): Promise<RemoveAvatarResult> {
+  try {
+    const objectPaths = AVATAR_EXTENSIONS.map((extension) => `${userId}/avatar.${extension}`);
+    const { error: removeError } = await supabase.storage
+      .from(AVATAR_BUCKET)
+      .remove(objectPaths);
+
+    if (removeError) throw removeError;
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({ avatar_url: null })
+      .eq("id", userId);
+
+    if (profileError) throw profileError;
+
+    return { success: true };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error?.message || "Impossible de retirer la photo de profil.",
     };
   }
 }
