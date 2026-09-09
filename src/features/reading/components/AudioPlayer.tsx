@@ -302,17 +302,64 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
   const currentTimeRef = useRef(0);
   const lastCommandIdRef = useRef<number | null>(null);
   const playerRef = useRef<YoutubeIframeRef | null>(null);
+  const titleScrollRef = useRef<ScrollView | null>(null);
+  const titleScrollPosition = useRef(new Animated.Value(0)).current;
   const pauseTokenRef = useRef(0);
   const playRequestedRef = useRef(false);
   const playerReadyRef = useRef(false);
   const startTokenRef = useRef(0);
   const videoId = useMemo(() => extractYouTubeVideoId(source.sourceUrl), [source.sourceUrl]);
+  const passageTitle = useMemo(
+    () => source.passageReferences?.length
+      ? source.passageReferences.join(", ")
+      : "Lecture audio du jour",
+    [source.passageReferences],
+  );
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(source.durationSeconds || 0);
   const [hasPlayerError, setHasPlayerError] = useState(false);
   const [playerKey, setPlayerKey] = useState(0);
   const [trackWidth, setTrackWidth] = useState(0);
+  const [titleContentWidth, setTitleContentWidth] = useState(0);
+  const [titleViewportWidth, setTitleViewportWidth] = useState(0);
+
+  useEffect(() => {
+    const listenerId = titleScrollPosition.addListener(({ value }) => {
+      titleScrollRef.current?.scrollTo({ animated: false, x: value, y: 0 });
+    });
+
+    return () => titleScrollPosition.removeListener(listenerId);
+  }, [titleScrollPosition]);
+
+  useEffect(() => {
+    titleScrollPosition.stopAnimation();
+    titleScrollPosition.setValue(0);
+
+    const overflowWidth = Math.max(0, titleContentWidth - titleViewportWidth);
+    if (overflowWidth <= 1) return undefined;
+
+    const marquee = Animated.loop(
+      Animated.sequence([
+        Animated.delay(1200),
+        Animated.timing(titleScrollPosition, {
+          duration: Math.max(2800, overflowWidth * 35),
+          easing: Easing.linear,
+          toValue: overflowWidth,
+          useNativeDriver: false,
+        }),
+        Animated.delay(900),
+        Animated.timing(titleScrollPosition, {
+          duration: 0,
+          toValue: 0,
+          useNativeDriver: false,
+        }),
+      ]),
+    );
+
+    marquee.start();
+    return () => marquee.stop();
+  }, [passageTitle, titleContentWidth, titleScrollPosition, titleViewportWidth]);
 
   useEffect(() => {
     pauseTokenRef.current += 1;
@@ -503,9 +550,6 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
   }
 
   const progress = duration > 0 ? clamp(currentTime / duration, 0, 1) : 0;
-  const passageTitle = source.passageReferences?.length
-    ? source.passageReferences.join(", ")
-    : "Lecture audio du jour";
   const displayedDayNumber =
     Number.isFinite(source.dayNumber) && source.dayNumber > 0
       ? Math.round(source.dayNumber)
@@ -577,16 +621,18 @@ function YoutubeAudioPlayer({ command, onClose, onStatusChange, source }: AudioP
 
         <View style={[styles.trackIdentity, isCompact && styles.trackIdentityCompact]}>
           <ScrollView
+            ref={titleScrollRef}
             accessibilityLabel={`Lecture de ${passageTitle}`}
             bounces={false}
             contentContainerStyle={styles.trackTitleContent}
             directionalLockEnabled
             horizontal
+            onContentSizeChange={(width) => setTitleContentWidth(width)}
+            onLayout={(event) => setTitleViewportWidth(event.nativeEvent.layout.width)}
             showsHorizontalScrollIndicator={false}
             style={styles.trackTitleViewport}
           >
             <Text
-              numberOfLines={1}
               style={[styles.trackTitle, isCompact && styles.trackTitleCompact]}
             >
               {passageTitle}
@@ -932,19 +978,20 @@ const styles = StyleSheet.create({
   },
   trackTitleViewport: {
     flexGrow: 0,
-    maxWidth: "100%",
     width: "100%",
   },
   trackTitleContent: {
     alignItems: "center",
-    minWidth: "100%",
-    paddingHorizontal: 16,
+    flexGrow: 1,
+    justifyContent: "center",
   },
   trackTitle: {
     color: COLORS.playerInk,
+    flexShrink: 0,
     fontSize: 19,
     fontWeight: "900",
     lineHeight: 26,
+    textAlign: "center",
   },
   trackTitleCompact: {
     fontSize: 16,

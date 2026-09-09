@@ -429,23 +429,24 @@ function FocusView({
           const isToday = item.day_number === currentDayNumber;
           const readingState = getDayReadingState(item);
           return (
-            <PressableScale
+            <Pressable
+              accessibilityLabel={`Afficher le jour ${item.day_number}`}
+              accessibilityRole="button"
               onPress={() => onSelectDay(item.day_number)}
-              pressedScale={0.94}
-              style={[
+              style={({ pressed }) => [
                 styles.dayPill,
                 readingState === "in-progress" && styles.dayPillInProgress,
                 readingState === "completed" && styles.dayPillCompleted,
                 active && styles.dayPillActive,
+                pressed && styles.dayPillPressed,
               ]}
             >
               <Text
                 allowFontScaling={false}
                 maxFontSizeMultiplier={1}
-                numberOfLines={1}
                 style={[styles.dayPillNumber, active && styles.dayPillNumberActive]}
               >
-                {item.day_number}
+                Jour {item.day_number}
               </Text>
               <Text
                 allowFontScaling={false}
@@ -463,7 +464,7 @@ function FocusView({
                   readingState === "completed" && styles.dayPillStateMarkerCompleted,
                 ]}
               />
-            </PressableScale>
+            </Pressable>
           );
         }}
       />
@@ -607,7 +608,7 @@ function GridView({
         </MotionView>
       ) : (
       <MotionView delay={160} style={styles.monthNav}>
-        <Text maxFontSizeMultiplier={1.2} numberOfLines={1} style={styles.monthTitle}>
+        <Text maxFontSizeMultiplier={1.2} style={styles.monthTitle}>
           {formatMonthTitle(monthKey)}
         </Text>
         <View style={styles.monthControls}>
@@ -621,7 +622,7 @@ function GridView({
             ]}
           >
             <ChevronLeft size={16} color={COLORS.ink} />
-            <Text maxFontSizeMultiplier={1.15} numberOfLines={1} style={styles.monthButtonText}>
+            <Text maxFontSizeMultiplier={1.15} style={styles.monthButtonText}>
               Précédent
             </Text>
           </Pressable>
@@ -634,7 +635,7 @@ function GridView({
               pressed && canGoNext && styles.monthButtonPressed,
             ]}
           >
-            <Text maxFontSizeMultiplier={1.15} numberOfLines={1} style={styles.monthButtonText}>
+            <Text maxFontSizeMultiplier={1.15} style={styles.monthButtonText}>
               Suivant
             </Text>
             <ChevronRight size={16} color={COLORS.ink} />
@@ -734,7 +735,9 @@ function DayCard({
       >
       <View style={styles.dayCardHeader}>
         <View style={styles.dayCardTitleBlock}>
-          <Text style={styles.dayCardTitle}>Jour {day.day_number}</Text>
+          <Text maxFontSizeMultiplier={1.3} style={styles.dayCardTitle}>
+            Jour {day.day_number}
+          </Text>
         </View>
         <View
           style={[
@@ -746,7 +749,6 @@ function DayCard({
         >
           <Text
             maxFontSizeMultiplier={1.15}
-            numberOfLines={1}
             style={[
               styles.dayStateBadgeText,
               isCompleted && styles.dayStateBadgeTextDone,
@@ -817,7 +819,6 @@ function DayCard({
           <Check size={14} color={isCompleted ? "#fff" : COLORS.ink} />
           <Text
             maxFontSizeMultiplier={1.15}
-            numberOfLines={1}
             style={[styles.completeButtonText, isCompleted && styles.completeButtonTextDone]}
           >
             {isCompleted ? "Terminé" : "Tout cocher"}
@@ -1042,15 +1043,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.copperDark,
     borderColor: COLORS.copperDark,
   },
+  dayPillPressed: {
+    opacity: 0.72,
+  },
   dayPillNumber: {
     color: COLORS.ink,
-    flexShrink: 0,
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "800",
-    lineHeight: 20,
-    minWidth: DAY_RAIL_ITEM_WIDTH - 16,
+    lineHeight: 19,
     textAlign: "center",
-    width: DAY_RAIL_ITEM_WIDTH - 16,
+    width: "100%",
   },
   dayPillNumberActive: {
     color: "#fff",
@@ -1333,14 +1335,18 @@ const styles = StyleSheet.create({
   },
   monthButtonText: {
     color: COLORS.ink,
+    flexShrink: 1,
     fontSize: 12,
     fontWeight: "700",
+    textAlign: "center",
   },
   monthTitle: {
     color: COLORS.ink,
     fontSize: 18,
     fontWeight: "900",
+    textAlign: "center",
     textTransform: "capitalize",
+    width: "100%",
   },
   grid: {
     flexDirection: "row",
@@ -1376,18 +1382,21 @@ const styles = StyleSheet.create({
     gap: 7,
   },
   dayCardTitleBlock: {
-    flex: 1,
-    minWidth: 0,
+    width: "100%",
   },
   dayCardTitle: {
     color: COLORS.ink,
-    fontSize: 13,
-    fontWeight: "800",
+    fontSize: 14,
+    fontVariant: ["tabular-nums"],
+    fontWeight: "900",
+    lineHeight: 19,
+    width: "100%",
   },
   dayStateBadge: {
     alignSelf: "flex-start",
     backgroundColor: "#f4eee8",
     borderRadius: 999,
+    maxWidth: "100%",
     paddingHorizontal: 7,
     paddingVertical: 4,
   },
@@ -1402,8 +1411,10 @@ const styles = StyleSheet.create({
   },
   dayStateBadgeText: {
     color: COLORS.muted,
+    flexShrink: 1,
     fontSize: 10,
     fontWeight: "800",
+    textAlign: "center",
   },
   dayStateBadgeTextDone: {
     color: "#fff",
@@ -1516,6 +1527,7 @@ const styles = StyleSheet.create({
     flexShrink: 1,
     fontSize: 11,
     fontWeight: "800",
+    textAlign: "center",
   },
   completeButtonTextDone: {
     color: "#fff",

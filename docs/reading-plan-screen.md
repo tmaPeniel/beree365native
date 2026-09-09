@@ -28,7 +28,7 @@
 - `AudioPlayer.tsx` affiche un FAB audio flottant au-dessus de la navigation. Un appui ouvre désormais un lecteur immersif plein écran et lance ou reprend l'audio.
 - Le FAB ferme suit le rendu de reference : cercle cuivre compact, icone Play/Pause blanche et anneau de progression cuivre/clair autour du bouton.
 - Quand le lecteur est ouvert, le FAB est masque. Le lecteur utilise une modale native plein écran afin de recouvrir aussi la barre d'onglets. Le bouton chevron en haut réduit l'interface ; un nouvel appui sur le FAB restaure le plein écran.
-- Le lecteur personnalisé Bérée suit une direction sombre et immersive : logo de marque recadré dans le disque cuivre, titre continu et défilable listant les passages du jour, numéro du jour mis en évidence, forme d'onde pressable, temps courant/durée, retour 10 secondes, Play/Pause central et avance 10 secondes.
+- Le lecteur personnalisé Bérée suit une direction sombre et immersive : logo de marque recadré dans le disque cuivre, titre continu listant les passages du jour et défilement automatique uniquement en cas de dépassement, numéro du jour mis en évidence, forme d'onde pressable, temps courant/durée, retour 10 secondes, Play/Pause central et avance 10 secondes.
 - Les commandes Play/Pause envoyees par le FAB sont dedupliquees par identifiant pour eviter plusieurs ordres de lecture simultanes.
 - La forme d'onde sert de barre de progression : un appui déplace directement la lecture à la position correspondante et distingue clairement la portion déjà lue.
 - Le FAB utilise une pulsation discrète quand l'audio est disponible, un rebond au toucher, et le lecteur apparaît/disparaît avec une animation courte de fondu + translation.
