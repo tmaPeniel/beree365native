@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   FlatList,
+  Linking,
   Modal,
   Pressable,
   ScrollView,
@@ -30,6 +31,7 @@ import {
   ChevronRight,
   Crown,
   Gift,
+  Image as ImageIcon,
   Info,
   Lock,
   Mail,
@@ -424,6 +426,7 @@ export function EditProfileScreen() {
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const [isSaving, setIsSaving] = useState(false);
   const [avatarOperation, setAvatarOperation] = useState<"upload" | "remove" | null>(null);
+  const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
   const initials = getProfileInitials(fullName, user?.email);
   const isUpdatingAvatar = avatarOperation !== null;
 
@@ -434,52 +437,71 @@ export function EditProfileScreen() {
   const pickAvatar = async (source: "camera" | "library") => {
     if (!user?.id || isUpdatingAvatar) return;
 
-    const permission = source === "camera"
-      ? await ImagePicker.requestCameraPermissionsAsync()
-      : await ImagePicker.requestMediaLibraryPermissionsAsync();
+    try {
+      const permission = source === "camera"
+        ? await ImagePicker.requestCameraPermissionsAsync()
+        : await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-    if (!permission.granted) {
-      Alert.alert(
-        "Autorisation nécessaire",
-        source === "camera"
+      if (!permission.granted) {
+        const permissionMessage = source === "camera"
           ? "Autorisez l'accès à l'appareil photo pour prendre votre portrait."
-          : "Autorisez l'accès à vos photos pour choisir votre avatar.",
+          : "Autorisez l'accès à vos photos pour choisir votre avatar.";
+
+        Alert.alert(
+          "Autorisation nécessaire",
+          permissionMessage,
+          permission.canAskAgain
+            ? [{ text: "Compris" }]
+            : [
+                { text: "Annuler", style: "cancel" },
+                { text: "Ouvrir les réglages", onPress: () => void Linking.openSettings() },
+              ],
+        );
+        return;
+      }
+
+      const result = source === "camera"
+        ? await ImagePicker.launchCameraAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            cameraType: ImagePicker.CameraType.front,
+            mediaTypes: ["images"],
+            quality: 0.72,
+          })
+        : await ImagePicker.launchImageLibraryAsync({
+            allowsEditing: true,
+            aspect: [1, 1],
+            mediaTypes: ["images"],
+            quality: 0.72,
+          });
+
+      if (result.canceled || !result.assets[0]) return;
+
+      setAvatarOperation("upload");
+      const asset = result.assets[0];
+      const uploadResult = await uploadProfileAvatar({
+        mimeType: asset.mimeType,
+        uri: asset.uri,
+        userId: user.id,
+      });
+
+      if (uploadResult.success === false) {
+        Alert.alert("Photo de profil", uploadResult.error);
+        return;
+      }
+
+      setAvatarUrl(uploadResult.avatarUrl);
+      await refreshProfile();
+    } catch {
+      Alert.alert(
+        source === "camera" ? "Appareil photo indisponible" : "Photothèque indisponible",
+        source === "camera"
+          ? "La caméra n'a pas pu être ouverte. Vérifiez son autorisation dans les réglages du téléphone."
+          : "La photothèque n'a pas pu être ouverte. Réessayez dans quelques instants.",
       );
-      return;
+    } finally {
+      setAvatarOperation(null);
     }
-
-    const result = source === "camera"
-      ? await ImagePicker.launchCameraAsync({
-          allowsEditing: true,
-          aspect: [1, 1],
-          mediaTypes: ["images"],
-          quality: 0.72,
-        })
-      : await ImagePicker.launchImageLibraryAsync({
-          allowsEditing: true,
-          aspect: [1, 1],
-          mediaTypes: ["images"],
-          quality: 0.72,
-        });
-
-    if (result.canceled || !result.assets[0]) return;
-
-    setAvatarOperation("upload");
-    const asset = result.assets[0];
-    const uploadResult = await uploadProfileAvatar({
-      mimeType: asset.mimeType,
-      uri: asset.uri,
-      userId: user.id,
-    });
-    setAvatarOperation(null);
-
-    if (uploadResult.success === false) {
-      Alert.alert("Photo de profil", uploadResult.error);
-      return;
-    }
-
-    setAvatarUrl(uploadResult.avatarUrl);
-    await refreshProfile();
   };
 
   const removeAvatar = async () => {
@@ -510,11 +532,21 @@ export function EditProfileScreen() {
   };
 
   const chooseAvatarSource = () => {
-    Alert.alert("Changer la photo", "Choisissez une source.", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Appareil photo", onPress: () => void pickAvatar("camera") },
-      { text: "Photothèque", onPress: () => void pickAvatar("library") },
-    ]);
+    setIsAvatarMenuOpen(true);
+  };
+
+  const closeAvatarMenu = (action?: "camera" | "library" | "remove") => {
+    setIsAvatarMenuOpen(false);
+    if (!action) return;
+
+    setTimeout(() => {
+      if (action === "remove") {
+        confirmAvatarRemoval();
+        return;
+      }
+
+      void pickAvatar(action);
+    }, 240);
   };
 
   const save = async () => {
@@ -564,29 +596,6 @@ export function EditProfileScreen() {
           </View>
         </Pressable>
 
-        {!!avatarUrl && (
-          <Pressable
-            accessibilityLabel="Retirer la photo de profil"
-            accessibilityRole="button"
-            disabled={isUpdatingAvatar}
-            onPress={confirmAvatarRemoval}
-            style={({ pressed }) => [
-              s.removeAvatarButton,
-              pressed && !isUpdatingAvatar && s.removeAvatarButtonPressed,
-              isUpdatingAvatar && s.disabledButton,
-            ]}
-          >
-            {avatarOperation === "remove" ? (
-              <ActivityIndicator color={colors.danger} size="small" />
-            ) : (
-              <Trash2 color={colors.danger} size={18} strokeWidth={2} />
-            )}
-            <Text style={s.removeAvatarText}>
-              {avatarOperation === "remove" ? "Suppression…" : "Retirer la photo"}
-            </Text>
-          </Pressable>
-        )}
-
         <View style={s.card}>
           <Text style={s.inputLabel}>Nom complet</Text>
           <TextInput
@@ -606,6 +615,70 @@ export function EditProfileScreen() {
           />
         </View>
       </ScrollView>
+
+      <Modal
+        animationType="fade"
+        onRequestClose={() => closeAvatarMenu()}
+        statusBarTranslucent
+        transparent
+        visible={isAvatarMenuOpen}
+      >
+        <Pressable
+          accessibilityLabel="Fermer le menu de la photo"
+          accessibilityRole="button"
+          onPress={() => closeAvatarMenu()}
+          style={s.avatarMenuBackdrop}
+        >
+          <Pressable
+            accessibilityViewIsModal
+            onPress={(event) => event.stopPropagation()}
+            style={[s.avatarMenuSheet, { paddingBottom: Math.max(insets.bottom, 12) }]}
+          >
+            <View style={s.avatarMenuHandle} />
+            <View style={s.avatarMenuHeader}>
+              <Text style={s.avatarMenuTitle}>Photo de profil</Text>
+              <Text style={s.avatarMenuSubtitle}>Choisissez une action</Text>
+            </View>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => closeAvatarMenu("camera")}
+              style={({ pressed }) => [s.avatarMenuItem, pressed && s.avatarMenuItemPressed]}
+            >
+              <Camera color={colors.text} size={21} strokeWidth={1.9} />
+              <Text style={s.avatarMenuItemText}>Appareil photo</Text>
+            </Pressable>
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => closeAvatarMenu("library")}
+              style={({ pressed }) => [s.avatarMenuItem, pressed && s.avatarMenuItemPressed]}
+            >
+              <ImageIcon color={colors.text} size={21} strokeWidth={1.9} />
+              <Text style={s.avatarMenuItemText}>Photothèque</Text>
+            </Pressable>
+
+            {!!avatarUrl && (
+              <Pressable
+                accessibilityRole="button"
+                onPress={() => closeAvatarMenu("remove")}
+                style={({ pressed }) => [s.avatarMenuItem, pressed && s.avatarMenuItemPressed]}
+              >
+                <Trash2 color={colors.danger} size={21} strokeWidth={1.9} />
+                <Text style={[s.avatarMenuItemText, s.avatarMenuDangerText]}>Retirer la photo</Text>
+              </Pressable>
+            )}
+
+            <Pressable
+              accessibilityRole="button"
+              onPress={() => closeAvatarMenu()}
+              style={({ pressed }) => [s.avatarMenuCancel, pressed && s.avatarMenuItemPressed]}
+            >
+              <Text style={s.avatarMenuCancelText}>Annuler</Text>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
 
       <View style={[s.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Pressable
@@ -639,6 +712,18 @@ const s = StyleSheet.create({
   activeChip: { backgroundColor: colors.primary, borderColor: colors.primary },
   activeChipText: { color: "#FFFFFF" },
   avatarActionBadge: { alignItems: "center", backgroundColor: colors.primary, borderColor: colors.surface, borderRadius: 999, borderWidth: 3, bottom: -2, height: 34, justifyContent: "center", position: "absolute", right: -2, width: 34 },
+  avatarMenuBackdrop: { backgroundColor: "rgba(20, 18, 16, 0.42)", flex: 1, justifyContent: "flex-end" },
+  avatarMenuCancel: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderCurve: "continuous", borderRadius: 14, justifyContent: "center", marginTop: 8, minHeight: 52, paddingHorizontal: 16 },
+  avatarMenuCancelText: { color: colors.text, fontFamily: fonts.semibold, fontSize: 16 },
+  avatarMenuDangerText: { color: colors.danger },
+  avatarMenuHandle: { alignSelf: "center", backgroundColor: colors.border, borderRadius: 999, height: 5, width: 40 },
+  avatarMenuHeader: { gap: 3, paddingBottom: 8, paddingHorizontal: 4, paddingTop: 4 },
+  avatarMenuItem: { alignItems: "center", borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: "row", gap: 14, minHeight: 54, paddingHorizontal: 4 },
+  avatarMenuItemPressed: { opacity: 0.58 },
+  avatarMenuItemText: { color: colors.text, fontFamily: fonts.semibold, fontSize: 16 },
+  avatarMenuSheet: { backgroundColor: colors.surface, borderCurve: "continuous", borderTopLeftRadius: 22, borderTopRightRadius: 22, gap: 2, paddingHorizontal: 20, paddingTop: 10 },
+  avatarMenuSubtitle: { color: colors.muted, fontFamily: fonts.regular, fontSize: 14 },
+  avatarMenuTitle: { color: colors.text, fontFamily: fonts.bold, fontSize: 20 },
   avatarPicker: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, flexDirection: "row", gap: 16, padding: 16 },
   avatarPickerCopy: { flex: 1, gap: 5 },
   avatarPickerPressed: { backgroundColor: colors.surfaceSoft, transform: [{ scale: 0.99 }] },
@@ -681,9 +766,6 @@ const s = StyleSheet.create({
   progressLabel: { color: colors.muted, fontFamily: fonts.semibold, fontSize: 14 },
   progressValue: { color: colors.text, fontFamily: fonts.bold, fontSize: 36 },
   progressWrap: { alignItems: "center", height: 170, justifyContent: "center", width: 170 },
-  removeAvatarButton: { alignItems: "center", alignSelf: "center", flexDirection: "row", gap: 8, minHeight: 44, paddingHorizontal: 14, paddingVertical: 10 },
-  removeAvatarButtonPressed: { opacity: 0.68 },
-  removeAvatarText: { color: colors.danger, fontFamily: fonts.semibold, fontSize: 14 },
   roundIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 42, justifyContent: "center", width: 42 },
   rowBetween: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   rowLeft: { alignItems: "center", flexDirection: "row", gap: 10 },
