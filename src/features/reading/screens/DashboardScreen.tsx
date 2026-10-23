@@ -29,6 +29,7 @@ import {
   toggleChapterStatus,
 } from "@/features/reading/services/readingPlan";
 import { MotionView, PressableScale } from "@/shared/animation/Motion";
+import { useAdaptiveLayout } from "@/shared/layout/adaptive";
 import { colors, fonts } from "@/shared/theme/styles";
 
 const FALLBACK_QUOTE = "La Parole de Dieu éclaire chacun de nos pas.";
@@ -72,6 +73,7 @@ function getInitials(name?: string | null, email?: string | null) {
 }
 
 export function DashboardScreen() {
+  const { isTablet } = useAdaptiveLayout();
   const queryClient = useQueryClient();
   const { user, profile, isLoading, triggerProgressUpdate } = useAuth();
   const { currentDayNumber, getDateForCurrentDay } = useDateService();
@@ -185,7 +187,7 @@ export function DashboardScreen() {
   return (
     <View style={dashboardStyles.safeArea}>
       <ScrollView
-        contentContainerStyle={dashboardStyles.content}
+        contentContainerStyle={[dashboardStyles.content, isTablet && dashboardStyles.tabletContent]}
         refreshControl={(
           <RefreshControl
             colors={[colors.primary]}
@@ -252,6 +254,8 @@ export function DashboardScreen() {
           </Text>
         </MotionView>
 
+        <View style={[dashboardStyles.dashboardGrid, isTablet && dashboardStyles.dashboardGridTablet]}>
+          <View style={dashboardStyles.dashboardColumn}>
         <MotionView delay={140}>
           <LinearGradient
             colors={["#5C285E", "#B94E61", "#EA936A", "#F3C784"]}
@@ -382,7 +386,9 @@ export function DashboardScreen() {
             </View>
           )}
         </MotionView>
+          </View>
 
+          <View style={dashboardStyles.dashboardColumn}>
         <ProgressCard
           isLoading={progressQuery.isLoading}
           passagesRead={progress.passagesRead}
@@ -405,10 +411,12 @@ export function DashboardScreen() {
             <Text style={dashboardStyles.dateTileValue}>{daysRemaining} jours</Text>
           </View>
         </MotionView>
+          </View>
+        </View>
       </ScrollView>
 
       <Modal
-        animationType="slide"
+        animationType={isTablet ? "fade" : "slide"}
         onRequestClose={() => setNotificationSheetVisible(false)}
         transparent
         visible={notificationSheetVisible}
@@ -417,11 +425,11 @@ export function DashboardScreen() {
           accessibilityLabel="Fermer les notifications"
           accessibilityRole="button"
           onPress={() => setNotificationSheetVisible(false)}
-          style={dashboardStyles.notificationBackdrop}
+          style={[dashboardStyles.notificationBackdrop, isTablet && dashboardStyles.notificationBackdropTablet]}
         >
           <Pressable
             onPress={(event) => event.stopPropagation()}
-            style={dashboardStyles.notificationSheet}
+            style={[dashboardStyles.notificationSheet, isTablet && dashboardStyles.notificationSheetTablet]}
           >
             <View style={dashboardStyles.notificationSheetHandle} />
             <View style={dashboardStyles.notificationSheetHeader}>
@@ -572,6 +580,27 @@ const dashboardStyles = StyleSheet.create({
     gap: 14,
     paddingBottom: 118,
     paddingHorizontal: 16,
+  },
+  tabletContent: {
+    alignSelf: "center",
+    paddingBottom: 40,
+    paddingHorizontal: 32,
+    width: "100%",
+    maxWidth: 1120,
+  },
+  dashboardGrid: {
+    gap: 14,
+  },
+  dashboardGridTablet: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    gap: 20,
+  },
+  dashboardColumn: {
+    flex: 1,
+    gap: 14,
+    minWidth: 0,
+    width: "100%",
   },
   brandHeader: {
     alignItems: "center",
@@ -957,6 +986,11 @@ const dashboardStyles = StyleSheet.create({
     flex: 1,
     justifyContent: "flex-end",
   },
+  notificationBackdropTablet: {
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 32,
+  },
   notificationSheet: {
     backgroundColor: colors.surface,
     borderTopLeftRadius: 22,
@@ -966,6 +1000,12 @@ const dashboardStyles = StyleSheet.create({
     paddingBottom: 26,
     paddingHorizontal: 16,
     paddingTop: 10,
+  },
+  notificationSheetTablet: {
+    borderRadius: 22,
+    maxWidth: 560,
+    minHeight: 420,
+    width: "100%",
   },
   notificationSheetHandle: {
     alignSelf: "center",

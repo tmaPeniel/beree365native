@@ -8,7 +8,7 @@
       "ios",
       "android"
     ],
-    "orientation": "portrait",
+    "orientation": "default",
     "userInterfaceStyle": "light",
     "backgroundColor": "#F8F6F3",
     "icon": "./src/assets/beree-icon.png",
@@ -16,7 +16,7 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "bundleIdentifier": "com.sisap.beree365"
     },
     "android": {
