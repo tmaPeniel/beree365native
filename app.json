@@ -45,7 +45,8 @@
           "cameraPermission": "Bérée 365 utilise l’appareil photo pour créer votre photo de profil.",
           "microphonePermission": false
         }
-      ]
+      ],
+      "expo-sharing"
     ],
     "experiments": {
       "typedRoutes": true
