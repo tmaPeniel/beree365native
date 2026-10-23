@@ -62,7 +62,7 @@ export default function RootLayout() {
             <Stack.Screen name="(auth)" options={{ headerShown: false }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen name="reading-plan" options={{ headerShown: false }} />
-            <Stack.Screen name="verses" options={{ title: "Versets" }} />
+            <Stack.Screen name="verses" options={{ title: "Historique" }} />
             <Stack.Screen name="premium" options={{ title: "Premium" }} />
             <Stack.Screen name="terms" options={{ title: "Conditions" }} />
             <Stack.Screen name="cookies-policy" options={{ title: "Politique cookies" }} />

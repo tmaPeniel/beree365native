@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 import { BookOpen, Heart, Search, Share2 } from "lucide-react-native";
 import {
   ActivityIndicator,
@@ -16,6 +18,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { useDateService } from "@/features/reading/hooks/useDateService";
+import { getDateForDay } from "@/features/reading/services/dateService";
 import {
   getAllVersesUpToDay,
   getLikedVerseDays,
@@ -29,8 +32,8 @@ type LibraryFilter = "all" | "last7" | "last30" | "liked";
 
 const filterOptions: Array<{ label: string; value: LibraryFilter }> = [
   { label: "Tous", value: "all" },
-  { label: "7 derniers", value: "last7" },
-  { label: "30 derniers", value: "last30" },
+  { label: "7 jours", value: "last7" },
+  { label: "30 jours", value: "last30" },
   { label: "Aimés", value: "liked" },
 ];
 
@@ -46,11 +49,29 @@ function getVerseQuote(verse: DailyVerse) {
   return verse.text?.trim() || verse.wisdomType?.trim() || "Verset indisponible.";
 }
 
+function parseLocalDate(value: string) {
+  const [year, month, day] = value.split("-").map(Number);
+  return new Date(year, month - 1, day);
+}
+
+function capitalize(value: string) {
+  return value.replace(/^./, (letter) => letter.toLocaleUpperCase("fr-FR"));
+}
+
+function getVerseDate(startDate: string | undefined, dayNumber: number) {
+  return startDate ? getDateForDay(startDate, dayNumber) : "";
+}
+
+function getMonthLabel(dateValue: string) {
+  if (!dateValue) return "Votre parcours";
+  return capitalize(format(parseLocalDate(dateValue), "MMMM yyyy", { locale: fr }));
+}
+
 export function VersesLibraryScreen() {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const { user } = useAuth();
-  const { currentDayNumber } = useDateService();
+  const { currentDayNumber, startDate } = useDateService();
   const [filter, setFilter] = useState<LibraryFilter>("all");
   const [search, setSearch] = useState("");
   const [pendingDay, setPendingDay] = useState<number | null>(null);
@@ -173,7 +194,6 @@ export function VersesLibraryScreen() {
       contentContainerStyle={[screenStyles.content, { paddingBottom: Math.max(insets.bottom, 20) + 24 }]}
       data={visibleVerses}
       initialNumToRender={8}
-      ItemSeparatorComponent={() => <View style={screenStyles.separator} />}
       keyboardDismissMode="on-drag"
       keyboardShouldPersistTaps="handled"
       keyExtractor={(item) => item.id}
@@ -195,7 +215,7 @@ export function VersesLibraryScreen() {
           <MotionView>
             <Text maxFontSizeMultiplier={1.25} style={screenStyles.title}>Vos versets, jour après jour</Text>
             <Text maxFontSizeMultiplier={1.35} style={screenStyles.subtitle}>
-              Retrouvez les versets découverts depuis le début de votre parcours.
+              Retrouvez les paroles découvertes depuis le début de votre parcours.
             </Text>
           </MotionView>
 
@@ -215,15 +235,12 @@ export function VersesLibraryScreen() {
             />
           </View>
 
-          <FlatList
-            contentContainerStyle={screenStyles.filters}
-            data={filterOptions}
-            horizontal
-            keyExtractor={(item) => item.value}
-            renderItem={({ item }) => {
+          <View style={screenStyles.filters}>
+            {filterOptions.map((item) => {
               const active = filter === item.value;
               return (
                 <Pressable
+                  key={item.value}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                   onPress={() => setFilter(item.value)}
@@ -238,9 +255,8 @@ export function VersesLibraryScreen() {
                   </Text>
                 </Pressable>
               );
-            }}
-            showsHorizontalScrollIndicator={false}
-          />
+            })}
+          </View>
 
           <View style={screenStyles.resultSummary}>
             <Text style={screenStyles.resultCount}>
@@ -263,65 +279,89 @@ export function VersesLibraryScreen() {
       renderItem={({ item, index }) => {
         const liked = likedDays.has(item.day_number);
         const isPending = pendingDay === item.day_number;
+        const verseDate = getVerseDate(startDate, item.day_number);
+        const monthLabel = getMonthLabel(verseDate);
+        const previousVerse = visibleVerses[index - 1];
+        const previousMonthLabel = previousVerse
+          ? getMonthLabel(getVerseDate(startDate, previousVerse.day_number))
+          : null;
+        const showMonthHeader = index === 0 || monthLabel !== previousMonthLabel;
 
         return (
-          <MotionView delay={Math.min(index, 5) * 35} layout={false} style={screenStyles.verseRow}>
-            <View style={screenStyles.dayColumn}>
-              <Text style={screenStyles.dayLabel}>JOUR</Text>
-              <Text style={screenStyles.dayNumber}>{item.day_number}</Text>
-            </View>
+          <View>
+            {showMonthHeader ? (
+              <Text style={screenStyles.monthTitle}>{monthLabel}</Text>
+            ) : null}
 
-            <View style={screenStyles.verseContent}>
-              <View style={screenStyles.verseHeading}>
+            <MotionView delay={Math.min(index, 5) * 35} layout={false} style={screenStyles.verseRow}>
+              <View style={screenStyles.dayColumn}>
+                <Text style={screenStyles.dayLabel}>JOUR {item.day_number}</Text>
+                <Text style={screenStyles.dayNumber}>
+                  {verseDate ? format(parseLocalDate(verseDate), "d", { locale: fr }) : item.day_number}
+                </Text>
+                {verseDate ? (
+                  <Text style={screenStyles.dayMonth}>
+                    {format(parseLocalDate(verseDate), "MMM", { locale: fr }).replace(".", "").toLocaleUpperCase("fr-FR")}
+                  </Text>
+                ) : null}
+              </View>
+
+              <View style={screenStyles.verseContent}>
                 <Text maxFontSizeMultiplier={1.3} style={screenStyles.reference}>{item.reference}</Text>
-                {!!item.wisdomType && (
-                  <Text maxFontSizeMultiplier={1.25} numberOfLines={1} style={screenStyles.theme}>
-                    {item.wisdomType}
-                  </Text>
-                )}
+
+                <Text maxFontSizeMultiplier={1.4} style={screenStyles.quote}>
+                  “{getVerseQuote(item)}”
+                </Text>
+
+                <View style={screenStyles.verseFooter}>
+                  {!!item.wisdomType ? (
+                    <View style={screenStyles.themeChip}>
+                      <Text maxFontSizeMultiplier={1.25} numberOfLines={1} style={screenStyles.theme}>
+                        {item.wisdomType}
+                      </Text>
+                    </View>
+                  ) : <View />}
+
+                  <View style={screenStyles.actions}>
+                    <PressableScale
+                      accessibilityLabel={liked ? "Retirer le J'aime" : "Aimer ce verset"}
+                      accessibilityRole="button"
+                      disabled={pendingDay !== null}
+                      hitSlop={8}
+                      onPress={() => void toggleLike(item)}
+                      style={({ pressed }) => [screenStyles.actionButton, pressed && screenStyles.pressed]}
+                    >
+                      {isPending ? (
+                        <ActivityIndicator color={colors.primary} size="small" />
+                      ) : (
+                        <Heart
+                          color={liked ? colors.primary : colors.muted}
+                          fill={liked ? colors.primary : "transparent"}
+                          size={20}
+                          strokeWidth={1.9}
+                        />
+                      )}
+                      {(item.likes_count ?? 0) > 0 ? (
+                        <Text style={[screenStyles.actionText, liked && screenStyles.actionTextActive]}>
+                          {item.likes_count}
+                        </Text>
+                      ) : null}
+                    </PressableScale>
+
+                    <PressableScale
+                      accessibilityLabel={`Partager ${item.reference}`}
+                      accessibilityRole="button"
+                      hitSlop={8}
+                      onPress={() => void shareVerse(item)}
+                      style={({ pressed }) => [screenStyles.actionButton, pressed && screenStyles.pressed]}
+                    >
+                      <Share2 color={colors.muted} size={19} strokeWidth={1.9} />
+                    </PressableScale>
+                  </View>
+                </View>
               </View>
-
-              <Text maxFontSizeMultiplier={1.4} style={screenStyles.quote}>
-                “{getVerseQuote(item)}”
-              </Text>
-
-              <View style={screenStyles.actions}>
-                <PressableScale
-                  accessibilityLabel={liked ? "Retirer le J'aime" : "Aimer ce verset"}
-                  accessibilityRole="button"
-                  disabled={pendingDay !== null}
-                  hitSlop={8}
-                  onPress={() => void toggleLike(item)}
-                  style={({ pressed }) => [screenStyles.actionButton, pressed && screenStyles.pressed]}
-                >
-                  {isPending ? (
-                    <ActivityIndicator color={colors.primary} size="small" />
-                  ) : (
-                    <Heart
-                      color={liked ? colors.primary : colors.muted}
-                      fill={liked ? colors.primary : "transparent"}
-                      size={19}
-                      strokeWidth={1.9}
-                    />
-                  )}
-                  <Text style={[screenStyles.actionText, liked && screenStyles.actionTextActive]}>
-                    {item.likes_count ?? 0}
-                  </Text>
-                </PressableScale>
-
-                <PressableScale
-                  accessibilityLabel={`Partager ${item.reference}`}
-                  accessibilityRole="button"
-                  hitSlop={8}
-                  onPress={() => void shareVerse(item)}
-                  style={({ pressed }) => [screenStyles.actionButton, pressed && screenStyles.pressed]}
-                >
-                  <Share2 color={colors.muted} size={18} strokeWidth={1.9} />
-                  <Text style={screenStyles.actionText}>Partager</Text>
-                </PressableScale>
-              </View>
-            </View>
-          </MotionView>
+            </MotionView>
+          </View>
         );
       }}
       showsVerticalScrollIndicator={false}
@@ -335,9 +375,10 @@ const screenStyles = StyleSheet.create({
   actionButton: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 7,
+    gap: 5,
     minHeight: 44,
-    paddingHorizontal: 4,
+    minWidth: 38,
+    justifyContent: "center",
   },
   actionText: {
     color: colors.muted,
@@ -350,7 +391,7 @@ const screenStyles = StyleSheet.create({
   actions: {
     alignItems: "center",
     flexDirection: "row",
-    gap: 22,
+    gap: 8,
   },
   centerState: {
     alignItems: "center",
@@ -361,28 +402,33 @@ const screenStyles = StyleSheet.create({
     padding: 28,
   },
   content: {
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
   },
   dayColumn: {
-    alignItems: "center",
-    backgroundColor: colors.surfaceSoft,
-    borderCurve: "continuous",
-    borderRadius: 12,
-    minWidth: 58,
-    paddingHorizontal: 8,
-    paddingVertical: 10,
+    alignItems: "flex-start",
+    borderRightColor: colors.border,
+    borderRightWidth: StyleSheet.hairlineWidth,
+    minWidth: 84,
+    paddingRight: 14,
   },
   dayLabel: {
-    color: colors.muted,
+    color: colors.primary,
     fontFamily: fonts.semibold,
     fontSize: 10,
-    letterSpacing: 0.4,
+    letterSpacing: 0.2,
   },
   dayNumber: {
-    color: colors.primaryDark,
+    color: colors.text,
     fontFamily: fonts.semibold,
-    fontSize: 21,
-    lineHeight: 26,
+    fontSize: 32,
+    lineHeight: 37,
+    marginTop: 4,
+  },
+  dayMonth: {
+    color: colors.muted,
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    marginTop: 1,
   },
   emptyState: {
     alignItems: "center",
@@ -392,33 +438,43 @@ const screenStyles = StyleSheet.create({
   },
   filterButton: {
     alignItems: "center",
-    borderColor: colors.border,
-    borderRadius: 999,
-    borderWidth: 1,
+    borderBottomColor: "transparent",
+    borderBottomWidth: 2,
+    flex: 1,
     justifyContent: "center",
     minHeight: 44,
-    paddingHorizontal: 16,
+    paddingHorizontal: 4,
   },
   filterButtonActive: {
-    backgroundColor: colors.primary,
-    borderColor: colors.primary,
+    borderBottomColor: colors.primary,
   },
   filterText: {
-    color: colors.primaryDark,
-    fontFamily: fonts.semibold,
+    color: colors.muted,
+    fontFamily: fonts.medium,
     fontSize: 13,
   },
   filterTextActive: {
-    color: "#FFFFFF",
+    color: colors.primary,
+    fontFamily: fonts.semibold,
   },
   filters: {
-    gap: 8,
-    paddingRight: 18,
+    borderBottomColor: colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
   },
   header: {
-    gap: 16,
-    paddingBottom: 16,
+    gap: 18,
+    paddingBottom: 8,
     paddingTop: 22,
+  },
+  monthTitle: {
+    color: colors.text,
+    fontFamily: fonts.semibold,
+    fontSize: 22,
+    lineHeight: 28,
+    paddingBottom: 10,
+    paddingTop: 26,
+    textTransform: "capitalize",
   },
   pressed: {
     opacity: 0.66,
@@ -427,13 +483,13 @@ const screenStyles = StyleSheet.create({
     color: colors.text,
     fontFamily: fonts.regularItalic,
     fontSize: 16,
-    lineHeight: 25,
+    lineHeight: 26,
   },
   reference: {
     color: colors.text,
     fontFamily: fonts.semibold,
-    fontSize: 17,
-    lineHeight: 22,
+    fontSize: 18,
+    lineHeight: 24,
   },
   resultCount: {
     color: colors.text,
@@ -449,6 +505,7 @@ const screenStyles = StyleSheet.create({
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
+    paddingHorizontal: 2,
   },
   retryButton: {
     alignItems: "center",
@@ -476,7 +533,7 @@ const screenStyles = StyleSheet.create({
     borderWidth: 1,
     flexDirection: "row",
     gap: 10,
-    minHeight: 52,
+    minHeight: 48,
     paddingHorizontal: 14,
   },
   searchInput: {
@@ -484,13 +541,8 @@ const screenStyles = StyleSheet.create({
     flex: 1,
     fontFamily: fonts.regular,
     fontSize: 16,
-    minHeight: 50,
+    minHeight: 46,
     paddingVertical: 0,
-  },
-  separator: {
-    backgroundColor: colors.border,
-    height: StyleSheet.hairlineWidth,
-    marginLeft: 76,
   },
   stateText: {
     color: colors.muted,
@@ -515,32 +567,40 @@ const screenStyles = StyleSheet.create({
   },
   theme: {
     color: colors.primary,
-    flexShrink: 1,
     fontFamily: fonts.medium,
     fontSize: 12,
-    textAlign: "right",
+  },
+  themeChip: {
+    alignSelf: "flex-start",
+    backgroundColor: colors.surfaceSoft,
+    borderRadius: 999,
+    flexShrink: 1,
+    maxWidth: "62%",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
   },
   title: {
     color: colors.text,
     fontFamily: fonts.semibold,
-    fontSize: 26,
-    lineHeight: 32,
+    fontSize: 24,
+    lineHeight: 30,
   },
   verseContent: {
     flex: 1,
-    gap: 9,
+    gap: 10,
     minWidth: 0,
   },
-  verseHeading: {
-    alignItems: "flex-start",
+  verseFooter: {
+    alignItems: "center",
     flexDirection: "row",
-    gap: 12,
     justifyContent: "space-between",
   },
   verseRow: {
     alignItems: "flex-start",
+    borderBottomColor: colors.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
     gap: 16,
-    paddingVertical: 18,
+    paddingVertical: 20,
   },
 });
