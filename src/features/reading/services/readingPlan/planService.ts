@@ -1,8 +1,15 @@
+import { requireCurrentUserId } from "@/features/auth/services/auth/sessionService";
 import { supabase } from "@/integrations/supabase/client";
 import { ReadingPlan } from "@/types/supabase";
 
 export type ReadingPlanCatalogItem = ReadingPlan & {
   is_available: boolean;
+};
+
+export type PlanChangeImpact = {
+  completedPassages: number;
+  progressEntries: number;
+  unlockedBadges: number;
 };
 
 const normalizeCatalogItem = (plan: ReadingPlan): ReadingPlanCatalogItem => ({
@@ -99,6 +106,34 @@ export const changePlan = async (planId: string): Promise<{ success: boolean; er
   } catch (error: any) {
     return { success: false, error: error.message };
   }
+};
+
+export const getPlanChangeImpact = async (): Promise<PlanChangeImpact> => {
+  const userId = await requireCurrentUserId();
+  const [progressResult, completedResult, badgesResult] = await Promise.all([
+    supabase
+      .from("user_progress")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+    supabase
+      .from("user_progress")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("status", "completed"),
+    supabase
+      .from("user_badges")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId),
+  ]);
+
+  const error = progressResult.error || completedResult.error || badgesResult.error;
+  if (error) throw error;
+
+  return {
+    completedPassages: completedResult.count ?? 0,
+    progressEntries: progressResult.count ?? 0,
+    unlockedBadges: badgesResult.count ?? 0,
+  };
 };
 
 export const getPlanById = async (planId: string): Promise<ReadingPlan | null> => {
