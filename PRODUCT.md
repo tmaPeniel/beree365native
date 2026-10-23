@@ -24,7 +24,7 @@ Application Expo/React Native pour iOS et Android, connectée à la même base S
 - Le mobile doit s’adapter aux contrats existants avant d’envisager une modification de base.
 - Les opérations sensibles doivent dériver l’utilisateur de la session authentifiée.
 - Les fonctions Native incomplètes sont livrées progressivement sans casser les parcours Web existants.
-- Les règles commerciales Premium, le paiement intégré, le comportement lors d’un changement de plan et le canal Push Native restent des décisions ouvertes.
+- Les règles commerciales Premium, le comportement lors d’un changement de plan et le canal Push Native restent des décisions ouvertes. Le paiement intégré est reporté à un lot ultérieur.
 
 ## Brand Commitments
 
