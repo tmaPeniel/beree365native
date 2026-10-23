@@ -1,5 +1,21 @@
 import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isAfter,
+  isBefore,
+  isValid,
+  parseISO,
+  startOfDay,
+  startOfMonth,
+  startOfWeek,
+} from "date-fns";
+import { fr } from "date-fns/locale";
 import * as ImagePicker from "expo-image-picker";
 import { router, usePathname } from "expo-router";
 import {
@@ -17,7 +33,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import Svg, { Circle, Polyline, Rect } from "react-native-svg";
 import {
   Award,
   Bell,
@@ -64,7 +79,15 @@ import { getUserPlan } from "@/features/reading/services/readingPlan/planService
 import { MotionView, PressableScale } from "@/shared/animation/Motion";
 import { colors, fonts, styles } from "@/shared/theme/styles";
 
-type Period = "7j" | "30j" | "Tout";
+type StatisticsPeriod = "week" | "month" | "year";
+type ChartBucket = {
+  activeDays: number;
+  end: Date;
+  key: string;
+  label: string;
+  start: Date;
+  value: number;
+};
 type BadgeGridItem = { badge: Badge; unlocked?: UserBadge; progress?: number; required?: number; current?: number };
 type IconType = typeof Bell;
 
@@ -126,7 +149,7 @@ function formatDate(value?: string | null) {
 }
 
 function dateKey(date: Date) {
-  return date.toISOString().slice(0, 10);
+  return format(date, "yyyy-MM-dd");
 }
 
 function diffDays(a: string, b: string) {
@@ -173,99 +196,347 @@ function computeActivity(days: Awaited<ReturnType<typeof getUserReadingPlanProgr
   return { activeDays: dates.length, chaptersRead, counts, currentStreak, maxStreak };
 }
 
-function chartData(counts: Map<string, number>, period: Period) {
-  const total = period === "7j" ? 7 : period === "30j" ? 30 : 90;
-  const today = new Date();
-  return Array.from({ length: total }, (_, index) => {
-    const date = new Date(today);
-    date.setDate(today.getDate() - (total - 1 - index));
-    const key = dateKey(date);
-    return { key, value: counts.get(key) || 0 };
+function minDate(left: Date, right: Date) {
+  return isBefore(left, right) ? left : right;
+}
+
+function maxDate(left: Date, right: Date) {
+  return isAfter(left, right) ? left : right;
+}
+
+function capitalize(value: string) {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+function formatWeekRange(start: Date) {
+  const end = endOfWeek(start, { weekStartsOn: 1 });
+  const sameMonth = format(start, "yyyy-MM") === format(end, "yyyy-MM");
+  const sameYear = format(start, "yyyy") === format(end, "yyyy");
+  if (sameMonth) return `${format(start, "d")}–${format(end, "d MMMM yyyy", { locale: fr })}`;
+  if (sameYear) return `${format(start, "d MMMM", { locale: fr })}–${format(end, "d MMMM yyyy", { locale: fr })}`;
+  return `${format(start, "d MMMM yyyy", { locale: fr })}–${format(end, "d MMMM yyyy", { locale: fr })}`;
+}
+
+function countRange(counts: Map<string, number>, start: Date, end: Date) {
+  let value = 0;
+  let activeDays = 0;
+  for (let cursor = startOfDay(start); !isAfter(cursor, end); cursor = addDays(cursor, 1)) {
+    const dayValue = counts.get(dateKey(cursor)) || 0;
+    value += dayValue;
+    if (dayValue > 0) activeDays += 1;
+  }
+  return { activeDays, value };
+}
+
+function buildWeekBuckets(counts: Map<string, number>, anchor: Date, planStart: Date, today: Date): ChartBucket[] {
+  const weekStart = startOfWeek(anchor, { weekStartsOn: 1 });
+  return Array.from({ length: 7 }, (_, index) => {
+    const day = addDays(weekStart, index);
+    const available = !isBefore(day, planStart) && !isAfter(day, today);
+    const value = available ? counts.get(dateKey(day)) || 0 : 0;
+    return {
+      activeDays: value > 0 ? 1 : 0,
+      end: day,
+      key: dateKey(day),
+      label: capitalize(format(day, "EEE d", { locale: fr }).replace(".", "")),
+      start: day,
+      value,
+    };
   });
 }
 
-function ActivityChart({ data }: { data: { key: string; value: number }[] }) {
-  const width = 300;
-  const height = 126;
-  const padding = 12;
-  const max = Math.max(...data.map((item) => item.value), 1);
-  const points = data
-    .map((item, index) => {
-      const x = padding + (data.length <= 1 ? 0 : (index / (data.length - 1)) * (width - padding * 2));
-      const y = padding + (height - padding * 2) - (item.value / max) * (height - padding * 2);
-      return `${x},${y}`;
-    })
-    .join(" ");
+function buildMonthBuckets(counts: Map<string, number>, anchor: Date, planStart: Date, today: Date): ChartBucket[] {
+  const monthStart = startOfMonth(anchor);
+  const monthEnd = endOfMonth(anchor);
+  const buckets: ChartBucket[] = [];
+
+  for (let cursor = monthStart; !isAfter(cursor, monthEnd);) {
+    const calendarEnd = minDate(endOfWeek(cursor, { weekStartsOn: 1 }), monthEnd);
+    const visibleStart = maxDate(cursor, planStart);
+    const visibleEnd = minDate(calendarEnd, today);
+    if (!isAfter(cursor, today) && !isBefore(calendarEnd, planStart)) {
+      const totals = countRange(counts, visibleStart, visibleEnd);
+      buckets.push({
+        ...totals,
+        end: calendarEnd,
+        key: `${dateKey(cursor)}_${dateKey(calendarEnd)}`,
+        label: `${format(cursor, "d")}–${format(calendarEnd, "d")}`,
+        start: cursor,
+      });
+    }
+    cursor = addDays(calendarEnd, 1);
+  }
+
+  return buckets;
+}
+
+function buildYearBuckets(counts: Map<string, number>, planStart: Date, today: Date): ChartBucket[] {
+  const buckets: ChartBucket[] = [];
+  for (let cursor = startOfMonth(planStart); !isAfter(cursor, startOfMonth(today)); cursor = addMonths(cursor, 1)) {
+    const rangeStart = maxDate(cursor, planStart);
+    const rangeEnd = minDate(endOfMonth(cursor), today);
+    const totals = countRange(counts, rangeStart, rangeEnd);
+    buckets.push({
+      ...totals,
+      end: endOfMonth(cursor),
+      key: format(cursor, "yyyy-MM"),
+      label: capitalize(format(cursor, "MMM", { locale: fr }).replace(".", "")),
+      start: cursor,
+    });
+  }
+  return buckets;
+}
+
+function PeriodTabs({ period, onChange }: { period: StatisticsPeriod; onChange: (period: StatisticsPeriod) => void }) {
+  const tabs: { key: StatisticsPeriod; label: string }[] = [
+    { key: "week", label: "Semaine" },
+    { key: "month", label: "Mois" },
+    { key: "year", label: "Année" },
+  ];
   return (
-    <Svg height={height} viewBox={`0 0 ${width} ${height}`} width="100%">
-      <Rect fill="#FAF7F2" height={height} rx={16} width={width} />
-      <Polyline fill="none" points={points} stroke={colors.primary} strokeLinecap="round" strokeLinejoin="round" strokeWidth={4} />
-    </Svg>
+    <View accessibilityRole="tablist" style={s.statsTabs}>
+      {tabs.map((tab) => {
+        const active = tab.key === period;
+        return (
+          <Pressable
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            key={tab.key}
+            onPress={() => onChange(tab.key)}
+            style={({ pressed }) => [s.statsTab, active && s.statsTabActive, pressed && s.statsTabPressed]}
+          >
+            <Text style={[s.statsTabText, active && s.statsTabTextActive]}>{tab.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
   );
 }
 
-function CircularProgress({ completed, total }: { completed: number; total: number }) {
-  const size = 170;
-  const stroke = 14;
-  const radius = (size - stroke) / 2;
-  const circumference = 2 * Math.PI * radius;
-  const progress = total > 0 ? Math.min(completed / total, 1) : 0;
+function PeriodNavigation({
+  canGoNext,
+  canGoPrevious,
+  label,
+  onNext,
+  onPrevious,
+}: {
+  canGoNext: boolean;
+  canGoPrevious: boolean;
+  label: string;
+  onNext: () => void;
+  onPrevious: () => void;
+}) {
   return (
-    <View style={s.progressWrap}>
-      <Svg height={size} width={size}>
-        <Circle cx={size / 2} cy={size / 2} fill="transparent" r={radius} stroke={colors.surfaceSoft} strokeWidth={stroke} />
-        <Circle
-          cx={size / 2}
-          cy={size / 2}
-          fill="transparent"
-          r={radius}
-          stroke={colors.primary}
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={circumference - progress * circumference}
-          strokeLinecap="round"
-          strokeWidth={stroke}
-          transform={`rotate(-90 ${size / 2} ${size / 2})`}
-        />
-      </Svg>
-      <View style={s.progressCenter}>
-        <Text style={s.progressValue}>{completed}</Text>
-        <Text style={s.progressLabel}>/ {total} jours</Text>
+    <View style={s.periodNavigation}>
+      <PressableScale
+        accessibilityLabel="Période précédente"
+        accessibilityRole="button"
+        disabled={!canGoPrevious}
+        onPress={onPrevious}
+        pressedScale={0.9}
+        style={[s.periodArrow, !canGoPrevious && s.periodArrowDisabled]}
+      >
+        <ChevronLeft color={colors.primary} size={22} strokeWidth={1.8} />
+      </PressableScale>
+      <Text numberOfLines={1} style={s.periodTitle}>{label}</Text>
+      <PressableScale
+        accessibilityLabel="Période suivante"
+        accessibilityRole="button"
+        disabled={!canGoNext}
+        onPress={onNext}
+        pressedScale={0.9}
+        style={[s.periodArrow, !canGoNext && s.periodArrowDisabled]}
+      >
+        <ChevronRight color={colors.primary} size={22} strokeWidth={1.8} />
+      </PressableScale>
+    </View>
+  );
+}
+
+function ActivityBars({
+  buckets,
+  selectedKey,
+  onSelect,
+  today,
+}: {
+  buckets: ChartBucket[];
+  selectedKey: string | null;
+  onSelect: (key: string) => void;
+  today: Date;
+}) {
+  const max = Math.max(...buckets.map((bucket) => bucket.value), 1);
+  return (
+    <View style={s.activityChart}>
+      <View pointerEvents="none" style={s.chartGuides}>
+        <View style={s.chartGuide} />
+        <View style={s.chartGuide} />
+        <View style={s.chartGuide} />
+      </View>
+      <View style={s.chartColumns}>
+        {buckets.map((bucket) => {
+          const selected = bucket.key === selectedKey;
+          const unavailable = isAfter(bucket.start, today);
+          const barHeight: `${number}%` | number = bucket.value > 0
+            ? `${Math.max((bucket.value / max) * 100, 7)}%`
+            : 3;
+          return (
+            <Pressable
+              accessibilityLabel={`${bucket.label}, ${bucket.value} passages lus`}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: unavailable, selected }}
+              disabled={unavailable}
+              key={bucket.key}
+              onPress={() => onSelect(bucket.key)}
+              style={({ pressed }) => [s.chartColumn, selected && s.chartColumnSelected, pressed && s.chartColumnPressed]}
+            >
+              <View style={s.chartBarArea}>
+                <View style={[s.chartBar, { height: barHeight }, unavailable && s.chartBarUnavailable]} />
+              </View>
+              <Text numberOfLines={2} style={[s.chartLabel, selected && s.chartLabelSelected]}>{bucket.label}</Text>
+            </Pressable>
+          );
+        })}
       </View>
     </View>
   );
 }
 
 export function StatisticsScreen() {
-  const { user } = useAuth();
-  const [period, setPeriod] = useState<Period>("7j");
+  const { profile, user } = useAuth();
+  const today = useMemo(() => startOfDay(new Date()), []);
+  const [period, setPeriod] = useState<StatisticsPeriod>("week");
+  const [weekAnchor, setWeekAnchor] = useState(() => startOfWeek(today, { weekStartsOn: 1 }));
+  const [monthAnchor, setMonthAnchor] = useState(() => startOfMonth(today));
+  const [selectedBucketKey, setSelectedBucketKey] = useState<string | null>(null);
   const progressQuery = useQuery({ queryKey: ["mobile-stats", user?.id], queryFn: () => getOverallProgress(user.id), enabled: !!user?.id });
   const planQuery = useQuery({ queryKey: ["mobile-current-plan", user?.id], queryFn: () => getUserPlan(user.id), enabled: !!user?.id });
   const activityQuery = useQuery({ queryKey: ["mobile-profile-activity", user?.id], queryFn: () => getUserReadingPlanProgress(user.id), enabled: !!user?.id });
   const activity = useMemo(() => computeActivity(activityQuery.data || []), [activityQuery.data]);
-  const data = useMemo(() => chartData(activity.counts, period), [activity.counts, period]);
+  const planStart = useMemo(() => {
+    const parsed = profile?.start_date ? startOfDay(parseISO(profile.start_date)) : today;
+    if (!isValid(parsed)) return today;
+    return isAfter(parsed, today) ? today : parsed;
+  }, [profile?.start_date, today]);
+  const planWeekStart = useMemo(() => startOfWeek(planStart, { weekStartsOn: 1 }), [planStart]);
+  const planMonthStart = useMemo(() => startOfMonth(planStart), [planStart]);
+  const currentWeekStart = useMemo(() => startOfWeek(today, { weekStartsOn: 1 }), [today]);
+  const currentMonthStart = useMemo(() => startOfMonth(today), [today]);
+  const buckets = useMemo(() => {
+    if (period === "week") return buildWeekBuckets(activity.counts, weekAnchor, planStart, today);
+    if (period === "month") return buildMonthBuckets(activity.counts, monthAnchor, planStart, today);
+    return buildYearBuckets(activity.counts, planStart, today);
+  }, [activity.counts, monthAnchor, period, planStart, today, weekAnchor]);
+
+  useEffect(() => {
+    if (!buckets.some((bucket) => bucket.key === selectedBucketKey)) {
+      const defaultBucket = [...buckets].reverse().find((bucket) => !isAfter(bucket.start, today));
+      setSelectedBucketKey(defaultBucket?.key ?? null);
+    }
+  }, [buckets, selectedBucketKey, today]);
+
+  const selectedBucket = buckets.find((bucket) => bucket.key === selectedBucketKey) ?? buckets[buckets.length - 1];
+  const completedDays = progressQuery.data?.completedDays ?? 0;
+  const totalDays = planQuery.data?.duration_days ?? 365;
+  const progressPercentage = totalDays > 0 ? Math.min(Math.round((completedDays / totalDays) * 100), 100) : 0;
+  const canGoPrevious = period === "week"
+    ? isAfter(weekAnchor, planWeekStart)
+    : period === "month" && isAfter(monthAnchor, planMonthStart);
+  const canGoNext = period === "week"
+    ? isBefore(weekAnchor, currentWeekStart)
+    : period === "month" && isBefore(monthAnchor, currentMonthStart);
+  const periodLabel = period === "week"
+    ? formatWeekRange(weekAnchor)
+    : capitalize(format(monthAnchor, "MMMM yyyy", { locale: fr }));
+  const detailLabel = selectedBucket
+    ? period === "week"
+      ? capitalize(format(selectedBucket.start, "EEEE d MMMM", { locale: fr }))
+      : period === "month"
+        ? `${format(selectedBucket.start, "d")}–${format(selectedBucket.end, "d MMMM", { locale: fr })}`
+        : capitalize(format(selectedBucket.start, "MMMM", { locale: fr }))
+    : "Aucune lecture";
+
+  const changePeriod = (nextPeriod: StatisticsPeriod) => {
+    setPeriod(nextPeriod);
+    setSelectedBucketKey(null);
+  };
+
+  const goToPreviousPeriod = () => {
+    setSelectedBucketKey(null);
+    if (period === "week") setWeekAnchor((date) => addWeeks(date, -1));
+    if (period === "month") setMonthAnchor((date) => addMonths(date, -1));
+  };
+
+  const goToNextPeriod = () => {
+    if (!canGoNext) return;
+    setSelectedBucketKey(null);
+    if (period === "week") setWeekAnchor((date) => addWeeks(date, 1));
+    if (period === "month") setMonthAnchor((date) => addMonths(date, 1));
+  };
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={s.content}>
-      <Header title="Statistiques" subtitle="Votre progression de lecture." />
-      <View style={[s.card, s.center]}><CircularProgress completed={progressQuery.data?.completedDays ?? 0} total={planQuery.data?.duration_days ?? 365} /></View>
-      <View style={s.card}>
-        <View style={s.rowBetween}>
-          <Text style={s.sectionTitle}>Activite</Text>
-          <View style={s.chipRow}>{(["7j", "30j", "Tout"] as Period[]).map((item) => <Chip active={period === item} key={item} label={item} onPress={() => setPeriod(item)} />)}</View>
+      <Header title="Statistiques" subtitle="Votre progression de lecture" />
+
+      <View style={s.statsHero}>
+        <Text style={s.statsProgressValue}>{progressPercentage} %</Text>
+        <Text style={s.statsProgressLabel}>{completedDays} jours sur {totalDays}</Text>
+        <View style={s.statsProgressTrack}>
+          <View style={[s.statsProgressFill, { width: `${progressPercentage}%` }]} />
         </View>
-        <ActivityChart data={data} />
       </View>
+
+      <PeriodTabs onChange={changePeriod} period={period} />
+
+      <View style={s.activitySection}>
+        <Text style={s.statsSectionTitle}>Rythme de lecture</Text>
+        {period === "year" ? (
+          <Text style={s.statsContextLabel}>
+            Depuis le début du plan · {capitalize(format(planStart, "MMMM yyyy", { locale: fr }))}
+          </Text>
+        ) : (
+          <PeriodNavigation
+            canGoNext={canGoNext}
+            canGoPrevious={canGoPrevious}
+            label={periodLabel}
+            onNext={goToNextPeriod}
+            onPrevious={goToPreviousPeriod}
+          />
+        )}
+        <MotionView key={`${period}-${periodLabel}`} layout={false} style={s.chartMotion}>
+          <ActivityBars
+            buckets={buckets}
+            onSelect={setSelectedBucketKey}
+            selectedKey={selectedBucket?.key ?? null}
+            today={today}
+          />
+        </MotionView>
+        <View style={s.selectedPeriodDetail}>
+          <Text numberOfLines={1} style={s.selectedPeriodTitle}>{detailLabel}</Text>
+          <Text numberOfLines={1} style={s.selectedPeriodMeta}>
+            {selectedBucket?.value ?? 0} passage{selectedBucket?.value === 1 ? "" : "s"}
+            {period === "week" ? " lu" + (selectedBucket?.value === 1 ? "" : "s") : ` · ${selectedBucket?.activeDays ?? 0} jour${selectedBucket?.activeDays === 1 ? "" : "s"} actif${selectedBucket?.activeDays === 1 ? "" : "s"}`}
+          </Text>
+        </View>
+      </View>
+
       <View style={s.statsGrid}>
-        <StatCard label="Streak actuel" value={activity.currentStreak} />
-        <StatCard label="Streak max" value={activity.maxStreak} />
-        <StatCard label="Chapitres lus" value={activity.chaptersRead || progressQuery.data?.passagesRead || 0} />
-        <StatCard label="Jours actifs" value={activity.activeDays} />
+        <StatMetric label="Série actuelle" suffix="jours" value={activity.currentStreak} />
+        <StatMetric label="Record" suffix="jours" value={activity.maxStreak} />
+        <StatMetric label="Passages lus" value={activity.chaptersRead || progressQuery.data?.passagesRead || 0} />
+        <StatMetric label="Jours actifs" value={activity.activeDays} />
       </View>
     </ScrollView>
   );
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
-  return <View style={s.statCard}><Text style={s.statValue}>{value}</Text><Text style={s.statLabel}>{label}</Text></View>;
+function StatMetric({ label, suffix, value }: { label: string; suffix?: string; value: number }) {
+  return (
+    <View style={s.statMetric}>
+      <Text style={s.statLabel}>{label}</Text>
+      <Text style={s.statValue}>{value}</Text>
+      {!!suffix && <Text style={s.statSuffix}>{suffix}</Text>}
+    </View>
+  );
 }
 
 export function BadgesScreen() {
@@ -931,6 +1202,8 @@ const s = StyleSheet.create({
   avatarPicker: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 20, borderWidth: 1, flexDirection: "row", gap: 16, padding: 16 },
   avatarPickerCopy: { flex: 1, gap: 5 },
   avatarPickerPressed: { backgroundColor: colors.surfaceSoft, transform: [{ scale: 0.99 }] },
+  activityChart: { height: 206, justifyContent: "flex-end", position: "relative" },
+  activitySection: { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, gap: 14, paddingBottom: 4 },
   avatarPreviewWrap: { position: "relative" },
   badgeEmoji: { fontSize: 26 },
   badgeEmojiLarge: { fontSize: 40 },
@@ -944,6 +1217,18 @@ const s = StyleSheet.create({
   benefitRow: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 14, padding: 16 },
   card: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, gap: 12, padding: 16 },
   center: { alignItems: "center" },
+  chartBar: { backgroundColor: colors.primary, borderRadius: 5, minHeight: 3, opacity: 0.82, width: "62%" },
+  chartBarArea: { alignItems: "center", height: 150, justifyContent: "flex-end", width: "100%" },
+  chartBarUnavailable: { backgroundColor: colors.surfaceSoft, opacity: 0.5 },
+  chartColumn: { alignItems: "center", borderCurve: "continuous", borderRadius: 12, flex: 1, gap: 8, minWidth: 0, paddingHorizontal: 2, paddingTop: 8 },
+  chartColumnPressed: { opacity: 0.66 },
+  chartColumnSelected: { backgroundColor: colors.surfaceSoft },
+  chartColumns: { alignItems: "flex-end", flexDirection: "row", gap: 4, height: 206 },
+  chartGuide: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth },
+  chartGuides: { bottom: 36, height: 150, justifyContent: "space-between", left: 0, position: "absolute", right: 0 },
+  chartLabel: { color: colors.muted, fontFamily: fonts.regular, fontSize: 11, lineHeight: 14, minHeight: 28, textAlign: "center" },
+  chartLabelSelected: { color: colors.primary, fontFamily: fonts.semibold },
+  chartMotion: { minHeight: 206 },
   chip: { borderColor: colors.border, borderRadius: 999, borderWidth: 1, marginRight: 8, paddingHorizontal: 12, paddingVertical: 7 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chipText: { color: colors.primaryDark, fontFamily: fonts.semibold, fontSize: 12 },
@@ -966,20 +1251,37 @@ const s = StyleSheet.create({
   muted: { color: colors.muted },
   notificationRow: { alignItems: "center", borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: "row", gap: 10, paddingVertical: 12 },
   preferenceRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
-  progressCenter: { alignItems: "center", justifyContent: "center", position: "absolute" },
-  progressLabel: { color: colors.muted, fontFamily: fonts.semibold, fontSize: 14 },
-  progressValue: { color: colors.text, fontFamily: fonts.semibold, fontSize: 36 },
-  progressWrap: { alignItems: "center", height: 170, justifyContent: "center", width: 170 },
+  periodArrow: { alignItems: "center", height: 40, justifyContent: "center", width: 40 },
+  periodArrowDisabled: { opacity: 0.22 },
+  periodNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
+  periodTitle: { color: colors.text, flex: 1, fontFamily: fonts.semibold, fontSize: 17, textAlign: "center" },
   roundIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 42, justifyContent: "center", width: 42 },
   rowBetween: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   rowLeft: { alignItems: "center", flexDirection: "row", gap: 10 },
   rowTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 15 },
   sectionTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 18 },
   settingsRow: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", padding: 16 },
-  statCard: { backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexBasis: "47%", flexGrow: 1, gap: 4, padding: 16 },
+  selectedPeriodDetail: { alignItems: "baseline", borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: "row", flexWrap: "wrap", gap: 7, paddingVertical: 15 },
+  selectedPeriodMeta: { color: colors.muted, flexShrink: 1, fontFamily: fonts.regular, fontSize: 14 },
+  selectedPeriodTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 15 },
   statLabel: { color: colors.muted, fontFamily: fonts.regular, fontSize: 13 },
-  statValue: { color: colors.primary, fontFamily: fonts.semibold, fontSize: 28 },
-  statsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
+  statMetric: { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexBasis: "48%", flexGrow: 1, minHeight: 108, paddingHorizontal: 16, paddingVertical: 14 },
+  statSuffix: { color: colors.muted, fontFamily: fonts.regular, fontSize: 13, marginTop: -3 },
+  statValue: { color: colors.text, fontFamily: fonts.semibold, fontSize: 32, lineHeight: 38 },
+  statsContextLabel: { color: colors.muted, fontFamily: fonts.regular, fontSize: 14, marginTop: -7 },
+  statsGrid: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: "row", flexWrap: "wrap", marginHorizontal: -16 },
+  statsHero: { gap: 8, paddingBottom: 14, paddingTop: 8 },
+  statsProgressFill: { backgroundColor: colors.primary, borderRadius: 999, height: "100%" },
+  statsProgressLabel: { color: colors.muted, fontFamily: fonts.regular, fontSize: 16 },
+  statsProgressTrack: { backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 9, marginTop: 10, overflow: "hidden" },
+  statsProgressValue: { color: colors.text, fontFamily: fonts.semibold, fontSize: 52, letterSpacing: -1.5, lineHeight: 58 },
+  statsSectionTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 23, lineHeight: 29 },
+  statsTab: { alignItems: "center", borderCurve: "continuous", borderRadius: 13, flex: 1, justifyContent: "center", minHeight: 48 },
+  statsTabActive: { backgroundColor: colors.surfaceSoft },
+  statsTabPressed: { opacity: 0.62 },
+  statsTabText: { color: colors.muted, fontFamily: fonts.medium, fontSize: 15 },
+  statsTabTextActive: { color: colors.primary, fontFamily: fonts.semibold },
+  statsTabs: { borderColor: colors.border, borderCurve: "continuous", borderRadius: 14, borderWidth: 1, flexDirection: "row", padding: 2 },
   stickyFooter: { backgroundColor: colors.background, borderTopColor: colors.border, borderTopWidth: 1, bottom: 0, left: 0, padding: 16, position: "absolute", right: 0 },
   swipeDelete: { alignItems: "center", backgroundColor: colors.danger, justifyContent: "center", marginVertical: 1, width: 76 },
   unreadDot: { backgroundColor: colors.primary, borderRadius: 999, height: 8, width: 8 },
