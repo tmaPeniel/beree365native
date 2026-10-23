@@ -149,6 +149,12 @@ begin
     raise exception 'User must be authenticated' using errcode = '42501';
   end if;
 
+  -- Sérialise le changement de plan avec les futures écritures de progression.
+  perform 1
+  from public.profiles
+  where id = auth.uid()
+  for update;
+
   if not exists (
     select 1
     from public.reading_plans
