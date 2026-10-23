@@ -10,6 +10,7 @@
     ],
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "backgroundColor": "#F8F6F3",
     "icon": "./src/assets/beree-icon.png",
     "assetBundlePatterns": [
       "**/*"
@@ -20,10 +21,20 @@
     },
     "android": {
       "package": "com.sisap.beree365",
+      "backgroundColor": "#F8F6F3",
       "adaptiveIcon": {
         "foregroundImage": "./src/assets/beree-icon.png",
         "backgroundColor": "#F8FAF7"
       }
+    },
+    "androidNavigationBar": {
+      "backgroundColor": "#F8F6F3",
+      "barStyle": "dark-content"
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#F8F6F3",
+      "barStyle": "dark-content",
+      "translucent": false
     },
     "plugins": [
       "expo-router",
@@ -32,7 +43,7 @@
         {
           "image": "./src/assets/beree-logo.png",
           "resizeMode": "contain",
-          "backgroundColor": "#F8FAF7"
+          "backgroundColor": "#F8F6F3"
         }
       ],
       "expo-notifications",
@@ -46,7 +57,8 @@
           "microphonePermission": false
         }
       ],
-      "expo-sharing"
+      "expo-sharing",
+      "@react-native-community/datetimepicker"
     ],
     "experiments": {
       "typedRoutes": true

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   addDays,
   addMonths,
@@ -24,6 +25,7 @@ import {
   FlatList,
   Linking,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -37,19 +39,27 @@ import {
   Award,
   Bell,
   BookOpen,
+  CalendarDays,
   Camera,
   ChevronLeft,
   CalendarClock,
   ChevronRight,
   Crown,
+  Flag,
+  Flame,
   Gift,
   Image as ImageIcon,
   Info,
   Lock,
   Mail,
+  Moon,
+  RotateCcw,
   Shield,
   Sparkles,
+  Sunrise,
+  Target,
   Trash2,
+  UserX,
 } from "lucide-react-native";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
@@ -60,6 +70,7 @@ import {
 } from "@/features/auth/services/auth";
 import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { removeProfileAvatar, uploadProfileAvatar } from "@/features/profile/services/avatar-service";
+import { clearCurrentUserReadingData } from "@/features/profile/services/data-management-service";
 import { exportCurrentUserData } from "@/features/profile/services/privacy-export-service";
 import {
   Badge,
@@ -542,6 +553,7 @@ function StatMetric({ label, suffix, value }: { label: string; suffix?: string; 
 export function BadgesScreen() {
   const { user } = useAuth();
   const [selected, setSelected] = useState<BadgeGridItem | null>(null);
+  const [filter, setFilter] = useState<"all" | "unlocked">("all");
   const allQuery = useQuery({ queryKey: ["mobile-all-badges"], queryFn: getAllBadges });
   const userQuery = useQuery({ queryKey: ["mobile-user-badges", user?.id], queryFn: () => getUserBadges(user.id), enabled: !!user?.id });
   const progressQuery = useQuery({ queryKey: ["mobile-badge-progress", user?.id], queryFn: () => getBadgeProgress(user.id), enabled: !!user?.id });
@@ -550,15 +562,87 @@ export function BadgesScreen() {
     const progress = new Map((progressQuery.data || []).map((item) => [item.badge.id, item]));
     return (allQuery.data || []).map((badge) => ({ badge, current: progress.get(badge.id)?.current, progress: progress.get(badge.id)?.progress, required: progress.get(badge.id)?.required, unlocked: unlocked.get(badge.id) }));
   }, [allQuery.data, progressQuery.data, userQuery.data]);
+  const unlockedCount = items.filter((item) => item.unlocked).length;
+  const completion = items.length ? Math.round((unlockedCount / items.length) * 100) : 0;
+  const nextBadge = useMemo(
+    () => items
+      .filter((item) => !item.unlocked)
+      .sort((left, right) => (right.progress ?? 0) - (left.progress ?? 0))[0] ?? null,
+    [items],
+  );
+  const visibleItems = filter === "unlocked" ? items.filter((item) => item.unlocked) : items;
+  const isLoading = allQuery.isLoading || userQuery.isLoading || progressQuery.isLoading;
+
   return (
     <View style={styles.screen}>
       <FlatList
-        ListHeaderComponent={<Header title="Badges" subtitle={`${userQuery.data?.length ?? 0}/${allQuery.data?.length ?? 0} recompenses debloquees.`} />}
+        ListEmptyComponent={isLoading ? (
+          <View style={s.badgesEmptyState}><ActivityIndicator color={colors.primary} /></View>
+        ) : (
+          <View style={s.badgesEmptyState}>
+            <Award color={colors.muted} size={28} strokeWidth={1.7} />
+            <Text style={s.badgesEmptyTitle}>
+              {filter === "unlocked" ? "Aucun badge obtenu pour le moment" : "Aucun badge disponible"}
+            </Text>
+            <Text style={styles.subheading}>Votre progression apparaîtra ici au fil de vos lectures.</Text>
+          </View>
+        )}
+        ListHeaderComponent={(
+          <View style={s.badgesHeader}>
+            <Header title="Badges" subtitle="Votre collection de récompenses" />
+
+            <View style={s.badgesSummary}>
+              <View style={s.badgesSummaryLine}>
+                <Text style={s.badgesSummaryValue}>{unlockedCount}</Text>
+                <Text style={s.badgesSummaryTotal}>/ {items.length}</Text>
+              </View>
+              <Text style={s.badgesSummaryLabel}>badges débloqués</Text>
+              <View style={s.badgesProgressTrack}>
+                <View style={[s.badgesProgressFill, { width: `${completion}%` }]} />
+              </View>
+            </View>
+
+            {nextBadge ? (
+              <View style={s.nextBadgeSection}>
+                <Text style={s.badgesSectionTitle}>Prochain badge</Text>
+                <Pressable
+                  accessibilityLabel={`Voir le badge ${nextBadge.badge.name}`}
+                  accessibilityRole="button"
+                  onPress={() => setSelected(nextBadge)}
+                  style={({ pressed }) => [s.nextBadgeCard, pressed && s.badgePressed]}
+                >
+                  <BadgeMedallion badge={nextBadge.badge} locked={false} size={72} />
+                  <View style={s.nextBadgeCopy}>
+                    <Text numberOfLines={1} style={s.nextBadgeTitle}>{nextBadge.badge.name}</Text>
+                    <Text numberOfLines={1} style={s.nextBadgeDescription}>{nextBadge.badge.description}</Text>
+                    <View style={s.nextBadgeProgressRow}>
+                      <Text style={s.nextBadgeProgressText}>
+                        {nextBadge.current ?? 0} sur {nextBadge.required ?? "?"}
+                      </Text>
+                      <View style={s.nextBadgeProgressTrack}>
+                        <View style={[s.nextBadgeProgressFill, { width: `${nextBadge.progress ?? 0}%` }]} />
+                      </View>
+                    </View>
+                  </View>
+                  <ChevronRight color={colors.muted} size={20} strokeWidth={1.8} />
+                </Pressable>
+              </View>
+            ) : null}
+
+            <View style={s.collectionHeadingRow}>
+              <Text style={s.badgesSectionTitle}>Collection</Text>
+              <View accessibilityRole="tablist" style={s.badgeFilters}>
+                <BadgeFilter active={filter === "all"} label="Tous" onPress={() => setFilter("all")} />
+                <BadgeFilter active={filter === "unlocked"} label="Obtenus" onPress={() => setFilter("unlocked")} />
+              </View>
+            </View>
+          </View>
+        )}
         columnWrapperStyle={s.badgeRow}
-        contentContainerStyle={s.content}
-        data={items}
+        contentContainerStyle={[s.content, s.badgesContent]}
+        data={isLoading ? [] : visibleItems}
         keyExtractor={(item) => item.badge.id}
-        numColumns={3}
+        numColumns={2}
         renderItem={({ item }) => <BadgeTile item={item} onPress={() => setSelected(item)} />}
       />
       <Modal animationType="fade" onRequestClose={() => setSelected(null)} transparent visible={!!selected}>
@@ -570,26 +654,103 @@ export function BadgesScreen() {
   );
 }
 
+function BadgeFilter({ active, label, onPress }: { active: boolean; label: string; onPress: () => void }) {
+  return (
+    <Pressable
+      accessibilityRole="tab"
+      accessibilityState={{ selected: active }}
+      onPress={onPress}
+      style={({ pressed }) => [s.badgeFilter, active && s.badgeFilterActive, pressed && s.badgePressed]}
+    >
+      <Text style={[s.badgeFilterText, active && s.badgeFilterTextActive]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 function BadgeTile({ item, onPress }: { item: BadgeGridItem; onPress: () => void }) {
   const locked = !item.unlocked;
+  const hasProgress = locked && typeof item.required === "number" && item.required > 0;
   return (
-    <Pressable onPress={onPress} style={s.badgeTile}>
-      <View style={[s.badgeIcon, locked && s.faded]}>
-        <Text style={s.badgeEmoji}>{item.badge.icon || "🏅"}</Text>
-        {locked ? <View style={s.lockBadge}><Lock color={colors.muted} size={13} /></View> : null}
-      </View>
-      <Text numberOfLines={2} style={[s.badgeName, locked && s.muted]}>{item.badge.name}</Text>
+    <Pressable
+      accessibilityLabel={`${item.badge.name}, ${locked ? "verrouillé" : "obtenu"}`}
+      accessibilityRole="button"
+      onPress={onPress}
+      style={({ pressed }) => [s.badgeTile, pressed && s.badgePressed]}
+    >
+      <BadgeMedallion badge={item.badge} locked={locked} size={76} />
+      <Text numberOfLines={2} style={[s.badgeName, locked && s.badgeNameLocked]}>{item.badge.name}</Text>
+      {item.unlocked ? (
+        <Text numberOfLines={1} style={s.badgeStatus}>Obtenu le {format(new Date(item.unlocked.unlocked_at), "d MMM", { locale: fr })}</Text>
+      ) : hasProgress ? (
+        <>
+          <Text style={s.badgeStatus}>{item.current ?? 0} / {item.required}</Text>
+          <View style={s.badgeTileProgressTrack}>
+            <View style={[s.badgeTileProgressFill, { width: `${item.progress ?? 0}%` }]} />
+          </View>
+        </>
+      ) : (
+        <Text style={s.badgeStatus}>À découvrir</Text>
+      )}
     </Pressable>
+  );
+}
+
+function getBadgeIcon(badge: Badge): IconType {
+  const type = badge.criteria?.type;
+  if (type === "chapters_read") return Number(badge.criteria?.count) === 1 ? Target : BookOpen;
+  if (type === "days_completed") return CalendarDays;
+  if (type === "milestone") return Crown;
+  if (type === "streak_days" || type === "fixed_time_streak") return Flame;
+  if (type === "time_of_day") return badge.criteria?.period === "evening" ? Moon : Sunrise;
+  if (type === "resume_after_gap") return RotateCcw;
+  if (type === "book_completed") return BookOpen;
+  if (badge.name.toLowerCase().includes("finisseur")) return Flag;
+  return Award;
+}
+
+function colorWithAlpha(color: string, alpha: number) {
+  const normalized = /^#[0-9A-F]{6}$/i.test(color) ? color : colors.primary;
+  const red = parseInt(normalized.slice(1, 3), 16);
+  const green = parseInt(normalized.slice(3, 5), 16);
+  const blue = parseInt(normalized.slice(5, 7), 16);
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`;
+}
+
+function BadgeMedallion({ badge, locked, size }: { badge: Badge; locked: boolean; size: number }) {
+  const Icon = getBadgeIcon(badge);
+  const accent = locked ? colors.muted : badge.color || colors.primary;
+  return (
+    <View
+      style={[
+        s.badgeMedallion,
+        {
+          backgroundColor: locked ? colors.surfaceSoft : colorWithAlpha(accent, 0.14),
+          borderColor: locked ? colors.border : colorWithAlpha(accent, 0.28),
+          borderRadius: size / 2,
+          height: size,
+          width: size,
+        },
+      ]}
+    >
+      <Icon color={accent} size={Math.round(size * 0.38)} strokeWidth={1.7} />
+      {locked ? (
+        <View style={s.badgeLockMark}>
+          <Lock color={colors.muted} size={11} strokeWidth={2} />
+        </View>
+      ) : null}
+    </View>
   );
 }
 
 function BadgeDetails({ item }: { item: BadgeGridItem }) {
   return (
-    <View style={{ gap: 12 }}>
-      <View style={[s.badgeIconLarge, !item.unlocked && s.faded]}><Text style={s.badgeEmojiLarge}>{item.badge.icon || "🏅"}</Text></View>
+    <View style={s.badgeDetails}>
+      <View style={s.badgeDetailsMedallion}>
+        <BadgeMedallion badge={item.badge} locked={!item.unlocked} size={88} />
+      </View>
       <Text style={s.modalTitle}>{item.badge.name}</Text>
-      <Text style={styles.subheading}>{item.badge.description}</Text>
-      <Text style={s.detail}>{item.unlocked ? `Obtenu le ${formatDate(item.unlocked.unlocked_at)}` : `Condition : ${item.current ?? 0}/${item.required ?? "?"} (${item.progress ?? 0}%)`}</Text>
+      <Text style={[styles.subheading, s.badgeDetailsDescription]}>{item.badge.description}</Text>
+      <Text style={s.detail}>{item.unlocked ? `Obtenu le ${formatDate(item.unlocked.unlocked_at)}` : `Progression : ${item.current ?? 0}/${item.required ?? "?"} (${Math.round(item.progress ?? 0)} %)`}</Text>
     </View>
   );
 }
@@ -873,15 +1034,27 @@ export function PrivacyScreen() {
 
 export function EditProfileScreen() {
   const insets = useSafeAreaInsets();
+  const queryClient = useQueryClient();
   const { profile, refreshProfile, user } = useAuth();
   const [fullName, setFullName] = useState(profile?.full_name || "");
   const [startDate, setStartDate] = useState(profile?.start_date || "");
+  const [draftStartDate, setDraftStartDate] = useState(() => {
+    const initialDate = parseISO(profile?.start_date || "");
+    return isValid(initialDate) ? initialDate : new Date();
+  });
   const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isClearingData, setIsClearingData] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const [avatarOperation, setAvatarOperation] = useState<"upload" | "remove" | null>(null);
   const [isAvatarMenuOpen, setIsAvatarMenuOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
   const initials = getProfileInitials(fullName, user?.email);
   const isUpdatingAvatar = avatarOperation !== null;
+  const parsedStartDate = parseISO(startDate);
+  const readableStartDate = isValid(parsedStartDate)
+    ? format(parsedStartDate, "d MMMM yyyy", { locale: fr })
+    : "Choisir une date";
 
   useEffect(() => {
     setAvatarUrl(profile?.avatar_url || null);
@@ -1002,6 +1175,82 @@ export function EditProfileScreen() {
     }, 240);
   };
 
+  const openDatePicker = () => {
+    setDraftStartDate(isValid(parsedStartDate) ? parsedStartDate : new Date());
+    setIsDatePickerOpen(true);
+  };
+
+  const handleDateChange = (event: { type: string }, value?: Date) => {
+    if (Platform.OS === "android") {
+      setIsDatePickerOpen(false);
+      if (event.type === "set" && value) setStartDate(format(value, "yyyy-MM-dd"));
+      return;
+    }
+
+    if (value) setDraftStartDate(value);
+  };
+
+  const confirmDate = () => {
+    setStartDate(format(draftStartDate, "yyyy-MM-dd"));
+    setIsDatePickerOpen(false);
+  };
+
+  const clearReadingData = () => {
+    if (isClearingData) return;
+
+    Alert.alert(
+      "Effacer mes données de lecture ?",
+      "Votre progression, vos badges, vos favoris et l'historique des notifications seront supprimés. Votre profil et votre compte resteront actifs.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Effacer",
+          style: "destructive",
+          onPress: async () => {
+            setIsClearingData(true);
+            const result = await clearCurrentUserReadingData();
+
+            if (!result.success) {
+              setIsClearingData(false);
+              Alert.alert("Effacement impossible", result.error);
+              return;
+            }
+
+            await Promise.all([refreshProfile(), queryClient.invalidateQueries()]);
+            setStartDate(format(new Date(), "yyyy-MM-dd"));
+            setIsClearingData(false);
+            Alert.alert("Données effacées", "Votre parcours de lecture a été remis à zéro.");
+          },
+        },
+      ],
+    );
+  };
+
+  const deleteAccount = () => {
+    if (isDeletingAccount) return;
+
+    Alert.alert(
+      "Supprimer définitivement le compte ?",
+      "Toutes vos données seront supprimées et cette action est irréversible.",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer le compte",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeletingAccount(true);
+            const result = await deleteCurrentUserAccount();
+
+            if (!result.success) {
+              setIsDeletingAccount(false);
+              Alert.alert("Suppression impossible", result.error);
+            }
+          },
+        },
+      ],
+    );
+  };
+
   const save = async () => {
     if (!user?.id) return;
     if (fullName.trim().length < 2) return Alert.alert("Profil", "Le nom doit contenir au moins 2 caracteres.");
@@ -1037,10 +1286,13 @@ export function EditProfileScreen() {
 
   return (
     <View style={styles.screen}>
-      <ScrollView contentContainerStyle={s.content}>
+      <ScrollView
+        contentContainerStyle={[s.content, s.editProfileContent]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Header
           title="Modifier le profil"
-          subtitle="Mettez à jour vos informations personnelles."
+          subtitle="Vos informations personnelles"
         />
 
         <Pressable
@@ -1049,8 +1301,8 @@ export function EditProfileScreen() {
           disabled={isUpdatingAvatar}
           onPress={chooseAvatarSource}
           style={({ pressed }) => [
-            s.avatarPicker,
-            pressed && !isUpdatingAvatar && s.avatarPickerPressed,
+            s.editAvatarSection,
+            pressed && !isUpdatingAvatar && s.editAvatarPressed,
           ]}
         >
           <View style={s.avatarPreviewWrap}>
@@ -1063,33 +1315,127 @@ export function EditProfileScreen() {
               )}
             </View>
           </View>
-          <View style={s.avatarPickerCopy}>
-            <Text style={s.rowTitle}>
-              {avatarOperation === "upload" ? "Envoi de la photo…" : "Changer la photo"}
-            </Text>
-            <Text style={styles.subheading}>Prendre une photo ou en choisir une dans la photothèque.</Text>
-          </View>
+          <Text style={s.avatarEditLabel}>
+            {avatarOperation === "upload" ? "Envoi de la photo…" : "Modifier la photo"}
+          </Text>
         </Pressable>
 
-        <View style={s.card}>
-          <Text style={s.inputLabel}>Nom complet</Text>
-          <TextInput
-            onChangeText={setFullName}
-            placeholder="Votre nom"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={fullName}
-          />
-          <Text style={s.inputLabel}>Date de début</Text>
-          <TextInput
-            onChangeText={setStartDate}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor={colors.muted}
-            style={styles.input}
-            value={startDate}
-          />
+        <View style={s.profileForm}>
+          <Text style={s.formSectionLabel}>Informations</Text>
+          <View style={s.formField}>
+            <Text style={s.inputLabel}>Nom complet</Text>
+            <TextInput
+              onChangeText={setFullName}
+              placeholder="Votre nom"
+              placeholderTextColor={colors.muted}
+              style={s.profileInput}
+              value={fullName}
+            />
+          </View>
+          <View style={s.formField}>
+            <Text style={s.inputLabel}>Début du plan</Text>
+            <Pressable
+              accessibilityLabel={`Modifier la date de début, ${readableStartDate}`}
+              accessibilityRole="button"
+              onPress={openDatePicker}
+              style={({ pressed }) => [s.dateField, pressed && s.dateFieldPressed]}
+            >
+              <CalendarDays color={colors.muted} size={21} strokeWidth={1.8} />
+              <Text style={s.dateFieldValue}>{readableStartDate}</Text>
+              <ChevronRight color={colors.muted} size={20} strokeWidth={1.8} />
+            </Pressable>
+            <Text style={s.fieldHelper}>Cette date détermine votre jour de lecture actuel.</Text>
+          </View>
+        </View>
+
+        <View style={s.dataSection}>
+          <Text style={s.dataSectionTitle}>Données et compte</Text>
+          <Text style={s.dataSectionDescription}>
+            Gérez séparément votre parcours de lecture et votre compte Bérée 365.
+          </Text>
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={isClearingData || isDeletingAccount}
+            onPress={clearReadingData}
+            style={({ pressed }) => [s.dataAction, pressed && s.dataActionPressed]}
+          >
+            <View style={s.dataActionIcon}>
+              {isClearingData ? (
+                <ActivityIndicator color={colors.primary} size="small" />
+              ) : (
+                <RotateCcw color={colors.primary} size={20} strokeWidth={1.9} />
+              )}
+            </View>
+            <View style={s.dataActionCopy}>
+              <Text style={s.dataActionTitle}>Effacer mes données de lecture</Text>
+              <Text style={s.dataActionSubtitle}>Progression, badges, favoris et historique.</Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            accessibilityRole="button"
+            disabled={isDeletingAccount || isClearingData}
+            onPress={deleteAccount}
+            style={({ pressed }) => [s.dataAction, s.dangerAction, pressed && s.dataActionPressed]}
+          >
+            <View style={[s.dataActionIcon, s.dangerActionIcon]}>
+              {isDeletingAccount ? (
+                <ActivityIndicator color={colors.danger} size="small" />
+              ) : (
+                <UserX color={colors.danger} size={20} strokeWidth={1.9} />
+              )}
+            </View>
+            <View style={s.dataActionCopy}>
+              <Text style={[s.dataActionTitle, s.dangerActionTitle]}>Supprimer mon compte</Text>
+              <Text style={s.dataActionSubtitle}>Suppression définitive du compte et de toutes ses données.</Text>
+            </View>
+          </Pressable>
         </View>
       </ScrollView>
+
+      {Platform.OS === "android" && isDatePickerOpen && (
+        <DateTimePicker
+          maximumDate={new Date()}
+          mode="date"
+          onChange={handleDateChange}
+          value={draftStartDate}
+        />
+      )}
+
+      {Platform.OS === "ios" && (
+        <Modal
+          animationType="fade"
+          onRequestClose={() => setIsDatePickerOpen(false)}
+          transparent
+          visible={isDatePickerOpen}
+        >
+          <Pressable onPress={() => setIsDatePickerOpen(false)} style={s.dateModalBackdrop}>
+            <Pressable onPress={(event) => event.stopPropagation()} style={s.dateModalCard}>
+              <Text style={s.dateModalTitle}>Début du plan</Text>
+              <DateTimePicker
+                display="spinner"
+                locale="fr-FR"
+                maximumDate={new Date()}
+                mode="date"
+                onChange={handleDateChange}
+                value={draftStartDate}
+              />
+              <View style={s.dateModalActions}>
+                <Pressable
+                  onPress={() => setIsDatePickerOpen(false)}
+                  style={s.dateModalSecondaryButton}
+                >
+                  <Text style={s.dateModalSecondaryText}>Annuler</Text>
+                </Pressable>
+                <Pressable onPress={confirmDate} style={s.dateModalPrimaryButton}>
+                  <Text style={styles.primaryButtonText}>Valider</Text>
+                </Pressable>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
 
       <Modal
         animationType="fade"
@@ -1157,13 +1503,18 @@ export function EditProfileScreen() {
 
       <View style={[s.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         <Pressable
-          disabled={isSaving || isUpdatingAvatar}
+          disabled={isSaving || isUpdatingAvatar || isClearingData || isDeletingAccount}
           onPress={save}
-          style={[styles.primaryButton, (isSaving || isUpdatingAvatar) && s.disabledButton]}
+          style={[
+            styles.primaryButton,
+            (isSaving || isUpdatingAvatar || isClearingData || isDeletingAccount) && s.disabledButton,
+          ]}
         >
-          <Text style={styles.primaryButtonText}>
-            {isSaving ? "Enregistrement..." : "Enregistrer"}
-          </Text>
+          {isSaving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryButtonText}>Enregistrer les modifications</Text>
+          )}
         </Pressable>
       </View>
     </View>
@@ -1205,13 +1556,36 @@ const s = StyleSheet.create({
   activityChart: { height: 206, justifyContent: "flex-end", position: "relative" },
   activitySection: { borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, gap: 14, paddingBottom: 4 },
   avatarPreviewWrap: { position: "relative" },
-  badgeEmoji: { fontSize: 26 },
-  badgeEmojiLarge: { fontSize: 40 },
-  badgeIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 24, height: 58, justifyContent: "center", width: 58 },
-  badgeIconLarge: { alignItems: "center", alignSelf: "center", backgroundColor: colors.surfaceSoft, borderRadius: 42, height: 84, justifyContent: "center", width: 84 },
-  badgeName: { color: colors.text, fontFamily: fonts.semibold, fontSize: 12, lineHeight: 16, textAlign: "center" },
-  badgeRow: { gap: 10 },
-  badgeTile: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flex: 1, gap: 8, marginBottom: 10, minHeight: 122, padding: 10 },
+  badgeDetails: { gap: 12 },
+  badgeDetailsDescription: { textAlign: "center" },
+  badgeDetailsMedallion: { alignItems: "center" },
+  badgeFilter: { alignItems: "center", borderCurve: "continuous", borderRadius: 12, justifyContent: "center", minHeight: 42, paddingHorizontal: 16 },
+  badgeFilterActive: { backgroundColor: colors.primary },
+  badgeFilterText: { color: colors.muted, fontFamily: fonts.medium, fontSize: 14 },
+  badgeFilterTextActive: { color: "#FFFFFF", fontFamily: fonts.semibold },
+  badgeFilters: { borderColor: colors.border, borderCurve: "continuous", borderRadius: 14, borderWidth: 1, flexDirection: "row", padding: 2 },
+  badgeLockMark: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 999, borderWidth: 1, bottom: -2, height: 24, justifyContent: "center", position: "absolute", right: -2, width: 24 },
+  badgeMedallion: { alignItems: "center", borderWidth: 1, justifyContent: "center", position: "relative" },
+  badgeName: { color: colors.text, fontFamily: fonts.semibold, fontSize: 15, lineHeight: 20, minHeight: 40, textAlign: "center" },
+  badgeNameLocked: { color: colors.primaryDark },
+  badgePressed: { opacity: 0.62, transform: [{ scale: 0.99 }] },
+  badgeRow: { gap: 12 },
+  badgeStatus: { color: colors.muted, fontFamily: fonts.regular, fontSize: 12, lineHeight: 17, textAlign: "center" },
+  badgeTile: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderCurve: "continuous", borderRadius: 15, borderWidth: 1, flex: 1, gap: 7, marginBottom: 12, minHeight: 174, paddingHorizontal: 10, paddingVertical: 16 },
+  badgeTileProgressFill: { backgroundColor: colors.primary, borderRadius: 999, height: "100%" },
+  badgeTileProgressTrack: { backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 5, marginTop: 1, overflow: "hidden", width: "78%" },
+  badgesContent: { paddingBottom: 36 },
+  badgesEmptyState: { alignItems: "center", gap: 10, paddingHorizontal: 28, paddingVertical: 36 },
+  badgesEmptyTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 16, textAlign: "center" },
+  badgesHeader: { gap: 28, marginBottom: 18 },
+  badgesProgressFill: { backgroundColor: colors.primary, borderRadius: 999, height: "100%" },
+  badgesProgressTrack: { backgroundColor: colors.border, borderRadius: 999, height: 7, marginTop: 9, overflow: "hidden" },
+  badgesSectionTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 22, lineHeight: 28 },
+  badgesSummary: { paddingHorizontal: 4 },
+  badgesSummaryLabel: { color: colors.muted, fontFamily: fonts.regular, fontSize: 16, marginTop: -2 },
+  badgesSummaryLine: { alignItems: "baseline", flexDirection: "row", gap: 8 },
+  badgesSummaryTotal: { color: colors.muted, fontFamily: fonts.regular, fontSize: 32 },
+  badgesSummaryValue: { color: colors.primary, fontFamily: fonts.semibold, fontSize: 50, letterSpacing: -1.2, lineHeight: 57 },
   backButton: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 999, borderWidth: 1, height: 40, justifyContent: "center", width: 40 },
   backButtonPressed: { backgroundColor: colors.surfaceSoft },
   benefitRow: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", gap: 14, padding: 16 },
@@ -1232,11 +1606,40 @@ const s = StyleSheet.create({
   chip: { borderColor: colors.border, borderRadius: 999, borderWidth: 1, marginRight: 8, paddingHorizontal: 12, paddingVertical: 7 },
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chipText: { color: colors.primaryDark, fontFamily: fonts.semibold, fontSize: 12 },
+  collectionHeadingRow: { alignItems: "center", flexDirection: "row", gap: 12, justifyContent: "space-between" },
   content: { gap: 16, padding: 20, paddingBottom: 112 },
+  dangerAction: { borderBottomColor: "transparent" },
+  dangerActionIcon: { backgroundColor: "#FCEAE8" },
+  dangerActionTitle: { color: colors.danger },
+  dataAction: { alignItems: "center", borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: "row", gap: 14, minHeight: 76, paddingVertical: 12 },
+  dataActionCopy: { flex: 1, gap: 4 },
+  dataActionIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 14, height: 44, justifyContent: "center", width: 44 },
+  dataActionPressed: { opacity: 0.58 },
+  dataActionSubtitle: { color: colors.muted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19 },
+  dataActionTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 15 },
+  dataSection: { borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, gap: 4, marginTop: 22, paddingTop: 24 },
+  dataSectionDescription: { color: colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 21, marginBottom: 8 },
+  dataSectionTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 19 },
+  dateField: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderCurve: "continuous", borderRadius: 14, borderWidth: 1, flexDirection: "row", gap: 12, minHeight: 56, paddingHorizontal: 15 },
+  dateFieldPressed: { backgroundColor: colors.surfaceSoft },
+  dateFieldValue: { color: colors.text, flex: 1, fontFamily: fonts.medium, fontSize: 16 },
+  dateModalActions: { flexDirection: "row", gap: 10, marginTop: 8 },
+  dateModalBackdrop: { alignItems: "center", backgroundColor: "rgba(20, 18, 16, 0.42)", flex: 1, justifyContent: "center", padding: 24 },
+  dateModalCard: { backgroundColor: colors.surface, borderCurve: "continuous", borderRadius: 20, maxWidth: 380, padding: 20, width: "100%" },
+  dateModalPrimaryButton: { alignItems: "center", backgroundColor: colors.primary, borderRadius: 12, flex: 1, justifyContent: "center", minHeight: 50 },
+  dateModalSecondaryButton: { alignItems: "center", borderColor: colors.border, borderRadius: 12, borderWidth: 1, flex: 1, justifyContent: "center", minHeight: 50 },
+  dateModalSecondaryText: { color: colors.text, fontFamily: fonts.semibold, fontSize: 15 },
+  dateModalTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 20, textAlign: "center" },
   deleteButton: { alignItems: "center", borderColor: colors.border, borderRadius: 999, borderWidth: 1, height: 36, justifyContent: "center", width: 36 },
   detail: { color: colors.primaryDark, fontFamily: fonts.semibold, fontSize: 14 },
   disabledButton: { opacity: 0.55 },
+  editAvatarPressed: { opacity: 0.62, transform: [{ scale: 0.99 }] },
+  editAvatarSection: { alignItems: "center", alignSelf: "center", gap: 10, minHeight: 160, paddingHorizontal: 20, paddingVertical: 14 },
+  editProfileContent: { paddingBottom: 142 },
   faded: { opacity: 0.45 },
+  fieldHelper: { color: colors.muted, fontFamily: fonts.regular, fontSize: 13, lineHeight: 19 },
+  formField: { gap: 8 },
+  formSectionLabel: { color: colors.muted, fontFamily: fonts.semibold, fontSize: 12, letterSpacing: 1.1, textTransform: "uppercase" },
   header: { gap: 4 },
   detailHeaderCopy: { flex: 1, gap: 4, minWidth: 0 },
   detailHeaderRow: { alignItems: "center", flexDirection: "row", gap: 12 },
@@ -1249,16 +1652,28 @@ const s = StyleSheet.create({
   modalCard: { backgroundColor: colors.surface, borderRadius: 22, maxWidth: 360, padding: 22, width: "100%" },
   modalTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 22, textAlign: "center" },
   muted: { color: colors.muted },
+  nextBadgeCard: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderCurve: "continuous", borderRadius: 15, borderWidth: 1, flexDirection: "row", gap: 14, minHeight: 112, padding: 15 },
+  nextBadgeCopy: { flex: 1, gap: 4, minWidth: 0 },
+  nextBadgeDescription: { color: colors.muted, fontFamily: fonts.regular, fontSize: 13 },
+  nextBadgeProgressFill: { backgroundColor: colors.primary, borderRadius: 999, height: "100%" },
+  nextBadgeProgressRow: { gap: 6, marginTop: 3 },
+  nextBadgeProgressText: { color: colors.text, fontFamily: fonts.medium, fontSize: 13 },
+  nextBadgeProgressTrack: { backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 6, overflow: "hidden" },
+  nextBadgeSection: { gap: 12 },
+  nextBadgeTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 17 },
   notificationRow: { alignItems: "center", borderBottomColor: colors.border, borderBottomWidth: 1, flexDirection: "row", gap: 10, paddingVertical: 12 },
   preferenceRow: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   periodArrow: { alignItems: "center", height: 40, justifyContent: "center", width: 40 },
   periodArrowDisabled: { opacity: 0.22 },
   periodNavigation: { alignItems: "center", flexDirection: "row", justifyContent: "space-between" },
   periodTitle: { color: colors.text, flex: 1, fontFamily: fonts.semibold, fontSize: 17, textAlign: "center" },
+  profileForm: { gap: 20 },
+  profileInput: { backgroundColor: colors.surface, borderColor: colors.border, borderCurve: "continuous", borderRadius: 14, borderWidth: 1, color: colors.text, fontFamily: fonts.regular, fontSize: 16, minHeight: 56, paddingHorizontal: 15 },
   roundIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 42, justifyContent: "center", width: 42 },
   rowBetween: { alignItems: "center", flexDirection: "row", gap: 10, justifyContent: "space-between" },
   rowLeft: { alignItems: "center", flexDirection: "row", gap: 10 },
   rowTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 15 },
+  avatarEditLabel: { color: colors.primary, fontFamily: fonts.semibold, fontSize: 15, lineHeight: 22 },
   sectionTitle: { color: colors.text, fontFamily: fonts.semibold, fontSize: 18 },
   settingsRow: { alignItems: "center", backgroundColor: colors.surface, borderColor: colors.border, borderRadius: 16, borderWidth: 1, flexDirection: "row", justifyContent: "space-between", padding: 16 },
   selectedPeriodDetail: { alignItems: "baseline", borderTopColor: colors.border, borderTopWidth: StyleSheet.hairlineWidth, flexDirection: "row", flexWrap: "wrap", gap: 7, paddingVertical: 15 },

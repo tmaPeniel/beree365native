@@ -512,6 +512,7 @@ export type Database = {
       }
       calculate_user_badges: { Args: { _user_id: string }; Returns: undefined }
       change_user_plan: { Args: { new_plan_id: string }; Returns: undefined }
+      clear_my_reading_data: { Args: never; Returns: undefined }
       expire_premium_subscriptions: { Args: never; Returns: undefined }
       get_canonical_plan_id: { Args: never; Returns: string }
       get_completed_days_count: { Args: { p_user_id: string }; Returns: number }
