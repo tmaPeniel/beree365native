@@ -45,6 +45,10 @@ import {
 } from "@/features/auth/services/auth";
 import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { removeProfileAvatar, uploadProfileAvatar } from "@/features/profile/services/avatar-service";
+import {
+  getNotificationHistory,
+  NotificationHistoryItem,
+} from "@/features/profile/services/notification-history-service";
 import { exportCurrentUserData } from "@/features/profile/services/privacy-export-service";
 import {
   Badge,
@@ -123,6 +127,48 @@ function Chip({ active, label, onPress }: { active: boolean; label: string; onPr
 function formatDate(value?: string | null) {
   if (!value) return "Non defini";
   return new Date(value).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function formatNotificationDate(value: string) {
+  return new Date(value).toLocaleString("fr-FR", {
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getNotificationPresentation(kind: string): { description: string; icon: IconType; title: string } {
+  if (kind === "daily_verse") {
+    return {
+      description: "Votre verset quotidien a été envoyé.",
+      icon: BookOpen,
+      title: "Verset du jour",
+    };
+  }
+
+  if (kind === "reading_reminder") {
+    return {
+      description: "Votre rappel de lecture a été envoyé.",
+      icon: CalendarClock,
+      title: "Rappel de lecture",
+    };
+  }
+
+  if (kind === "badge") {
+    return {
+      description: "Une notification de badge a été envoyée.",
+      icon: Award,
+      title: "Nouveau badge",
+    };
+  }
+
+  return {
+    description: "Une notification Bérée 365 a été envoyée.",
+    icon: Bell,
+    title: "Notification Bérée 365",
+  };
 }
 
 function dateKey(date: Date) {
@@ -324,7 +370,13 @@ function BadgeDetails({ item }: { item: BadgeGridItem }) {
 }
 
 export function NotificationsScreen() {
+  const { user } = useAuth();
   const notifications = useNotificationPreferences();
+  const historyQuery = useQuery({
+    enabled: !!user?.id,
+    queryFn: () => getNotificationHistory(),
+    queryKey: ["mobile-notification-history", user?.id],
+  });
 
   const updatePreference = async (
     patch: Parameters<typeof notifications.update>[0]
@@ -402,12 +454,67 @@ export function NotificationsScreen() {
         </View>
       )}
       <View style={s.card}>
-        <Text style={s.sectionTitle}>Centre de notifications</Text>
+        <View style={s.rowBetween}>
+          <Text style={s.sectionTitle}>Centre de notifications</Text>
+          <Pressable
+            accessibilityLabel="Actualiser l'historique"
+            accessibilityRole="button"
+            disabled={historyQuery.isFetching}
+            onPress={() => void historyQuery.refetch()}
+            style={({ pressed }) => [s.historyRefresh, pressed && s.historyRefreshPressed]}
+          >
+            {historyQuery.isFetching ? (
+              <ActivityIndicator color={colors.primary} size="small" />
+            ) : (
+              <Text style={s.historyRefreshText}>Actualiser</Text>
+            )}
+          </Pressable>
+        </View>
         <Text style={styles.subheading}>
-          Aucun historique mobile n'est disponible dans le contrat Supabase actuel.
+          Historique des notifications envoyées à votre compte. Il ne confirme pas leur réception sur cet appareil.
         </Text>
+        {historyQuery.isPending ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : historyQuery.isError ? (
+          <View style={s.historyState}>
+            <Text style={styles.subheading}>L'historique est momentanément indisponible.</Text>
+            <Pressable onPress={() => void historyQuery.refetch()} style={styles.secondaryButton}>
+              <Text style={styles.secondaryButtonText}>Réessayer</Text>
+            </Pressable>
+          </View>
+        ) : historyQuery.data?.length ? (
+          <View>
+            {historyQuery.data.map((item, index) => (
+              <NotificationHistoryRow
+                isLast={index === historyQuery.data.length - 1}
+                item={item}
+                key={item.id}
+              />
+            ))}
+          </View>
+        ) : (
+          <Text style={styles.subheading}>Aucune notification envoyée pour le moment.</Text>
+        )}
       </View>
     </ScrollView>
+  );
+}
+
+function NotificationHistoryRow({ isLast, item }: { isLast: boolean; item: NotificationHistoryItem }) {
+  const presentation = getNotificationPresentation(item.kind);
+  const Icon = presentation.icon;
+
+  return (
+    <View style={[s.historyRow, isLast && s.historyRowLast]}>
+      <View style={s.historyIcon}>
+        <Icon color={colors.primary} size={19} />
+      </View>
+      <View style={s.historyCopy}>
+        <Text style={s.rowTitle}>{presentation.title}</Text>
+        <Text style={s.historyDescription}>{presentation.description}</Text>
+        <Text style={s.historyDate}>{formatNotificationDate(item.sent_at)}</Text>
+      </View>
+    </View>
   );
 }
 
@@ -958,6 +1065,16 @@ const s = StyleSheet.create({
   heroCard: { backgroundColor: colors.primary, borderRadius: 22, gap: 12, padding: 22 },
   heroSubtitle: { color: "rgba(255,255,255,0.86)", fontFamily: fonts.regular, fontSize: 15, lineHeight: 22 },
   heroTitle: { color: "#FFFFFF", fontFamily: fonts.semibold, fontSize: 26 },
+  historyCopy: { flex: 1, gap: 3 },
+  historyDate: { color: colors.muted, fontFamily: fonts.regular, fontSize: 12, marginTop: 2 },
+  historyDescription: { color: colors.muted, fontFamily: fonts.regular, fontSize: 14, lineHeight: 19 },
+  historyIcon: { alignItems: "center", backgroundColor: colors.surfaceSoft, borderRadius: 999, height: 38, justifyContent: "center", width: 38 },
+  historyRefresh: { alignItems: "center", justifyContent: "center", minHeight: 34, minWidth: 72, paddingHorizontal: 4 },
+  historyRefreshPressed: { opacity: 0.55 },
+  historyRefreshText: { color: colors.primary, fontFamily: fonts.semibold, fontSize: 13 },
+  historyRow: { alignItems: "flex-start", borderBottomColor: colors.border, borderBottomWidth: StyleSheet.hairlineWidth, flexDirection: "row", gap: 12, paddingVertical: 14 },
+  historyRowLast: { borderBottomWidth: 0, paddingBottom: 2 },
+  historyState: { gap: 12 },
   inputLabel: { color: colors.text, fontFamily: fonts.semibold, fontSize: 14 },
   lockBadge: { alignItems: "center", backgroundColor: colors.surface, borderRadius: 999, bottom: -2, height: 22, justifyContent: "center", position: "absolute", right: -2, width: 22 },
   modalBackdrop: { alignItems: "center", backgroundColor: "rgba(0,0,0,0.36)", flex: 1, justifyContent: "center", padding: 28 },
