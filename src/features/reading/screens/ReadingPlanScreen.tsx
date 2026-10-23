@@ -46,6 +46,7 @@ import {
   type ReadingPlanProgressPassage,
 } from "@/features/reading/services/readingPlan";
 import { AnimatedProgressBar, MotionView, PressableScale } from "@/shared/animation/Motion";
+import { useAdaptiveLayout } from "@/shared/layout/adaptive";
 import { fonts } from "@/shared/theme/styles";
 
 type ReadingViewMode = "focus" | "grid";
@@ -69,6 +70,7 @@ const COLORS = {
 };
 
 export function ReadingPlanScreen() {
+  const { isTablet } = useAdaptiveLayout();
   const queryClient = useQueryClient();
   const { user, profile, triggerProgressUpdate } = useAuth();
   const { currentDayNumber, isLoading: dateLoading } = useDateService();
@@ -242,7 +244,7 @@ export function ReadingPlanScreen() {
     <View style={styles.screen}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, isTablet && styles.tabletContent]}
         refreshControl={
           <RefreshControl
             refreshing={planQuery.isRefetching}
@@ -951,6 +953,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 26,
     paddingBottom: 124,
+  },
+  tabletContent: {
+    alignSelf: "center",
+    maxWidth: 980,
+    paddingBottom: 40,
+    paddingHorizontal: 32,
+    paddingTop: 32,
+    width: "100%",
   },
   headerRow: {
     alignItems: "center",

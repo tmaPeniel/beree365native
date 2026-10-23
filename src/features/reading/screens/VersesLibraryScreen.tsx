@@ -26,6 +26,7 @@ import {
 } from "@/features/reading/services/readingPlan";
 import type { DailyVerse } from "@/types/supabase";
 import { MotionView, PressableScale } from "@/shared/animation/Motion";
+import { useAdaptiveLayout } from "@/shared/layout/adaptive";
 import { colors, fonts } from "@/shared/theme/styles";
 
 type LibraryFilter = "all" | "last7" | "last30" | "liked";
@@ -69,6 +70,7 @@ function getMonthLabel(dateValue: string) {
 
 export function VersesLibraryScreen() {
   const insets = useSafeAreaInsets();
+  const { isTablet } = useAdaptiveLayout();
   const queryClient = useQueryClient();
   const { user } = useAuth();
   const { currentDayNumber, startDate } = useDateService();
@@ -191,7 +193,11 @@ export function VersesLibraryScreen() {
 
   return (
     <FlatList
-      contentContainerStyle={[screenStyles.content, { paddingBottom: Math.max(insets.bottom, 20) + 24 }]}
+      contentContainerStyle={[
+        screenStyles.content,
+        isTablet && screenStyles.tabletContent,
+        { paddingBottom: Math.max(insets.bottom, 20) + 24 },
+      ]}
       data={visibleVerses}
       initialNumToRender={8}
       keyboardDismissMode="on-drag"
@@ -403,6 +409,12 @@ const screenStyles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 20,
+  },
+  tabletContent: {
+    alignSelf: "center",
+    maxWidth: 920,
+    paddingHorizontal: 36,
+    width: "100%",
   },
   dayColumn: {
     alignItems: "flex-start",

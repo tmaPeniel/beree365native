@@ -18,6 +18,7 @@ import { signOut } from "@/features/auth/services/auth";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { MotionView, PressableScale } from "@/shared/animation/Motion";
+import { useAdaptiveLayout } from "@/shared/layout/adaptive";
 import { colors, fonts } from "@/shared/theme/styles";
 
 type MenuItem = {
@@ -70,6 +71,7 @@ function ProfileMenuItem({ delay = 0, item }: { delay?: number; item: MenuItem }
 }
 
 export function ProfileScreen() {
+  const { isTablet } = useAdaptiveLayout();
   const { profile, user } = useAuth();
   const fullName = profile?.full_name || "Utilisateur";
   const email = user?.email ?? "";
@@ -152,10 +154,10 @@ export function ProfileScreen() {
   return (
     <ScrollView
       style={profileStyles.screen}
-      contentContainerStyle={profileStyles.content}
+      contentContainerStyle={[profileStyles.content, isTablet && profileStyles.tabletContent]}
       showsVerticalScrollIndicator
     >
-      <MotionView style={profileStyles.header}>
+      <MotionView style={[profileStyles.header, isTablet && profileStyles.tabletHeader]}>
         <View style={profileStyles.avatarWrap}>
           <ProfileAvatar avatarUrl={profile?.avatar_url} initials={initials} />
           <View style={profileStyles.crownBadge}>
@@ -177,24 +179,26 @@ export function ProfileScreen() {
         </PressableScale>
       </MotionView>
 
-      <View style={profileStyles.menu}>
-        {menuItems.map((item, index) => (
-          <ProfileMenuItem key={item.title} delay={80 + index * 38} item={item} />
-        ))}
+      <View style={profileStyles.menuColumn}>
+        <View style={profileStyles.menu}>
+          {menuItems.map((item, index) => (
+            <ProfileMenuItem key={item.title} delay={80 + index * 38} item={item} />
+          ))}
+        </View>
+
+        <View style={profileStyles.separator} />
+
+        <ProfileMenuItem
+          delay={420}
+          item={{
+            icon: LogOut,
+            title: "Deconnexion",
+            subtitle: "Se deconnecter de l'application",
+            isDanger: true,
+            onPress: logout,
+          }}
+        />
       </View>
-
-      <View style={profileStyles.separator} />
-
-      <ProfileMenuItem
-        delay={420}
-        item={{
-          icon: LogOut,
-          title: "Deconnexion",
-          subtitle: "Se deconnecter de l'application",
-          isDanger: true,
-          onPress: logout,
-        }}
-      />
     </ScrollView>
   );
 }
@@ -207,6 +211,15 @@ const profileStyles = StyleSheet.create({
   content: {
     paddingBottom: 112,
   },
+  tabletContent: {
+    alignItems: "flex-start",
+    alignSelf: "center",
+    flexDirection: "row",
+    gap: 28,
+    maxWidth: 1000,
+    padding: 32,
+    width: "100%",
+  },
   header: {
     alignItems: "center",
     borderBottomColor: colors.border,
@@ -214,6 +227,14 @@ const profileStyles = StyleSheet.create({
     paddingBottom: 28,
     paddingHorizontal: 24,
     paddingTop: 28,
+  },
+  tabletHeader: {
+    backgroundColor: colors.surface,
+    borderBottomWidth: 0,
+    borderRadius: 16,
+    flexBasis: 300,
+    paddingHorizontal: 28,
+    width: 300,
   },
   avatarWrap: {
     marginBottom: 14,
@@ -264,6 +285,10 @@ const profileStyles = StyleSheet.create({
   },
   menu: {
     paddingTop: 18,
+  },
+  menuColumn: {
+    flex: 1,
+    minWidth: 0,
   },
   menuItem: {
     alignItems: "center",

@@ -25,6 +25,7 @@ import {
   ReadingPlanCatalogItem,
 } from "@/features/reading/services/readingPlan/planService";
 import { colors, fonts, styles as themeStyles } from "@/shared/theme/styles";
+import { useAdaptiveLayout } from "@/shared/layout/adaptive";
 
 type PlanState = "selected" | "available" | "premium" | "unavailable";
 
@@ -210,6 +211,7 @@ function PlanCard({
 }
 
 export function ReadingPlanSelectionScreen() {
+  const { isTablet } = useAdaptiveLayout();
   const { profile, refreshProfile, user } = useAuth();
   const premium = usePremium();
   const queryClient = useQueryClient();
@@ -328,6 +330,7 @@ export function ReadingPlanSelectionScreen() {
   return (
     <View style={themeStyles.screen}>
       <FlatList
+        key={isTablet ? "tablet-plans" : "phone-plans"}
         ListEmptyComponent={
           catalogQuery.isLoading ? (
             <View style={screenStyles.loadingState}>
@@ -366,9 +369,11 @@ export function ReadingPlanSelectionScreen() {
             </View>
           </View>
         }
-        contentContainerStyle={screenStyles.content}
+        columnWrapperStyle={isTablet ? screenStyles.tabletRow : undefined}
+        contentContainerStyle={[screenStyles.content, isTablet && screenStyles.tabletContent]}
         data={plans}
         keyExtractor={(item) => item.id}
+        numColumns={isTablet ? 2 : 1}
         refreshing={catalogQuery.isRefetching}
         onRefresh={() => void catalogQuery.refetch()}
         renderItem={({ item }) => {
@@ -376,13 +381,15 @@ export function ReadingPlanSelectionScreen() {
           const isBusy = changingPlanId === item.id || preparingPlanId === item.id;
           const disabled = state !== "available" || !!changingPlanId || !!preparingPlanId;
           return (
-            <PlanCard
-              disabled={disabled}
-              isChanging={isBusy}
-              onPress={() => void requestPlanChange(item)}
-              plan={item}
-              state={state}
-            />
+            <View style={isTablet ? screenStyles.tabletCardSlot : undefined}>
+              <PlanCard
+                disabled={disabled}
+                isChanging={isBusy}
+                onPress={() => void requestPlanChange(item)}
+                plan={item}
+                state={state}
+              />
+            </View>
           );
         }}
       />
@@ -439,6 +446,19 @@ const screenStyles = StyleSheet.create({
     gap: 14,
     padding: 20,
     paddingBottom: 112,
+  },
+  tabletContent: {
+    alignSelf: "center",
+    maxWidth: 1120,
+    padding: 32,
+    width: "100%",
+  },
+  tabletRow: {
+    gap: 18,
+  },
+  tabletCardSlot: {
+    flex: 1,
+    maxWidth: "50%",
   },
   disabledButton: {
     opacity: 0.74,

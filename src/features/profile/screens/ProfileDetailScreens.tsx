@@ -1607,7 +1607,7 @@ const s = StyleSheet.create({
   chipRow: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chipText: { color: colors.primaryDark, fontFamily: fonts.semibold, fontSize: 12 },
   collectionHeadingRow: { alignItems: "center", flexDirection: "row", gap: 12, justifyContent: "space-between" },
-  content: { gap: 16, padding: 20, paddingBottom: 112 },
+  content: { alignSelf: "center", gap: 16, maxWidth: 860, padding: 20, paddingBottom: 112, width: "100%" },
   dangerAction: { borderBottomColor: "transparent" },
   dangerActionIcon: { backgroundColor: "#FCEAE8" },
   dangerActionTitle: { color: colors.danger },
