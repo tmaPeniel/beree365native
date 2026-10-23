@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery } from "@tanstack/react-query";
 import * as ImagePicker from "expo-image-picker";
 import { router, usePathname } from "expo-router";
@@ -18,7 +17,6 @@ import {
   TextInput,
   View,
 } from "react-native";
-import { Swipeable } from "react-native-gesture-handler";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Svg, { Circle, Polyline, Rect } from "react-native-svg";
 import {
@@ -35,14 +33,17 @@ import {
   Info,
   Lock,
   Mail,
-  Megaphone,
   Shield,
   Sparkles,
   Trash2,
 } from "lucide-react-native";
-import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/features/auth/hooks/useAuth";
-import { updateUserProfile } from "@/features/auth/services/auth";
+import {
+  deleteCurrentUserAccount,
+  redeemPremiumCode,
+  updatePlanStartDate,
+  updateUserProfile,
+} from "@/features/auth/services/auth";
 import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { removeProfileAvatar, uploadProfileAvatar } from "@/features/profile/services/avatar-service";
 import {
@@ -53,7 +54,8 @@ import {
   UserBadge,
 } from "@/features/profile/services/badgeService";
 import { usePremium } from "@/features/profile/hooks/usePremium";
-import { usePushNotifications } from "@/features/profile/hooks/usePushNotifications";
+import { useNotificationPreferences } from "@/features/profile/hooks/useNotificationPreferences";
+import { usePrivacyConsents } from "@/features/profile/hooks/usePrivacyConsents";
 import {
   getOverallProgress,
   getUserReadingPlanProgress,
@@ -129,6 +131,13 @@ function dateKey(date: Date) {
 
 function diffDays(a: string, b: string) {
   return Math.round((new Date(`${a}T00:00:00.000Z`).getTime() - new Date(`${b}T00:00:00.000Z`).getTime()) / 86400000);
+}
+
+function isValidIsoDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+  return !Number.isNaN(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
 
 function computeActivity(days: Awaited<ReturnType<typeof getUserReadingPlanProgress>>) {
@@ -315,74 +324,99 @@ function BadgeDetails({ item }: { item: BadgeGridItem }) {
 }
 
 export function NotificationsScreen() {
-  const { user } = useAuth();
-  const push = usePushNotifications();
-  const [prefs, setPrefs] = useState({ badges: true, dailyReminder: true, dailyVerse: true });
-  const [times, setTimes] = useState({ dailyReminder: "08:00", dailyVerse: "07:00" });
-  useEffect(() => {
-    void push.refresh();
-    void AsyncStorage.getItem("profile-notification-preferences").then((value) => {
-      if (!value) return;
-      const parsed = JSON.parse(value);
-      if (parsed.preferences) setPrefs(parsed.preferences);
-      if (parsed.times) setTimes(parsed.times);
-    });
-  }, []);
-  const persist = async (nextPrefs = prefs, nextTimes = times) => AsyncStorage.setItem("profile-notification-preferences", JSON.stringify({ preferences: nextPrefs, times: nextTimes }));
-  const devicesQuery = useQuery({ queryKey: ["mobile-devices", user?.id], queryFn: async () => ((await (supabase as any).from("user_devices").select("*").eq("user_id", user.id)).data || []), enabled: !!user?.id });
-  const logsQuery = useQuery({ queryKey: ["mobile-notifications", user?.id], queryFn: async () => ((await (supabase as any).from("notification_logs").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(25)).data || []), enabled: !!user?.id });
-  const activatePush = async () => {
-    try {
-      const ok = await push.subscribe();
-      Alert.alert("Notifications", ok ? "Les notifications sont activees." : "Autorisation refusee ou appareil non compatible.");
-    } catch (error: any) {
-      Alert.alert("Notifications", error.message ?? "Configuration push a finaliser.");
+  const notifications = useNotificationPreferences();
+
+  const updatePreference = async (
+    patch: Parameters<typeof notifications.update>[0]
+  ) => {
+    const result = await notifications.update(patch);
+    if (!result.success) {
+      Alert.alert("Notifications", result.error);
     }
   };
+
+  if (notifications.loading) {
+    return (
+      <View style={[styles.screen, s.center]}>
+        <ActivityIndicator color={colors.primary} />
+      </View>
+    );
+  }
+
+  const prefs = notifications.prefs;
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={s.content}>
       <Header title="Notifications" subtitle="Rappels, versets, badges et centre de notifications." />
-      <View style={s.card}><PreferenceRow icon={Bell} label="Activer les notifications push" onChange={activatePush} value={push.permission === "granted"} /><Text style={styles.subheading}>Statut : {push.permission}</Text></View>
       <View style={s.card}>
-        <PreferenceRow icon={CalendarClock} label="Rappel quotidien" onChange={() => { const next = { ...prefs, dailyReminder: !prefs.dailyReminder }; setPrefs(next); void persist(next, times); }} value={prefs.dailyReminder} />
-        <TimePicker value={times.dailyReminder} onChange={(value) => { const next = { ...times, dailyReminder: value }; setTimes(next); void persist(prefs, next); }} />
-        <PreferenceRow icon={BookOpen} label="Verset du jour" onChange={() => { const next = { ...prefs, dailyVerse: !prefs.dailyVerse }; setPrefs(next); void persist(next, times); }} value={prefs.dailyVerse} />
-        <TimePicker value={times.dailyVerse} onChange={(value) => { const next = { ...times, dailyVerse: value }; setTimes(next); void persist(prefs, next); }} />
-        <PreferenceRow icon={Award} label="Badges" onChange={() => { const next = { ...prefs, badges: !prefs.badges }; setPrefs(next); void persist(next, times); }} value={prefs.badges} />
+        <View style={s.rowLeft}>
+          <Bell color={colors.primary} size={20} />
+          <Text style={s.rowTitle}>Notifications push mobiles</Text>
+        </View>
+        <Text style={styles.subheading}>
+          Le canal mobile sera activé lorsqu'un stockage Expo distinct du Web Push sera disponible.
+        </Text>
       </View>
-      <View style={s.card}><Text style={s.sectionTitle}>Appareils connectes</Text>{devicesQuery.data?.length ? devicesQuery.data.map((device: any) => <Text key={device.id} style={styles.subheading}>{device.platform || device.device_platform || "Appareil"} - {formatDate(device.last_seen_at || device.created_at)}</Text>) : <Text style={styles.subheading}>Aucun appareil synchronise pour le moment.</Text>}</View>
-      <View style={s.card}><Text style={s.sectionTitle}>Centre de notifications</Text>{logsQuery.data?.length ? logsQuery.data.map((item: any) => <NotificationRow key={item.id} item={item} />) : <Text style={styles.subheading}>Aucune notification recue.</Text>}</View>
+      {prefs ? (
+        <View style={s.card}>
+          <PreferenceRow
+            disabled={notifications.saving}
+            icon={CalendarClock}
+            label="Rappel quotidien"
+            onChange={() => void updatePreference({ reading_reminder_enabled: !prefs.reading_reminder_enabled })}
+            value={prefs.reading_reminder_enabled}
+          />
+          <TimePicker
+            disabled={notifications.saving}
+            value={prefs.reading_reminder_time.slice(0, 5)}
+            onChange={(value) => void updatePreference({ reading_reminder_time: value })}
+          />
+          <PreferenceRow
+            disabled={notifications.saving}
+            icon={BookOpen}
+            label="Verset du jour"
+            onChange={() => void updatePreference({ daily_verse_enabled: !prefs.daily_verse_enabled })}
+            value={prefs.daily_verse_enabled}
+          />
+          <TimePicker
+            disabled={notifications.saving}
+            value={prefs.daily_verse_time.slice(0, 5)}
+            onChange={(value) => void updatePreference({ daily_verse_time: value })}
+          />
+          <PreferenceRow
+            disabled={notifications.saving}
+            icon={Award}
+            label="Badges"
+            onChange={() => void updatePreference({ badges_enabled: !prefs.badges_enabled })}
+            value={prefs.badges_enabled}
+          />
+        </View>
+      ) : (
+        <View style={s.card}>
+          <Text style={styles.subheading}>
+            {notifications.error ?? "Les préférences ne sont pas disponibles."}
+          </Text>
+          <Pressable onPress={() => void notifications.reload()} style={styles.secondaryButton}>
+            <Text style={styles.secondaryButtonText}>Réessayer</Text>
+          </Pressable>
+        </View>
+      )}
+      <View style={s.card}>
+        <Text style={s.sectionTitle}>Centre de notifications</Text>
+        <Text style={styles.subheading}>
+          Aucun historique mobile n'est disponible dans le contrat Supabase actuel.
+        </Text>
+      </View>
     </ScrollView>
   );
 }
 
-function PreferenceRow({ icon: Icon, label, onChange, value }: { icon: IconType; label: string; onChange: () => void; value: boolean }) {
-  return <View style={s.preferenceRow}><View style={s.rowLeft}><Icon color={colors.primary} size={20} /><Text style={s.rowTitle}>{label}</Text></View><Switch onValueChange={onChange} thumbColor="#FFFFFF" trackColor={{ false: colors.border, true: colors.primary }} value={value} /></View>;
+function PreferenceRow({ disabled = false, icon: Icon, label, onChange, value }: { disabled?: boolean; icon: IconType; label: string; onChange: () => void; value: boolean }) {
+  return <View style={[s.preferenceRow, disabled && { opacity: 0.6 }]}><View style={s.rowLeft}><Icon color={colors.primary} size={20} /><Text style={s.rowTitle}>{label}</Text></View><Switch disabled={disabled} onValueChange={onChange} thumbColor="#FFFFFF" trackColor={{ false: colors.border, true: colors.primary }} value={value} /></View>;
 }
 
-function TimePicker({ onChange, value }: { onChange: (value: string) => void; value: string }) {
-  return <ScrollView horizontal showsHorizontalScrollIndicator={false}>{timeOptions.map((item) => <Chip active={value === item} key={item} label={item} onPress={() => onChange(item)} />)}</ScrollView>;
-}
-
-function NotificationRow({ item }: { item: any }) {
-  const href = item.link || item.metadata?.href || item.metadata?.link;
-  const remove = () => void (supabase as any).from("notification_logs").delete().eq("id", item.id);
-
-  return (
-    <Swipeable
-      renderRightActions={() => (
-        <Pressable onPress={remove} style={s.swipeDelete}>
-          <Trash2 color="#FFFFFF" size={18} />
-        </Pressable>
-      )}
-    >
-      <Pressable onPress={() => href && router.push(href as any)} style={s.notificationRow}>
-        {!item.read_at ? <View style={s.unreadDot} /> : null}
-        <View style={{ flex: 1 }}><Text style={s.rowTitle}>{item.title || item.type || "Notification"}</Text><Text style={styles.subheading}>{item.message || item.body || "Notification Beree 365"}</Text></View>
-        <Pressable onPress={remove} style={s.deleteButton}><Trash2 color={colors.danger} size={18} /></Pressable>
-      </Pressable>
-    </Swipeable>
-  );
+function TimePicker({ disabled = false, onChange, value }: { disabled?: boolean; onChange: (value: string) => void; value: string }) {
+  return <ScrollView horizontal showsHorizontalScrollIndicator={false} style={disabled && { opacity: 0.6 }}>{timeOptions.map((item) => <Chip active={value === item} key={item} label={item} onPress={() => { if (!disabled) onChange(item); }} />)}</ScrollView>;
 }
 
 export function SubscriptionScreen() {
@@ -397,25 +431,151 @@ export function SubscriptionScreen() {
 }
 
 export function PremiumScreen() {
+  const { refreshProfile } = useAuth();
   const [promo, setPromo] = useState("");
+  const [isRedeemingCode, setIsRedeemingCode] = useState(false);
   const benefits = [["Plans enrichis", "Accedez aux parcours avances.", BookOpen], ["Statistiques completes", "Suivez vos streaks en profondeur.", Sparkles], ["Badges exclusifs", "Debloquez des recompenses supplementaires.", Award]] as const;
+
+  const redeemCode = async () => {
+    if (isRedeemingCode) return;
+
+    setIsRedeemingCode(true);
+    try {
+      const result = await redeemPremiumCode(promo);
+
+      if (result.status === "activated") {
+        setPromo("");
+        await refreshProfile();
+      }
+
+      Alert.alert(
+        result.status === "activated" ? "Premium activé" : "Code Premium",
+        result.message ?? "Le code Premium n'a pas pu être traité."
+      );
+    } finally {
+      setIsRedeemingCode(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.screen} contentContainerStyle={s.content}>
       <View style={s.heroCard}><Crown color="#FFFFFF" size={34} /><Text style={s.heroTitle}>Beree Premium</Text><Text style={s.heroSubtitle}>Une experience plus complete pour accompagner votre lecture biblique.</Text></View>
       {benefits.map(([title, subtitle, Icon]) => <View key={title} style={s.benefitRow}><View style={s.roundIcon}><Icon color={colors.primary} size={20} /></View><View style={{ flex: 1 }}><Text style={s.rowTitle}>{title}</Text><Text style={styles.subheading}>{subtitle}</Text></View></View>)}
       <Pressable onPress={() => Alert.alert("Premium", "Le fournisseur de paiement reste a valider : RevenueCat ou in-app purchase Expo.")} style={styles.primaryButton}><Text style={styles.primaryButtonText}>Activer</Text></Pressable>
-      <View style={s.card}><Text style={s.sectionTitle}>Code promo</Text><TextInput autoCapitalize="characters" onChangeText={setPromo} placeholder="CODEPROMO" placeholderTextColor={colors.muted} style={styles.input} value={promo} /><Pressable onPress={() => Alert.alert("Code promo", "La validation serveur du code promo reste a brancher.")} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Appliquer</Text></Pressable></View>
+      <View style={s.card}>
+        <Text style={s.sectionTitle}>Code promo</Text>
+        <TextInput
+          autoCapitalize="characters"
+          autoCorrect={false}
+          editable={!isRedeemingCode}
+          onChangeText={setPromo}
+          placeholder="CODEPROMO"
+          placeholderTextColor={colors.muted}
+          style={styles.input}
+          value={promo}
+        />
+        <Pressable
+          disabled={isRedeemingCode || !promo.trim()}
+          onPress={redeemCode}
+          style={[
+            styles.secondaryButton,
+            { opacity: isRedeemingCode || !promo.trim() ? 0.6 : 1 },
+          ]}
+        >
+          {isRedeemingCode ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <Text style={styles.secondaryButtonText}>Appliquer</Text>
+          )}
+        </Pressable>
+      </View>
     </ScrollView>
   );
 }
 
 export function PrivacyScreen() {
   const { profile, user } = useAuth();
-  const [analytics, setAnalytics] = useState(false);
-  const [marketing, setMarketing] = useState(false);
+  const consents = usePrivacyConsents();
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
   const exportData = () => Share.share({ message: JSON.stringify({ exported_at: new Date().toISOString(), profile, user: { email: user?.email, id: user?.id } }, null, 2), title: "Export Beree 365" });
-  const deleteAccount = () => Alert.alert("Supprimer mon compte", "Cette action est irreversible. Continuer ?", [{ text: "Annuler", style: "cancel" }, { text: "Supprimer", style: "destructive", onPress: async () => { const { error } = await supabase.functions.invoke("delete-user-account"); Alert.alert("Suppression", error ? error.message : "Demande de suppression envoyee."); } }]);
-  return <ScrollView style={styles.screen} contentContainerStyle={s.content}><Header title="Confidentialite" subtitle="Controlez vos consentements et vos donnees." /><View style={s.card}><PreferenceRow icon={Shield} label="Analytics" onChange={() => setAnalytics(!analytics)} value={analytics} /><PreferenceRow icon={Megaphone} label="Marketing" onChange={() => setMarketing(!marketing)} value={marketing} /></View><Pressable onPress={exportData} style={styles.secondaryButton}><Text style={styles.secondaryButtonText}>Exporter mes donnees</Text></Pressable><Pressable onPress={deleteAccount} style={[styles.secondaryButton, { borderColor: colors.danger }]}><Text style={[styles.secondaryButtonText, { color: colors.danger }]}>Supprimer mon compte</Text></Pressable></ScrollView>;
+  const deleteAccount = () => {
+    if (isDeletingAccount) return;
+
+    Alert.alert(
+      "Supprimer mon compte",
+      "Cette action est irréversible. Continuer ?",
+      [
+        { text: "Annuler", style: "cancel" },
+        {
+          text: "Supprimer",
+          style: "destructive",
+          onPress: async () => {
+            setIsDeletingAccount(true);
+            const result = await deleteCurrentUserAccount();
+
+            if (!result.success) {
+              setIsDeletingAccount(false);
+              Alert.alert("Suppression impossible", result.error);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const updateAnalyticsConsent = async () => {
+    const result = await consents.setAnalytics(!consents.analytics);
+    if (!result.success) {
+      Alert.alert("Consentement non enregistré", result.error);
+    }
+  };
+
+  return (
+    <ScrollView style={styles.screen} contentContainerStyle={s.content}>
+      <Header title="Confidentialite" subtitle="Controlez vos consentements et vos donnees." />
+      {consents.loading || (!consents.analytics && consents.error) ? (
+        <View style={s.card}>
+          {consents.loading ? (
+            <ActivityIndicator color={colors.primary} />
+          ) : (
+            <>
+              <Text style={styles.subheading}>{consents.error}</Text>
+              <Pressable onPress={() => void consents.reload()} style={styles.secondaryButton}>
+                <Text style={styles.secondaryButtonText}>Réessayer</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      ) : (
+        <View style={s.card}>
+          <PreferenceRow
+            disabled={consents.saving}
+            icon={Shield}
+            label="Mesure d'audience"
+            onChange={() => void updateAnalyticsConsent()}
+            value={consents.analytics}
+          />
+          <Text style={styles.subheading}>
+            Le choix Marketing n'est pas proposé : aucun consentement correspondant n'est défini dans le contrat Supabase actuel.
+          </Text>
+        </View>
+      )}
+      <Pressable onPress={exportData} style={styles.secondaryButton}>
+        <Text style={styles.secondaryButtonText}>Exporter mes donnees</Text>
+      </Pressable>
+      <Pressable
+        disabled={isDeletingAccount}
+        onPress={deleteAccount}
+        style={[styles.secondaryButton, { borderColor: colors.danger, opacity: isDeletingAccount ? 0.6 : 1 }]}
+      >
+        {isDeletingAccount ? (
+          <ActivityIndicator color={colors.danger} />
+        ) : (
+          <Text style={[styles.secondaryButtonText, { color: colors.danger }]}>Supprimer mon compte</Text>
+        )}
+      </Pressable>
+    </ScrollView>
+  );
 }
 
 export function EditProfileScreen() {
@@ -552,12 +712,34 @@ export function EditProfileScreen() {
   const save = async () => {
     if (!user?.id) return;
     if (fullName.trim().length < 2) return Alert.alert("Profil", "Le nom doit contenir au moins 2 caracteres.");
+    const normalizedStartDate = startDate.trim();
+    if (!isValidIsoDate(normalizedStartDate)) {
+      return Alert.alert("Profil", "La date de début doit respecter le format AAAA-MM-JJ.");
+    }
+
     setIsSaving(true);
-    const result = await updateUserProfile(user.id, { full_name: fullName.trim(), start_date: startDate.trim() });
-    setIsSaving(false);
-    if (!result.success) return Alert.alert("Profil", result.error ?? "Impossible d'enregistrer le profil.");
-    await refreshProfile();
-    router.back();
+    try {
+      const profileResult = await updateUserProfile(user.id, { full_name: fullName.trim() });
+      if (!profileResult.success) {
+        return Alert.alert("Profil", profileResult.error ?? "Impossible d'enregistrer le profil.");
+      }
+
+      if (normalizedStartDate !== profile?.start_date) {
+        const dateResult = await updatePlanStartDate(normalizedStartDate);
+        if (!dateResult.success) {
+          await refreshProfile();
+          return Alert.alert(
+            "Date de début",
+            `Votre nom a été enregistré. ${dateResult.error ?? "La date n'a pas pu être modifiée."}`
+          );
+        }
+      }
+
+      await refreshProfile();
+      router.back();
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (

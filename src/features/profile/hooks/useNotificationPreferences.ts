@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useOptimizedAuth } from '@/features/auth/hooks/useOptimizedAuth';
+import { useAuth } from '@/features/auth/hooks/useAuth';
 
 export type NotificationPreferences = {
   user_id: string;
@@ -13,30 +13,50 @@ export type NotificationPreferences = {
 };
 
 export function useNotificationPreferences() {
-  const { user } = useOptimizedAuth();
+  const { user } = useAuth();
   const [prefs, setPrefs] = useState<NotificationPreferences | null>(null);
   const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    if (!user?.id) return;
+    if (!user?.id) {
+      setPrefs(null);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
-    const { data } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (data) {
-      setPrefs(data as NotificationPreferences);
-    } else {
-      const tz = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
-      const { data: created } = await supabase
+    setError(null);
+
+    try {
+      const { data, error: loadError } = await supabase
         .from('notification_preferences')
-        .insert({ user_id: user.id, timezone: tz })
+        .select('*')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (loadError) throw loadError;
+      if (data) {
+        setPrefs(data as NotificationPreferences);
+        return;
+      }
+
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+      const { data: created, error: createError } = await supabase
+        .from('notification_preferences')
+        .insert({ user_id: user.id, timezone })
         .select()
         .single();
-      if (created) setPrefs(created as NotificationPreferences);
+
+      if (createError) throw createError;
+      setPrefs(created as NotificationPreferences);
+    } catch {
+      setPrefs(null);
+      setError("Impossible de charger vos préférences de notifications.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }, [user?.id]);
 
   useEffect(() => {
@@ -44,16 +64,36 @@ export function useNotificationPreferences() {
   }, [load]);
 
   const update = useCallback(
-    async (patch: Partial<NotificationPreferences>) => {
-      if (!user?.id || !prefs) return;
+    async (patch: Partial<Omit<NotificationPreferences, 'user_id'>>) => {
+      if (!user?.id || !prefs || saving) {
+        return { success: false, error: "Les préférences ne sont pas disponibles." };
+      }
+
+      const previous = prefs;
       const next = { ...prefs, ...patch };
       setPrefs(next);
-      await supabase
-        .from('notification_preferences')
-        .upsert({ user_id: user.id, ...patch }, { onConflict: 'user_id' });
+      setSaving(true);
+      setError(null);
+
+      try {
+        const { error: updateError } = await supabase
+          .from('notification_preferences')
+          .update(patch)
+          .eq('user_id', user.id);
+
+        if (updateError) throw updateError;
+        return { success: true };
+      } catch {
+        setPrefs(previous);
+        const message = "Impossible d'enregistrer vos préférences.";
+        setError(message);
+        return { success: false, error: message };
+      } finally {
+        setSaving(false);
+      }
     },
-    [user?.id, prefs],
+    [user?.id, prefs, saving],
   );
 
-  return { prefs, loading, update, reload: load };
+  return { prefs, loading, saving, error, update, reload: load };
 }

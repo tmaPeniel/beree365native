@@ -1,4 +1,3 @@
-import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import {
   Alert,
@@ -13,7 +12,6 @@ import {
 import { router } from "expo-router";
 import { CalendarDays, CheckCircle2, Eye, EyeOff, KeyRound } from "lucide-react-native";
 import { AuthField, authColors, authStyles } from "@/features/auth/components/AuthUi";
-import { getAvailablePlans } from "@/features/reading/services/readingPlan/planService";
 import { resetPassword, signUp, updatePassword } from "@/features/auth/services/auth";
 import { colors, styles } from "@/shared/theme/styles";
 
@@ -43,13 +41,7 @@ export function SignupScreen() {
   const [termsAccepted, setTermsAccepted] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const plansQuery = useQuery({
-    queryKey: ["mobile-signup-plans"],
-    queryFn: getAvailablePlans,
-  });
-
   const submit = async () => {
-    const planId = plansQuery.data?.[0]?.id;
     const startDateIso = displayDateToIso(startDate);
 
     if (!fullName.trim() || !email.trim() || !password) {
@@ -64,17 +56,21 @@ export function SignupScreen() {
       Alert.alert("Inscription", "Vous devez accepter les CGU et la politique de cookies.");
       return;
     }
-    if (!planId) {
-      Alert.alert("Inscription", "Le plan de lecture par défaut est indisponible. Réessayez dans un instant.");
-      return;
-    }
-
     setIsSubmitting(true);
-    const result = await signUp(email.trim(), password, fullName.trim(), startDateIso, planId);
+    const result = await signUp(
+      email.trim(),
+      password,
+      fullName.trim(),
+      startDateIso,
+      secretCode
+    );
     setIsSubmitting(false);
 
     if (result.success) {
-      Alert.alert("Inscription", "Votre compte a été créé.", [
+      const message = secretCode.trim()
+        ? "Votre compte a été créé. Le code Premium sera vérifié lors de votre connexion."
+        : "Votre compte a été créé.";
+      Alert.alert("Inscription", message, [
         { text: "Continuer", onPress: () => router.replace("/(tabs)/dashboard") },
       ]);
       return;
@@ -164,6 +160,14 @@ export function SignupScreen() {
                 J’accepte les <Text style={authStyles.accentText}>Conditions Générales d’Utilisation</Text> et la <Text style={authStyles.accentText}>Politique de cookies *</Text>
               </Text>
             </Pressable>
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 16 }}>
+              <Pressable accessibilityRole="link" onPress={() => router.push("/terms")}>
+                <Text style={authStyles.accentText}>Lire les conditions</Text>
+              </Pressable>
+              <Pressable accessibilityRole="link" onPress={() => router.push("/cookies-policy")}>
+                <Text style={authStyles.accentText}>Lire la politique de cookies</Text>
+              </Pressable>
+            </View>
 
             <Pressable
               accessibilityRole="button"

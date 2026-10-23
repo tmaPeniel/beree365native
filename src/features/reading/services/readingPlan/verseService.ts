@@ -4,6 +4,7 @@
  */
 
 import { supabase } from "@/integrations/supabase/client";
+import { requireCurrentUserId } from "@/features/auth/services/auth/sessionService";
 import { DailyVerse } from "@/types/supabase";
 
 /**
@@ -44,62 +45,69 @@ export const getDailyVerse = async (dayNumber: number) => {
  * @returns {Promise<DailyVerse[]>}
  */
 export const getAllVersesUpToDay = async (maxDayNumber: number): Promise<DailyVerse[]> => {
-  try {
-    
-    if (!maxDayNumber || maxDayNumber < 1 || maxDayNumber > 365) {
-      console.warn(`Invalid max day number provided: ${maxDayNumber}`);
-      return [];
-    }
-    
-    // Récupérer tous les versets avec le vrai comptage depuis verse_likes
-    const { data, error } = await supabase
-      .from('daily_verses')
-      .select('*, verse_likes(count)')
-      .lte('day_number', maxDayNumber)
-      .order('day_number', { ascending: false });
-    
-    if (error) {
-      console.error(`Error fetching verses up to day ${maxDayNumber}:`, error);
-      return generateDefaultVerses(maxDayNumber);
-    }
-    
-    // Normaliser les données : remplacer likes_count par le vrai count depuis verse_likes
-    const verses = (data as any[]).map(v => ({
-      ...v,
-      likes_count: v.verse_likes?.[0]?.count ?? v.likes_count ?? 0,
-      verse_likes: undefined,
-    })) as DailyVerse[];
-    const versesMap = new Map(verses.map(v => [v.day_number, v]));
-    const completeVerses: DailyVerse[] = [];
-    
-    // Créer une liste complète du jour maxDayNumber vers 1
-    for (let day = maxDayNumber; day >= 1; day--) {
-      const existingVerse = versesMap.get(day);
-      if (existingVerse) {
-        completeVerses.push(existingVerse);
-      } else {
-        completeVerses.push(getDefaultVerse(day));
-      }
-    }
-    
-    return completeVerses;
-  } catch (error) {
-    console.error(`Error in getAllVersesUpToDay for max day ${maxDayNumber}:`, error);
-    return generateDefaultVerses(maxDayNumber);
+  if (!maxDayNumber || maxDayNumber < 1 || maxDayNumber > 365) {
+    console.warn(`Invalid max day number provided: ${maxDayNumber}`);
+    return [];
   }
+
+  const { data, error } = await supabase
+    .from('daily_verses')
+    .select('*')
+    .lte('day_number', maxDayNumber)
+    .order('day_number', { ascending: false });
+
+  if (error) {
+    throw new Error(`Impossible de charger l'historique des versets: ${error.message}`);
+  }
+
+  const verses = data satisfies DailyVerse[];
+  const versesMap = new Map(verses.map(v => [v.day_number, v]));
+  const completeVerses: DailyVerse[] = [];
+
+  // Un contenu de remplacement est utilisé uniquement lorsqu'un jour est absent.
+  for (let day = maxDayNumber; day >= 1; day--) {
+    completeVerses.push(versesMap.get(day) ?? getDefaultVerse(day));
+  }
+
+  return completeVerses;
 };
 
-/**
- * Génère des versets par défaut pour tous les jours de 1 à maxDay
- * @param {number} maxDay Jour maximum
- * @returns {DailyVerse[]}
- */
-const generateDefaultVerses = (maxDay: number): DailyVerse[] => {
-  const verses: DailyVerse[] = [];
-  for (let day = maxDay; day >= 1; day--) {
-    verses.push(getDefaultVerse(day));
+export const getLikedVerseDays = async (maxDayNumber: number): Promise<number[]> => {
+  const userId = await requireCurrentUserId();
+  const { data, error } = await supabase
+    .from('verse_likes')
+    .select('verse_day_number')
+    .eq('user_id', userId)
+    .lte('verse_day_number', maxDayNumber)
+    .order('verse_day_number', { ascending: false });
+
+  if (error) {
+    throw new Error(`Impossible de charger vos versets aimés : ${error.message}`);
   }
-  return verses;
+
+  return data.map((item) => item.verse_day_number);
+};
+
+export const setVerseLike = async (dayNumber: number, liked: boolean) => {
+  const userId = await requireCurrentUserId();
+
+  if (liked) {
+    const { error } = await supabase.from('verse_likes').insert({
+      user_id: userId,
+      verse_day_number: dayNumber,
+    });
+
+    if (error) throw error;
+    return;
+  }
+
+  const { error } = await supabase
+    .from('verse_likes')
+    .delete()
+    .eq('user_id', userId)
+    .eq('verse_day_number', dayNumber);
+
+  if (error) throw error;
 };
 
 /**

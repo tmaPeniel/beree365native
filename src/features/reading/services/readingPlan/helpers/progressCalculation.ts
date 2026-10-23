@@ -3,6 +3,7 @@
  */
 
 import { supabase } from '@/integrations/supabase/client';
+import { requireCurrentUserId } from '@/features/auth/services/auth/sessionService';
 import { logger } from '@/shared/utils/logger';
 
 export async function getCompletedChaptersCount(userId: string, chapterIds: string[]): Promise<number> {
@@ -31,8 +32,9 @@ export function calculatePercentage(completed: number, total: number): number {
   return Math.round((completed / total) * 100);
 }
 
-export async function getCompletedDaysViaRPC(userId: string): Promise<number | null> {
+export async function getCompletedDaysViaRPC(): Promise<number | null> {
   try {
+    const userId = await requireCurrentUserId();
     const { data, error } = await supabase.rpc('get_completed_days_count', {
       p_user_id: userId
     });

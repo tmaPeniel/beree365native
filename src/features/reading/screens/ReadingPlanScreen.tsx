@@ -23,9 +23,14 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from "react-native";
+import Animated, {
+  Easing,
+  FadeInDown,
+  FadeOutUp,
+  useReducedMotion,
+} from "react-native-reanimated";
 import { useAuth } from "@/features/auth/hooks/useAuth";
 import {
   FloatingAudioPlayer,
@@ -47,8 +52,8 @@ type ReadingViewMode = "focus" | "grid";
 type DayReadingState = "pending" | "in-progress" | "completed";
 
 const READING_VIEW_MODE_KEY = "reading-view-mode";
-const DAY_RAIL_ITEM_WIDTH = 82;
-const DAY_RAIL_ITEM_GAP = 7;
+const DAY_RAIL_ITEM_WIDTH = 68;
+const DAY_RAIL_ITEM_GAP = 6;
 
 const COLORS = {
   background: "#f8f6f3",
@@ -66,8 +71,8 @@ const COLORS = {
 export function ReadingPlanScreen() {
   const queryClient = useQueryClient();
   const { user, profile, triggerProgressUpdate } = useAuth();
-  const { currentDayNumber, isLoading: dateLoading, planDuration } = useDateService();
-  const { planName, planDescription } = usePlanDuration();
+  const { currentDayNumber, isLoading: dateLoading } = useDateService();
+  const { planName } = usePlanDuration();
   const [viewMode, setViewMode] = useState<ReadingViewMode>("focus");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDayNumber, setSelectedDayNumber] = useState<number | null>(null);
@@ -230,31 +235,6 @@ export function ReadingPlanScreen() {
     }
   }, [cancelReadingCaches, invalidateReadingCaches, planQueryKey, queryClient, setChapterInCache, user?.id]);
 
-  const completeDay = useCallback(async (day: ReadingPlanProgressDay) => {
-    if (!user?.id) return;
-
-    const pendingPassages = day.passages.filter((passage) => passage.status !== "completed");
-    if (!pendingPassages.length) return;
-
-    await cancelReadingCaches();
-    const previousProgress = queryClient.getQueryData<ReadingPlanProgressDay[]>(planQueryKey);
-    pendingPassages.forEach((passage) => setChapterInCache(passage.id, "completed"));
-
-    try {
-      const results = await Promise.all(
-        pendingPassages.map((passage) => toggleChapterStatus(user.id, passage.id, "pending")),
-      );
-      const failed = results.find((result) => !result.success);
-      if (failed) {
-        throw new Error(failed.error || "La journée n'a pas pu être enregistrée.");
-      }
-      await invalidateReadingCaches();
-    } catch (error: any) {
-      queryClient.setQueryData(planQueryKey, previousProgress);
-      Alert.alert("Progression", error.message || "Impossible de cocher toute la journée.");
-    }
-  }, [cancelReadingCaches, invalidateReadingCaches, planQueryKey, queryClient, setChapterInCache, user?.id]);
-
   const isLoading = dateLoading || planQuery.isLoading;
   const currentVisibleMonthKey = visibleMonthKey || monthKeys[0] || null;
 
@@ -313,8 +293,6 @@ export function ReadingPlanScreen() {
           <FocusView
             currentDayNumber={currentDayNumber}
             globalProgress={progressPercentage}
-            planDescription={planDescription}
-            planDuration={planDuration}
             planName={planName}
             readingDays={readingDays}
             selectedDay={selectedDay}
@@ -328,14 +306,15 @@ export function ReadingPlanScreen() {
             monthKeys={monthKeys}
             readingDays={readingDays}
             searchQuery={searchQuery}
+            selectedDayNumber={activeDayNumber}
             startDate={startDate}
             visibleMonthKey={currentVisibleMonthKey}
             onChangeMonth={setVisibleMonthKey}
             onClearSearch={() => setSearchQuery("")}
-            onCompleteDay={completeDay}
             onGoToCurrentDay={goToCurrentDayInGrid}
             onOpenDay={openDayInFocus}
             onSearchChange={setSearchQuery}
+            onSelectDay={setSelectedDayNumber}
             onTogglePassage={togglePassage}
           />
         )}
@@ -348,8 +327,6 @@ export function ReadingPlanScreen() {
 function FocusView({
   currentDayNumber,
   globalProgress,
-  planDescription,
-  planDuration,
   planName,
   readingDays,
   selectedDay,
@@ -359,8 +336,6 @@ function FocusView({
 }: {
   currentDayNumber: number;
   globalProgress: number;
-  planDescription?: string | null;
-  planDuration: number;
   planName?: string | null;
   readingDays: ReadingPlanProgressDay[];
   selectedDay: ReadingPlanProgressDay;
@@ -371,14 +346,17 @@ function FocusView({
   const selectedIndex = readingDays.findIndex((day) => day.day_number === selectedDay.day_number);
   const safeSelectedIndex = selectedIndex >= 0 ? selectedIndex : 0;
   const railRef = useRef<FlatList<ReadingPlanProgressDay>>(null);
-  const dayProgress = getDayProgress(selectedDay);
+  const reducedMotion = useReducedMotion();
+  const showReturnToCurrentDay =
+    selectedDay.day_number !== currentDayNumber &&
+    readingDays.some((day) => day.day_number === currentDayNumber);
 
   useEffect(() => {
     if (selectedIndex < 0) return;
 
     requestAnimationFrame(() => {
       railRef.current?.scrollToIndex({
-        animated: false,
+        animated: true,
         index: selectedIndex,
         viewPosition: 0.5,
       });
@@ -387,18 +365,18 @@ function FocusView({
 
   return (
     <>
-      <MotionView delay={70} style={styles.hero}>
-        <Text style={styles.heroSmall}>{planDescription || "Plan biblique"}</Text>
-        <Text style={styles.heroTitle}>{planName || "Plan de lecture"}</Text>
-        <View style={styles.heroProgressRow}>
-          <Text style={styles.heroProgressLabel}>Progression globale</Text>
-          <Text style={styles.heroProgressLabel}>{globalProgress}%</Text>
+      <MotionView delay={70} style={styles.planSummary}>
+        <View style={styles.planSummaryRow}>
+          <Text numberOfLines={1} style={styles.planSummaryName}>
+            {planName || "Plan de lecture"}
+          </Text>
+          <Text style={styles.planSummaryPercent}>{globalProgress}%</Text>
         </View>
         <AnimatedProgressBar
-          fillStyle={styles.heroProgressFill}
+          fillStyle={styles.planSummaryProgressFill}
           minPercent={4}
           progress={globalProgress}
-          style={styles.heroTrack}
+          style={styles.planSummaryProgressTrack}
         />
       </MotionView>
 
@@ -429,6 +407,7 @@ function FocusView({
           const active = item.day_number === selectedDay.day_number;
           const isToday = item.day_number === currentDayNumber;
           const readingState = getDayReadingState(item);
+          const itemDate = getDayDate(startDate, item.day_number);
           return (
             <Pressable
               accessibilityLabel={`Afficher le jour ${item.day_number}`}
@@ -445,19 +424,19 @@ function FocusView({
               <Text
                 allowFontScaling={false}
                 maxFontSizeMultiplier={1}
-                style={[styles.dayPillNumber, active && styles.dayPillNumberActive]}
+                numberOfLines={1}
+                style={[styles.dayPillWeekday, active && styles.dayPillWeekdayActive]}
               >
-                Jour {item.day_number}
+                {isToday ? "Aujourd’hui" : formatWeekdayShort(itemDate)}
               </Text>
               <Text
                 allowFontScaling={false}
                 maxFontSizeMultiplier={1}
                 numberOfLines={1}
-                style={[styles.dayPillDate, active && styles.dayPillDateActive]}
+                style={[styles.dayPillDateNumber, active && styles.dayPillDateNumberActive]}
               >
-                {formatDayMonth(getDayDate(startDate, item.day_number))}
+                {formatDayNumber(itemDate)}
               </Text>
-              {isToday ? <View style={styles.todayDot} /> : null}
               <View
                 style={[
                   styles.dayPillStateMarker,
@@ -471,22 +450,40 @@ function FocusView({
       />
       </MotionView>
 
+      {showReturnToCurrentDay ? (
+        <Animated.View
+          entering={reducedMotion
+            ? undefined
+            : FadeInDown.duration(280).easing(Easing.out(Easing.cubic))}
+          exiting={reducedMotion
+            ? undefined
+            : FadeOutUp.duration(180).easing(Easing.in(Easing.cubic))}
+          style={styles.returnToCurrentDayRow}
+        >
+          <PressableScale
+            accessibilityLabel={`Revenir au jour de lecture ${currentDayNumber}`}
+            onPress={() => onSelectDay(currentDayNumber)}
+            pressedScale={0.97}
+            style={styles.returnToCurrentDayButton}
+          >
+            <CalendarDays size={14} color={COLORS.copper} />
+            <Text style={styles.returnToCurrentDayText}>Revenir à aujourd’hui</Text>
+          </PressableScale>
+        </Animated.View>
+      ) : null}
+
       <MotionView key={`focus-day-${selectedDay.day_number}`} delay={90} style={styles.focusCard}>
         <View style={styles.focusCardHeader}>
-          <View>
-            <Text style={styles.focusTitle}>
-              Jour {selectedDay.day_number} <Text style={styles.focusTitleMuted}>sur {planDuration}</Text>
+          <View style={styles.focusTitleBlock}>
+            <Text style={styles.focusDayLabel}>Jour {selectedDay.day_number}</Text>
+            <Text style={styles.focusDate}>
+              {formatLongDate(getDayDate(startDate, selectedDay.day_number))}
             </Text>
-            <Text style={styles.focusDate}>{formatLongDate(getDayDate(startDate, selectedDay.day_number))}</Text>
           </View>
-          <Text style={styles.focusPercent}>{dayProgress}%</Text>
+          <Text style={styles.focusPassageCount}>
+            {selectedDay.passages.filter((passage) => passage.status === "completed").length}/{selectedDay.passages.length}
+          </Text>
         </View>
-
-        <AnimatedProgressBar
-          fillStyle={styles.focusProgressFill}
-          progress={dayProgress}
-          style={styles.focusProgressTrack}
-        />
 
         <View style={styles.focusPassages}>
           {selectedDay.passages.map((passage, index) => (
@@ -509,38 +506,38 @@ function GridView({
   monthKeys,
   readingDays,
   searchQuery,
+  selectedDayNumber,
   startDate,
   visibleMonthKey,
   onChangeMonth,
   onClearSearch,
-  onCompleteDay,
   onGoToCurrentDay,
   onOpenDay,
   onSearchChange,
+  onSelectDay,
   onTogglePassage,
 }: {
   currentDayNumber: number;
   monthKeys: string[];
   readingDays: ReadingPlanProgressDay[];
   searchQuery: string;
+  selectedDayNumber: number;
   startDate: string;
   visibleMonthKey: string | null;
   onChangeMonth: (nextMonthKey: string) => void;
   onClearSearch: () => void;
-  onCompleteDay: (day: ReadingPlanProgressDay) => void;
   onGoToCurrentDay: () => void;
   onOpenDay: (day: ReadingPlanProgressDay) => void;
   onSearchChange: (query: string) => void;
+  onSelectDay: (dayNumber: number) => void;
   onTogglePassage: (passage: ReadingPlanProgressPassage) => void;
 }) {
-  const { width } = useWindowDimensions();
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const visibleMonthIndex = visibleMonthKey ? monthKeys.indexOf(visibleMonthKey) : 0;
   const safeMonthIndex = visibleMonthIndex >= 0 ? visibleMonthIndex : 0;
   const monthKey = monthKeys[safeMonthIndex] || visibleMonthKey;
   const normalizedQuery = normalizeSearch(searchQuery.trim());
   const isSearching = normalizedQuery.length > 0;
-  const cardGap = 10;
-  const cardWidth = Math.max(132, Math.floor((width - 36 - cardGap) / 2));
   const monthDays = useMemo(() => {
     return readingDays
       .filter((day) => getMonthKey(getDayDate(startDate, day.day_number)) === monthKey);
@@ -558,133 +555,224 @@ function GridView({
       );
     });
   }, [isSearching, normalizedQuery, readingDays, startDate]);
-  const visibleDays = isSearching ? searchDays : monthDays;
-  const displayedCurrentDay =
-    Number.isFinite(currentDayNumber) && currentDayNumber > 0
-      ? Math.round(currentDayNumber)
-      : 1;
+  const selectedDay = monthDays.find((day) => day.day_number === selectedDayNumber) || null;
+  const calendarCells = useMemo(() => {
+    if (!monthKey) return [];
+
+    const [year, month] = monthKey.split("-").map(Number);
+    if (!year || !month) return [];
+
+    const firstWeekday = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+    const totalDays = new Date(year, month, 0).getDate();
+    const planDayByDate = new Map(
+      monthDays.map((day) => [parseLocalDate(getDayDate(startDate, day.day_number)).getDate(), day]),
+    );
+    const cells: Array<{ dateNumber: number; day: ReadingPlanProgressDay | null } | null> = [
+      ...Array.from({ length: firstWeekday }, () => null),
+      ...Array.from({ length: totalDays }, (_, index) => ({
+        dateNumber: index + 1,
+        day: planDayByDate.get(index + 1) || null,
+      })),
+    ];
+
+    while (cells.length % 7 !== 0) cells.push(null);
+    return cells;
+  }, [monthDays, monthKey, startDate]);
 
   const canGoPrevious = safeMonthIndex > 0;
   const canGoNext = safeMonthIndex < monthKeys.length - 1;
 
+  const selectSearchResult = (day: ReadingPlanProgressDay) => {
+    onSelectDay(day.day_number);
+    onChangeMonth(getMonthKey(getDayDate(startDate, day.day_number)));
+    onClearSearch();
+    setSearchExpanded(false);
+  };
+
+  const toggleSearch = () => {
+    if (searchExpanded) onClearSearch();
+    setSearchExpanded((current) => !current);
+  };
+
   return (
     <>
-      <MotionView delay={60} style={styles.searchBox}>
-        <Search size={17} color={COLORS.muted} />
-        <TextInput
-          value={searchQuery}
-          onChangeText={onSearchChange}
-          placeholder="Rechercher des passages (ex: Jean, Psaume)"
-          placeholderTextColor={COLORS.muted}
-          style={styles.searchInput}
-        />
-        {isSearching ? (
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Effacer la recherche"
-            onPress={onClearSearch}
-            style={styles.searchClearButton}
-          >
-            <X size={15} color={COLORS.muted} />
-          </Pressable>
-        ) : null}
+      <MotionView delay={60} style={styles.calendarToolbar}>
+        <PressableScale
+          accessibilityLabel="Revenir au jour actuel"
+          onPress={onGoToCurrentDay}
+          pressedScale={0.96}
+          style={styles.todayButton}
+        >
+          <CalendarDays size={15} color={COLORS.copper} />
+          <Text style={styles.todayButtonText}>Aujourd’hui</Text>
+        </PressableScale>
+        <Pressable
+          accessibilityLabel={searchExpanded ? "Fermer la recherche" : "Rechercher un passage"}
+          accessibilityRole="button"
+          onPress={toggleSearch}
+          style={({ pressed }) => [styles.searchToggle, pressed && styles.iconButtonPressed]}
+        >
+          {searchExpanded ? <X size={18} color={COLORS.ink} /> : <Search size={18} color={COLORS.ink} />}
+        </Pressable>
       </MotionView>
 
-      <PressableScale onPress={onGoToCurrentDay} pressedScale={0.96} style={styles.currentDayChip}>
-        <CalendarDays size={14} color={COLORS.copper} />
-        <Text maxFontSizeMultiplier={1.15} style={styles.currentDayChipText}>Jour actuel</Text>
-        <View style={styles.currentDayNumberBadge}>
-          <Text maxFontSizeMultiplier={1.15} style={styles.currentDayNumberText}>
-            {displayedCurrentDay}
-          </Text>
-        </View>
-      </PressableScale>
+      {searchExpanded ? (
+        <MotionView delay={40} style={styles.searchBox}>
+          <Search size={17} color={COLORS.muted} />
+          <TextInput
+            autoFocus
+            value={searchQuery}
+            onChangeText={onSearchChange}
+            placeholder="Rechercher un passage"
+            placeholderTextColor={COLORS.muted}
+            style={styles.searchInput}
+          />
+          {isSearching ? (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Effacer la recherche"
+              onPress={onClearSearch}
+              style={styles.searchClearButton}
+            >
+              <X size={15} color={COLORS.muted} />
+            </Pressable>
+          ) : null}
+        </MotionView>
+      ) : null}
 
       {isSearching ? (
-        <MotionView delay={130} style={styles.searchSummary}>
-          <Text style={styles.searchSummaryTitle}>Resultats dans tout le plan</Text>
-          <Text style={styles.searchSummaryText}>
-            {searchDays.length} jour{searchDays.length > 1 ? "s" : ""} trouve{searchDays.length > 1 ? "s" : ""}
-          </Text>
+        <MotionView delay={60} style={styles.searchResults}>
+          <View style={styles.searchResultsHeader}>
+            <Text style={styles.searchResultsTitle}>Résultats</Text>
+            <Text style={styles.searchResultsCount}>{searchDays.length}</Text>
+          </View>
+          {searchDays.length ? searchDays.map((day) => (
+            <Pressable
+              key={day.day_number}
+              accessibilityRole="button"
+              onPress={() => selectSearchResult(day)}
+              style={({ pressed }) => [styles.searchResultRow, pressed && styles.searchResultRowPressed]}
+            >
+              <View style={styles.searchResultDay}>
+                <Text style={styles.searchResultDayNumber}>Jour {day.day_number}</Text>
+                <Text style={styles.searchResultDate}>{formatDayMonth(getDayDate(startDate, day.day_number))}</Text>
+              </View>
+              <Text numberOfLines={2} style={styles.searchResultPassages}>
+                {day.passages.map((passage) => passage.reference).join(" · ")}
+              </Text>
+              <ChevronRight size={17} color={COLORS.muted} />
+            </Pressable>
+          )) : (
+            <View style={styles.searchEmptyInline}>
+              <Text style={styles.searchEmptyTitle}>Aucun passage trouvé</Text>
+              <Text style={styles.searchEmptyText}>Essayez un autre livre ou un numéro de jour.</Text>
+            </View>
+          )}
         </MotionView>
       ) : (
-      <MotionView delay={160} style={styles.monthNav}>
-        <Text maxFontSizeMultiplier={1.2} style={styles.monthTitle}>
-          {formatMonthTitle(monthKey)}
-        </Text>
-        <View style={styles.monthControls}>
+        <>
+          <MotionView delay={100} style={styles.calendarCard}>
+            <View style={styles.monthNav}>
           <Pressable
             disabled={!canGoPrevious}
             onPress={() => onChangeMonth(monthKeys[safeMonthIndex - 1])}
             style={({ pressed }) => [
-              styles.monthButton,
+              styles.monthArrowButton,
               !canGoPrevious && styles.monthButtonDisabled,
               pressed && canGoPrevious && styles.monthButtonPressed,
             ]}
+            accessibilityLabel="Mois précédent"
           >
-            <View pointerEvents="none" style={styles.monthButtonIconLeft}>
-              <ChevronLeft size={16} color={COLORS.ink} />
-            </View>
-            <Text
-              adjustsFontSizeToFit
-              allowFontScaling={false}
-              minimumFontScale={0.85}
-              numberOfLines={1}
-              style={styles.monthButtonText}
-            >
-              Précédent
-            </Text>
+            <ChevronLeft size={20} color={COLORS.ink} />
           </Pressable>
+          <Text maxFontSizeMultiplier={1.2} style={styles.monthTitle}>
+            {formatMonthTitle(monthKey)}
+          </Text>
           <Pressable
             disabled={!canGoNext}
             onPress={() => onChangeMonth(monthKeys[safeMonthIndex + 1])}
             style={({ pressed }) => [
-              styles.monthButton,
+              styles.monthArrowButton,
               !canGoNext && styles.monthButtonDisabled,
               pressed && canGoNext && styles.monthButtonPressed,
             ]}
+            accessibilityLabel="Mois suivant"
           >
-            <Text
-              adjustsFontSizeToFit
-              allowFontScaling={false}
-              minimumFontScale={0.85}
-              numberOfLines={1}
-              style={styles.monthButtonText}
-            >
-              Suivant
-            </Text>
-            <View pointerEvents="none" style={styles.monthButtonIconRight}>
-              <ChevronRight size={16} color={COLORS.ink} />
-            </View>
+            <ChevronRight size={20} color={COLORS.ink} />
           </Pressable>
-        </View>
-      </MotionView>
-      )}
+            </View>
 
-      <MotionView key={monthKey || "month"} delay={80} style={styles.grid}>
-        {visibleDays.map((day, index) => (
-          <DayCard
-            key={day.day_number}
-            animationDelay={index * 38}
-            cardWidth={cardWidth}
-            day={day}
-            isToday={day.day_number === currentDayNumber}
-            onCompleteDay={() => onCompleteDay(day)}
-            onOpenDay={() => onOpenDay(day)}
-            onTogglePassage={onTogglePassage}
-          />
-        ))}
-      </MotionView>
-      {isSearching && !searchDays.length ? (
-        <MotionView delay={120} style={styles.searchEmpty}>
-          <Text style={styles.searchEmptyTitle}>Aucun passage trouve</Text>
-          <Text style={styles.searchEmptyText}>Essayez un autre livre, un numero de jour ou effacez la recherche.</Text>
-          <PressableScale onPress={onClearSearch} pressedScale={0.96} style={styles.searchEmptyButton}>
-            <X size={14} color={COLORS.ink} />
-            <Text style={styles.searchEmptyButtonText}>Effacer</Text>
-          </PressableScale>
-        </MotionView>
-      ) : null}
+            <View style={styles.weekdayRow}>
+              {["L", "M", "M", "J", "V", "S", "D"].map((label, index) => (
+                <Text key={`${label}-${index}`} style={styles.weekdayLabel}>{label}</Text>
+              ))}
+            </View>
+
+            <View key={monthKey || "month"} style={styles.calendarGrid}>
+              {calendarCells.map((cell, index) => {
+                if (!cell) return <View key={`empty-${index}`} style={styles.calendarCell} />;
+
+                const day = cell.day;
+                const state = day ? getDayReadingState(day) : "pending";
+                const isToday = day?.day_number === currentDayNumber;
+                const isSelected = day?.day_number === selectedDayNumber;
+                return (
+                  <Pressable
+                    key={`date-${cell.dateNumber}`}
+                    accessibilityLabel={day ? `Sélectionner le jour ${day.day_number}` : undefined}
+                    accessibilityRole={day ? "button" : undefined}
+                    disabled={!day}
+                    onPress={() => day && onSelectDay(day.day_number)}
+                    style={({ pressed }) => [
+                      styles.calendarCell,
+                      isSelected && styles.calendarCellSelected,
+                      isToday && styles.calendarCellToday,
+                      pressed && day && styles.calendarCellPressed,
+                    ]}
+                  >
+                    <Text style={[
+                      styles.calendarDateNumber,
+                      !day && styles.calendarDateNumberOutsidePlan,
+                      isSelected && styles.calendarDateNumberSelected,
+                    ]}>
+                      {cell.dateNumber}
+                    </Text>
+                    {day ? (
+                      <View style={styles.calendarStateSlot}>
+                        {state === "completed" ? (
+                          <View style={styles.calendarStateCompleted}>
+                            <Check size={10} color="#fff" />
+                          </View>
+                        ) : state === "in-progress" ? (
+                          <View style={styles.calendarStateInProgress} />
+                        ) : (
+                          <View style={styles.calendarStatePending} />
+                        )}
+                      </View>
+                    ) : null}
+                  </Pressable>
+                );
+              })}
+            </View>
+          </MotionView>
+
+          {selectedDay ? (
+            <CalendarDayDetail
+              key={selectedDay.day_number}
+              day={selectedDay}
+              isToday={selectedDay.day_number === currentDayNumber}
+              startDate={startDate}
+              onOpenDay={() => onOpenDay(selectedDay)}
+              onTogglePassage={onTogglePassage}
+            />
+          ) : (
+            <MotionView delay={80} style={styles.calendarSelectionEmpty}>
+              <Text style={styles.calendarSelectionEmptyTitle}>Choisissez une journée</Text>
+              <Text style={styles.calendarSelectionEmptyText}>Ses passages apparaîtront ici.</Text>
+            </MotionView>
+          )}
+        </>
+      )}
     </>
   );
 }
@@ -712,142 +800,74 @@ function PassageRow({
   );
 }
 
-function DayCard({
-  animationDelay,
-  cardWidth,
+function CalendarDayDetail({
   day,
   isToday,
-  onCompleteDay,
+  startDate,
   onOpenDay,
   onTogglePassage,
 }: {
-  animationDelay: number;
-  cardWidth: number;
   day: ReadingPlanProgressDay;
   isToday: boolean;
-  onCompleteDay: () => void;
+  startDate: string;
   onOpenDay: () => void;
   onTogglePassage: (passage: ReadingPlanProgressPassage) => void;
 }) {
-  const progress = getDayProgress(day);
   const completedCount = day.passages.filter((passage) => passage.status === "completed").length;
-  const totalPassages = day.passages.length;
-  const readingState = getDayReadingState(day);
-  const isCompleted = readingState === "completed";
 
   return (
-    <MotionView delay={animationDelay} style={{ width: cardWidth }}>
+    <MotionView delay={80} style={styles.calendarDetail}>
+      <View style={styles.calendarDetailHandle} />
+      <View style={styles.calendarDetailHeader}>
+        <View style={styles.calendarDetailTitleBlock}>
+          <Text style={styles.calendarDetailMeta}>
+            Jour {day.day_number}{isToday ? " · Aujourd’hui" : ""}
+          </Text>
+          <Text style={styles.calendarDetailDate}>
+            {formatLongDate(getDayDate(startDate, day.day_number))}
+          </Text>
+        </View>
+        <Text style={styles.calendarDetailProgress}>{completedCount}/{day.passages.length}</Text>
+      </View>
+
+      <View style={styles.calendarPassages}>
+        {day.passages.map((passage) => {
+          const checked = passage.status === "completed";
+          return (
+            <Pressable
+              key={passage.id}
+              accessibilityLabel={`${checked ? "Marquer comme non lu" : "Marquer comme lu"} : ${passage.reference}`}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked }}
+              onPress={() => onTogglePassage(passage)}
+              style={({ pressed }) => [styles.calendarPassageRow, pressed && styles.calendarPassageRowPressed]}
+            >
+              <View style={[styles.calendarCheckbox, checked && styles.calendarCheckboxChecked]}>
+                {checked ? <Check size={14} color="#fff" /> : null}
+              </View>
+              <View style={styles.calendarPassageTextBlock}>
+                <Text style={[styles.calendarPassageReference, checked && styles.calendarPassageReferenceDone]}>
+                  {passage.reference}
+                </Text>
+                {!!passage.description && (
+                  <Text numberOfLines={1} style={styles.calendarPassageDescription}>
+                    {passage.description}
+                  </Text>
+                )}
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
+
       <Pressable
-        accessibilityHint="Affiche les passages détaillés de ce jour"
-        accessibilityLabel={`Ouvrir le jour ${day.day_number} en mode focus`}
+        accessibilityLabel={`Ouvrir le jour ${day.day_number} en vue focus`}
         accessibilityRole="button"
         onPress={onOpenDay}
-        style={({ pressed }) => [
-          styles.dayCard,
-          readingState === "in-progress" && styles.dayCardInProgress,
-          isCompleted && styles.dayCardDone,
-          isToday && styles.dayCardToday,
-          pressed && styles.dayCardPressed,
-        ]}
+        style={({ pressed }) => [styles.openReadingButton, pressed && styles.openReadingButtonPressed]}
       >
-      <View style={styles.dayCardHeader}>
-        <View style={styles.dayCardTitleBlock}>
-          <Text allowFontScaling={false} numberOfLines={1} style={styles.dayCardTitle}>
-            Jour {day.day_number}
-          </Text>
-        </View>
-        <View
-          style={[
-            styles.dayStateBadge,
-            readingState === "in-progress" && styles.dayStateBadgeInProgress,
-            isCompleted && styles.dayStateBadgeDone,
-            isToday && styles.dayStateBadgeToday,
-          ]}
-        >
-          <Text
-            allowFontScaling={false}
-            numberOfLines={1}
-            style={[
-              styles.dayStateBadgeText,
-              isCompleted && styles.dayStateBadgeTextDone,
-              isToday && styles.dayStateBadgeTextToday,
-            ]}
-          >
-            {isToday ? "Aujourd’hui" : getDayStateLabel(readingState)}
-          </Text>
-        </View>
-      </View>
-      <View style={styles.dayCardProgressHeader}>
-        <Text style={styles.dayCardProgressText}>
-          {completedCount}/{totalPassages} passages
-        </Text>
-        <Text style={styles.dayCardProgress}>{progress}%</Text>
-      </View>
-      <AnimatedProgressBar
-        fillStyle={[
-          styles.dayCardProgressFill,
-          readingState === "in-progress" && styles.dayCardProgressFillActive,
-          isCompleted && styles.dayCardProgressFillDone,
-        ]}
-        minPercent={progress > 0 ? 4 : 0}
-        progress={progress}
-        style={styles.dayCardProgressTrack}
-      />
-      <Text style={styles.dayCardSection}>Passages du jour</Text>
-      {day.passages.map((passage) => (
-        <Pressable
-          key={passage.id}
-          onPress={(event) => {
-            event.stopPropagation();
-            onTogglePassage(passage);
-          }}
-          style={styles.dayCardPassageRow}
-        >
-          <View style={[styles.gridCheckbox, passage.status === "completed" && styles.gridCheckboxChecked]}>
-            {passage.status === "completed" ? <Check size={10} color="#fff" /> : null}
-          </View>
-          <View style={styles.dayCardPassageTextBlock}>
-            <Text
-              style={[styles.dayCardPassageText, passage.status === "completed" && styles.dayCardPassageDone]}
-            >
-              {passage.reference}
-            </Text>
-            {!!passage.description && (
-              <Text style={styles.dayCardPassageDescription}>
-                {passage.description}
-              </Text>
-            )}
-          </View>
-        </Pressable>
-      ))}
-
-      <View style={styles.dayCardFooter}>
-        <Pressable
-          disabled={isCompleted}
-          onPress={(event) => {
-            event.stopPropagation();
-            onCompleteDay();
-          }}
-          style={({ pressed }) => [
-            styles.completeButton,
-            isCompleted && styles.completeButtonDone,
-            pressed && !isCompleted && styles.completeButtonPressed,
-          ]}
-        >
-          <View pointerEvents="none" style={styles.completeButtonIcon}>
-            <Check size={13} color={isCompleted ? "#fff" : COLORS.ink} />
-          </View>
-          <Text
-            adjustsFontSizeToFit
-            allowFontScaling={false}
-            minimumFontScale={0.82}
-            numberOfLines={1}
-            style={[styles.completeButtonText, isCompleted && styles.completeButtonTextDone]}
-          >
-            {isCompleted ? "Terminé" : "Tout cocher"}
-          </Text>
-        </Pressable>
-      </View>
+        <Text style={styles.openReadingButtonText}>Ouvrir la lecture</Text>
+        <ChevronRight size={18} color={COLORS.copper} />
       </Pressable>
     </MotionView>
   );
@@ -873,12 +893,6 @@ function getDayReadingState(day: ReadingPlanProgressDay): DayReadingState {
   return "pending";
 }
 
-function getDayStateLabel(state: DayReadingState) {
-  if (state === "completed") return "Terminé";
-  if (state === "in-progress") return "En cours";
-  return "À lire";
-}
-
 function getDayDate(startDate: string, dayNumber: number) {
   if (!startDate) return "";
   return getDateForDay(startDate, dayNumber);
@@ -892,6 +906,14 @@ function parseLocalDate(value: string) {
 
 function formatDayMonth(dateValue: string) {
   return format(parseLocalDate(dateValue), "d MMMM", { locale: fr });
+}
+
+function formatWeekdayShort(dateValue: string) {
+  return format(parseLocalDate(dateValue), "EEE", { locale: fr }).replace(".", "");
+}
+
+function formatDayNumber(dateValue: string) {
+  return format(parseLocalDate(dateValue), "d", { locale: fr });
 }
 
 function formatLongDate(dateValue: string) {
@@ -995,118 +1017,103 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     textAlign: "center",
   },
-  hero: {
-    backgroundColor: "#44230e",
-    borderRadius: 12,
-    marginBottom: 14,
-    minHeight: 178,
-    overflow: "hidden",
-    padding: 22,
-    shadowColor: "#000",
-    shadowOpacity: 0.18,
-    shadowRadius: 14,
+  planSummary: {
+    marginBottom: 18,
+    paddingHorizontal: 2,
   },
-  heroSmall: {
-    color: "rgba(255,255,255,0.72)",
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    marginTop: 44,
-    textAlign: "center",
-  },
-  heroTitle: {
-    color: "#fff",
-    fontFamily: fonts.semibold,
-    fontSize: 22,
-    marginTop: 8,
-  },
-  heroProgressRow: {
+  planSummaryRow: {
     alignItems: "center",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 6,
   },
-  heroProgressLabel: {
-    color: "#fff",
+  planSummaryName: {
+    color: COLORS.ink,
+    flex: 1,
     fontFamily: fonts.medium,
-    fontSize: 12,
+    fontSize: 14,
+    marginRight: 12,
   },
-  heroTrack: {
-    backgroundColor: "rgba(255,255,255,0.38)",
+  planSummaryPercent: {
+    color: COLORS.muted,
+    fontFamily: fonts.medium,
+    fontSize: 13,
+    fontVariant: ["tabular-nums"],
+  },
+  planSummaryProgressTrack: {
+    backgroundColor: "#e9e0d8",
     borderRadius: 999,
-    height: 7,
-    marginTop: 8,
+    height: 4,
+    marginTop: 10,
     overflow: "hidden",
   },
-  heroProgressFill: {
-    backgroundColor: "#fff",
+  planSummaryProgressFill: {
+    backgroundColor: COLORS.copper,
     borderRadius: 999,
     height: "100%",
   },
   dayRail: {
-    gap: 7,
-    paddingBottom: 20,
+    gap: DAY_RAIL_ITEM_GAP,
+    paddingBottom: 18,
     paddingRight: 18,
   },
   dayPill: {
     alignItems: "center",
-    backgroundColor: "#f2eee9",
-    borderColor: "#ebe2d8",
-    borderRadius: 9,
+    backgroundColor: "transparent",
+    borderColor: "transparent",
+    borderRadius: 12,
     borderWidth: 1,
     justifyContent: "center",
-    minHeight: 58,
-    paddingHorizontal: 8,
-    paddingBottom: 9,
+    minHeight: 70,
+    paddingBottom: 12,
+    paddingHorizontal: 4,
+    paddingTop: 8,
     position: "relative",
     width: DAY_RAIL_ITEM_WIDTH,
   },
   dayPillInProgress: {
-    backgroundColor: "#fbf2df",
-    borderColor: "#ead6ad",
+    backgroundColor: "transparent",
   },
   dayPillCompleted: {
-    backgroundColor: "#eee1d5",
-    borderColor: "#c89461",
+    backgroundColor: "transparent",
   },
   dayPillActive: {
-    backgroundColor: COLORS.copperDark,
-    borderColor: COLORS.copperDark,
+    backgroundColor: COLORS.chip,
   },
   dayPillPressed: {
-    opacity: 0.72,
+    opacity: 0.62,
   },
-  dayPillNumber: {
+  dayPillWeekday: {
+    color: COLORS.muted,
+    fontFamily: fonts.medium,
+    fontSize: 10,
+    lineHeight: 13,
+    textAlign: "center",
+    textTransform: "capitalize",
+    width: "100%",
+  },
+  dayPillWeekdayActive: {
+    color: COLORS.copper,
+  },
+  dayPillDateNumber: {
     color: COLORS.ink,
-    fontFamily: fonts.semibold,
-    fontSize: 14,
-    lineHeight: 19,
+    fontFamily: fonts.medium,
+    fontSize: 19,
+    lineHeight: 24,
+    marginTop: 2,
     textAlign: "center",
     width: "100%",
   },
-  dayPillNumberActive: {
-    color: "#fff",
-  },
-  dayPillDate: {
-    color: COLORS.muted,
-    fontFamily: fonts.regular,
-    fontSize: 9,
-    lineHeight: 12,
-    marginTop: 3,
-    maxWidth: DAY_RAIL_ITEM_WIDTH - 8,
-    textAlign: "center",
-    textTransform: "lowercase",
-    width: DAY_RAIL_ITEM_WIDTH - 8,
-  },
-  dayPillDateActive: {
-    color: "rgba(255,255,255,0.82)",
+  dayPillDateNumberActive: {
+    color: COLORS.copper,
+    fontFamily: fonts.semibold,
   },
   dayPillStateMarker: {
     backgroundColor: "#d8cec3",
     borderRadius: 999,
-    bottom: 4,
-    height: 3,
+    bottom: 7,
+    height: 6,
     position: "absolute",
-    width: 24,
+    width: 6,
   },
   dayPillStateMarkerInProgress: {
     backgroundColor: "#d9ab65",
@@ -1114,83 +1121,84 @@ const styles = StyleSheet.create({
   dayPillStateMarkerCompleted: {
     backgroundColor: COLORS.copper,
   },
-  todayDot: {
-    backgroundColor: COLORS.copper,
+  returnToCurrentDayRow: {
+    alignItems: "flex-end",
+    marginBottom: 12,
+    marginTop: -6,
+  },
+  returnToCurrentDayButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.chip,
     borderRadius: 999,
-    height: 5,
-    marginTop: 5,
-    width: 5,
+    flexDirection: "row",
+    gap: 6,
+    minHeight: 34,
+    paddingHorizontal: 12,
+  },
+  returnToCurrentDayText: {
+    color: COLORS.copper,
+    fontFamily: fonts.medium,
+    fontSize: 12,
   },
   focusCard: {
     backgroundColor: COLORS.card,
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    borderWidth: 1,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    borderRadius: 16,
+    paddingHorizontal: 18,
+    paddingVertical: 20,
   },
   focusCardHeader: {
+    alignItems: "flex-end",
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 10,
+    marginBottom: 4,
   },
-  focusTitle: {
-    color: COLORS.ink,
-    fontFamily: fonts.semibold,
-    fontSize: 16,
+  focusTitleBlock: {
+    flex: 1,
+    paddingRight: 12,
   },
-  focusTitleMuted: {
-    color: COLORS.muted,
-    fontFamily: fonts.regular,
+  focusDayLabel: {
+    color: COLORS.copper,
+    fontFamily: fonts.medium,
+    fontSize: 14,
   },
   focusDate: {
-    color: COLORS.muted,
-    fontFamily: fonts.regular,
-    fontSize: 13,
-    marginTop: 12,
+    color: COLORS.ink,
+    fontFamily: fonts.semibold,
+    fontSize: 23,
+    lineHeight: 30,
+    marginTop: 5,
     textTransform: "capitalize",
   },
-  focusPercent: {
+  focusPassageCount: {
     color: COLORS.muted,
     fontFamily: fonts.medium,
-    fontSize: 13,
+    fontSize: 14,
+    fontVariant: ["tabular-nums"],
+    paddingBottom: 4,
   },
   focusPassages: {
-    gap: 11,
-    marginTop: 16,
-  },
-  focusProgressTrack: {
-    backgroundColor: "#f0e7df",
-    borderRadius: 999,
-    height: 8,
-    overflow: "hidden",
-  },
-  focusProgressFill: {
-    backgroundColor: COLORS.copper,
-    borderRadius: 999,
-    height: "100%",
+    borderTopColor: COLORS.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    marginTop: 18,
   },
   passageRow: {
     alignItems: "center",
-    backgroundColor: COLORS.cardSoft,
-    borderRadius: 11,
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     flexDirection: "row",
-    minHeight: 44,
-    paddingHorizontal: 11,
-    paddingVertical: 10,
+    minHeight: 72,
+    paddingVertical: 14,
   },
   checkbox: {
     alignItems: "center",
     backgroundColor: "#fff",
-    borderColor: COLORS.border,
+    borderColor: "#cdbfb4",
     borderRadius: 999,
     borderWidth: 1,
-    height: 22,
+    height: 26,
     justifyContent: "center",
-    marginRight: 12,
-    width: 22,
+    marginRight: 14,
+    width: 26,
   },
   checkboxChecked: {
     backgroundColor: COLORS.copper,
@@ -1202,17 +1210,17 @@ const styles = StyleSheet.create({
   passageText: {
     color: COLORS.ink,
     fontFamily: fonts.medium,
-    fontSize: 14,
+    fontSize: 16,
   },
   passageTextDone: {
     color: COLORS.muted,
-    textDecorationLine: "line-through",
   },
   passageDescription: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 12,
-    marginTop: 3,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: 4,
   },
   searchBox: {
     alignItems: "center",
@@ -1221,17 +1229,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 1,
     flexDirection: "row",
-    marginBottom: 14,
-    minHeight: 38,
-    paddingHorizontal: 12,
+    marginBottom: 16,
+    minHeight: 44,
+    paddingHorizontal: 14,
   },
   searchInput: {
     color: COLORS.ink,
     flex: 1,
     fontFamily: fonts.regular,
-    fontSize: 13,
+    fontSize: 14,
     marginLeft: 10,
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
   searchClearButton: {
     alignItems: "center",
@@ -1241,68 +1249,102 @@ const styles = StyleSheet.create({
     marginLeft: 6,
     width: 28,
   },
-  currentDayChip: {
+  calendarToolbar: {
     alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: COLORS.chip,
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    borderWidth: 1,
     flexDirection: "row",
-    gap: 6,
-    marginBottom: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
+    justifyContent: "space-between",
+    marginBottom: 14,
   },
-  currentDayChipText: {
+  todayButton: {
+    alignItems: "center",
+    backgroundColor: COLORS.chip,
+    borderRadius: 999,
+    flexDirection: "row",
+    gap: 7,
+    minHeight: 38,
+    paddingHorizontal: 13,
+  },
+  todayButtonText: {
     color: COLORS.copper,
     fontFamily: fonts.medium,
     fontSize: 13,
   },
-  currentDayNumberBadge: {
+  searchToggle: {
     alignItems: "center",
-    backgroundColor: COLORS.copper,
-    borderRadius: 999,
-    justifyContent: "center",
-    minHeight: 24,
-    minWidth: 30,
-    paddingHorizontal: 7,
-  },
-  currentDayNumberText: {
-    color: "#fff",
-    fontFamily: fonts.semibold,
-    fontSize: 13,
-    fontVariant: ["tabular-nums"],
-  },
-  searchSummary: {
-    alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 14,
+    borderRadius: 12,
     borderWidth: 1,
-    marginBottom: 16,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    height: 40,
+    justifyContent: "center",
+    width: 40,
   },
-  searchSummaryTitle: {
+  iconButtonPressed: {
+    backgroundColor: COLORS.chip,
+  },
+  searchResults: {
+    backgroundColor: COLORS.card,
+    borderColor: COLORS.border,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  searchResultsHeader: {
+    alignItems: "center",
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  searchResultsTitle: {
+    color: COLORS.ink,
+    fontFamily: fonts.semibold,
+    fontSize: 15,
+  },
+  searchResultsCount: {
+    color: COLORS.muted,
+    fontFamily: fonts.medium,
+    fontSize: 12,
+  },
+  searchResultRow: {
+    alignItems: "center",
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    gap: 12,
+    minHeight: 68,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  searchResultRowPressed: {
+    backgroundColor: COLORS.cardSoft,
+  },
+  searchResultDay: {
+    width: 72,
+  },
+  searchResultDayNumber: {
     color: COLORS.ink,
     fontFamily: fonts.semibold,
     fontSize: 13,
   },
-  searchSummaryText: {
+  searchResultDate: {
     color: COLORS.muted,
     fontFamily: fonts.regular,
-    fontSize: 12,
+    fontSize: 11,
     marginTop: 3,
   },
-  searchEmpty: {
+  searchResultPassages: {
+    color: COLORS.ink,
+    flex: 1,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  searchEmptyInline: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderColor: COLORS.border,
-    borderRadius: 14,
-    borderWidth: 1,
-    marginTop: 12,
-    padding: 18,
+    padding: 24,
   },
   searchEmptyTitle: {
     color: COLORS.ink,
@@ -1317,281 +1359,240 @@ const styles = StyleSheet.create({
     marginTop: 6,
     textAlign: "center",
   },
-  searchEmptyButton: {
-    alignItems: "center",
-    backgroundColor: COLORS.chip,
+  calendarCard: {
+    backgroundColor: COLORS.card,
     borderColor: COLORS.border,
-    borderRadius: 999,
+    borderRadius: 16,
     borderWidth: 1,
-    flexDirection: "row",
-    gap: 6,
-    marginTop: 12,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  searchEmptyButtonText: {
-    color: COLORS.ink,
-    fontFamily: fonts.medium,
-    fontSize: 12,
+    marginBottom: 14,
+    padding: 14,
   },
   monthNav: {
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    gap: 12,
-    marginBottom: 20,
-    padding: 15,
-    shadowColor: "#000",
-    shadowOpacity: 0.04,
-    shadowRadius: 10,
-  },
-  monthControls: {
     flexDirection: "row",
-    gap: 10,
-    width: "100%",
+    justifyContent: "space-between",
+    marginBottom: 18,
   },
-  monthButton: {
+  monthArrowButton: {
     alignItems: "center",
-    borderColor: COLORS.border,
-    borderRadius: 10,
-    borderWidth: 1,
-    flex: 1,
+    borderRadius: 999,
+    height: 40,
     justifyContent: "center",
-    minHeight: 42,
-    minWidth: 0,
-    paddingHorizontal: 4,
-    position: "relative",
+    width: 40,
   },
   monthButtonDisabled: {
-    opacity: 0.35,
+    opacity: 0.22,
   },
   monthButtonPressed: {
     backgroundColor: COLORS.chip,
-  },
-  monthButtonIconLeft: {
-    left: 8,
-    position: "absolute",
-  },
-  monthButtonIconRight: {
-    position: "absolute",
-    right: 8,
-  },
-  monthButtonText: {
-    color: COLORS.ink,
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    paddingHorizontal: 23,
-    textAlign: "center",
-    width: "100%",
   },
   monthTitle: {
     color: COLORS.ink,
     fontFamily: fonts.semibold,
     fontSize: 16,
+    flex: 1,
     textAlign: "center",
     textTransform: "capitalize",
-    width: "100%",
   },
-  grid: {
+  weekdayRow: {
+    flexDirection: "row",
+    marginBottom: 6,
+  },
+  weekdayLabel: {
+    color: COLORS.muted,
+    fontFamily: fonts.medium,
+    fontSize: 11,
+    textAlign: "center",
+    width: "14.2857%",
+  },
+  calendarGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    gap: 10,
   },
-  dayCard: {
-    backgroundColor: "#fff",
-    borderColor: COLORS.border,
+  calendarCell: {
+    alignItems: "center",
+    borderColor: "transparent",
     borderRadius: 10,
     borderWidth: 1,
-    minHeight: 272,
-    padding: 12,
-    width: "100%",
-  },
-  dayCardPressed: {
-    opacity: 0.72,
-  },
-  dayCardInProgress: {
-    backgroundColor: "#fffaf3",
-    borderColor: "#d9ab65",
-  },
-  dayCardDone: {
-    backgroundColor: "#fffdfb",
-    borderColor: COLORS.copper,
-  },
-  dayCardToday: {
-    borderColor: COLORS.copperDark,
-    borderWidth: 1.5,
-  },
-  dayCardHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    gap: 7,
-    justifyContent: "space-between",
-    width: "100%",
-  },
-  dayCardTitleBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  dayCardTitle: {
-    color: COLORS.ink,
-    fontFamily: fonts.semibold,
-    fontSize: 14,
-    fontVariant: ["tabular-nums"],
-    lineHeight: 19,
-  },
-  dayStateBadge: {
-    alignItems: "center",
-    alignSelf: "center",
-    backgroundColor: "#f4eee8",
-    borderRadius: 999,
-    flexShrink: 0,
+    height: 52,
     justifyContent: "center",
-    maxWidth: "55%",
-    minHeight: 28,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    width: "14.2857%",
   },
-  dayStateBadgeInProgress: {
-    backgroundColor: "#f3dfbc",
-  },
-  dayStateBadgeDone: {
-    backgroundColor: COLORS.copper,
-  },
-  dayStateBadgeToday: {
-    backgroundColor: COLORS.copperDark,
-  },
-  dayStateBadgeText: {
-    color: COLORS.muted,
-    fontFamily: fonts.medium,
-    fontSize: 11,
-    lineHeight: 15,
-    textAlign: "center",
-  },
-  dayStateBadgeTextDone: {
-    color: "#fff",
-  },
-  dayStateBadgeTextToday: {
-    color: "#fff",
-  },
-  dayCardProgressHeader: {
-    alignItems: "center",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  dayCardProgressText: {
-    color: COLORS.muted,
-    flexShrink: 1,
-    fontFamily: fonts.medium,
-    fontSize: 11,
-  },
-  dayCardProgressTrack: {
-    backgroundColor: "#f0e7df",
-    borderRadius: 999,
-    height: 6,
-    marginBottom: 12,
-    marginTop: 6,
-    overflow: "hidden",
-  },
-  dayCardProgressFill: {
-    backgroundColor: "#d8cec3",
-    borderRadius: 999,
-    height: "100%",
-  },
-  dayCardProgressFillActive: {
-    backgroundColor: "#d9ab65",
-  },
-  dayCardProgressFillDone: {
-    backgroundColor: COLORS.copper,
-  },
-  dayCardSection: {
-    color: COLORS.ink,
-    fontFamily: fonts.semibold,
-    fontSize: 12,
-    marginBottom: 8,
-  },
-  dayCardPassageRow: {
-    alignItems: "flex-start",
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  gridCheckbox: {
-    alignItems: "center",
-    borderColor: "#e4c6ac",
-    borderRadius: 3,
-    borderWidth: 1,
-    height: 12,
-    justifyContent: "center",
-    marginRight: 7,
-    marginTop: 2,
-    width: 12,
-  },
-  gridCheckboxChecked: {
-    backgroundColor: COLORS.copper,
-    borderColor: COLORS.copper,
-  },
-  dayCardPassageText: {
-    color: COLORS.ink,
-    fontFamily: fonts.medium,
-    fontSize: 12,
-    lineHeight: 17,
-  },
-  dayCardPassageTextBlock: {
-    flex: 1,
-    minWidth: 0,
-  },
-  dayCardPassageDescription: {
-    color: COLORS.muted,
-    fontFamily: fonts.regular,
-    fontSize: 11,
-    lineHeight: 16,
-    marginTop: 2,
-  },
-  dayCardPassageDone: {
-    color: COLORS.muted,
-    textDecorationLine: "line-through",
-  },
-  dayCardFooter: {
-    marginTop: "auto",
-  },
-  completeButton: {
-    alignItems: "center",
-    backgroundColor: "#faf6f1",
-    borderColor: COLORS.border,
-    borderRadius: 999,
-    borderWidth: 1,
-    justifyContent: "center",
-    minHeight: 34,
-    paddingHorizontal: 4,
-    paddingVertical: 8,
-    position: "relative",
-    width: "100%",
-  },
-  completeButtonDone: {
-    backgroundColor: COLORS.copper,
-    borderColor: COLORS.copper,
-  },
-  completeButtonPressed: {
+  calendarCellSelected: {
     backgroundColor: COLORS.chip,
   },
-  completeButtonIcon: {
-    left: 8,
-    position: "absolute",
+  calendarCellToday: {
+    borderColor: COLORS.copper,
   },
-  completeButtonText: {
+  calendarCellPressed: {
+    backgroundColor: "#f1e6dc",
+  },
+  calendarDateNumber: {
     color: COLORS.ink,
     fontFamily: fonts.medium,
-    fontSize: 12,
-    paddingHorizontal: 20,
-    textAlign: "center",
-    width: "100%",
+    fontSize: 14,
+    fontVariant: ["tabular-nums"],
   },
-  completeButtonTextDone: {
-    color: "#fff",
+  calendarDateNumberOutsidePlan: {
+    color: "#c9beb5",
   },
-  dayCardProgress: {
+  calendarDateNumberSelected: {
+    fontFamily: fonts.semibold,
+  },
+  calendarStateSlot: {
+    alignItems: "center",
+    height: 15,
+    justifyContent: "center",
+    marginTop: 3,
+  },
+  calendarStateCompleted: {
+    alignItems: "center",
+    backgroundColor: COLORS.copper,
+    borderRadius: 999,
+    height: 15,
+    justifyContent: "center",
+    width: 15,
+  },
+  calendarStateInProgress: {
+    backgroundColor: "#d7aa70",
+    borderRadius: 999,
+    height: 7,
+    width: 7,
+  },
+  calendarStatePending: {
+    borderColor: "#d8cec4",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 12,
+    width: 12,
+  },
+  calendarDetail: {
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+    paddingTop: 10,
+  },
+  calendarDetailHandle: {
+    alignSelf: "center",
+    backgroundColor: "#ddd3ca",
+    borderRadius: 999,
+    height: 4,
+    marginBottom: 14,
+    width: 34,
+  },
+  calendarDetailHeader: {
+    alignItems: "flex-start",
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  calendarDetailTitleBlock: {
+    flex: 1,
+  },
+  calendarDetailMeta: {
+    color: COLORS.copper,
+    fontFamily: fonts.medium,
+    fontSize: 13,
+  },
+  calendarDetailDate: {
+    color: COLORS.ink,
+    fontFamily: fonts.semibold,
+    fontSize: 21,
+    lineHeight: 28,
+    marginTop: 5,
+    textTransform: "capitalize",
+  },
+  calendarDetailProgress: {
+    backgroundColor: COLORS.cardSoft,
+    borderRadius: 999,
     color: COLORS.muted,
     fontFamily: fonts.medium,
-    fontSize: 11,
+    fontSize: 12,
+    overflow: "hidden",
+    paddingHorizontal: 9,
+    paddingVertical: 6,
+  },
+  calendarPassages: {
+    borderTopColor: COLORS.border,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  calendarPassageRow: {
+    alignItems: "center",
+    borderBottomColor: COLORS.border,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    flexDirection: "row",
+    minHeight: 60,
+    paddingVertical: 10,
+  },
+  calendarPassageRowPressed: {
+    opacity: 0.62,
+  },
+  calendarCheckbox: {
+    alignItems: "center",
+    borderColor: "#cdbfb4",
+    borderRadius: 999,
+    borderWidth: 1,
+    height: 24,
+    justifyContent: "center",
+    marginRight: 13,
+    width: 24,
+  },
+  calendarCheckboxChecked: {
+    backgroundColor: COLORS.copper,
+    borderColor: COLORS.copper,
+  },
+  calendarPassageTextBlock: {
+    flex: 1,
+  },
+  calendarPassageReference: {
+    color: COLORS.ink,
+    fontFamily: fonts.medium,
+    fontSize: 15,
+  },
+  calendarPassageReferenceDone: {
+    color: COLORS.muted,
+  },
+  calendarPassageDescription: {
+    color: COLORS.muted,
+    fontFamily: fonts.regular,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  openReadingButton: {
+    alignItems: "center",
+    borderColor: COLORS.copper,
+    borderRadius: 12,
+    borderWidth: 1,
+    flexDirection: "row",
+    gap: 6,
+    justifyContent: "center",
+    marginTop: 16,
+    minHeight: 48,
+  },
+  openReadingButtonPressed: {
+    backgroundColor: COLORS.chip,
+  },
+  openReadingButtonText: {
+    color: COLORS.copper,
+    fontFamily: fonts.medium,
+    fontSize: 14,
+  },
+  calendarSelectionEmpty: {
+    alignItems: "center",
+    backgroundColor: COLORS.card,
+    borderRadius: 16,
+    padding: 24,
+  },
+  calendarSelectionEmptyTitle: {
+    color: COLORS.ink,
+    fontFamily: fonts.semibold,
+    fontSize: 15,
+  },
+  calendarSelectionEmptyText: {
+    color: COLORS.muted,
+    fontFamily: fonts.regular,
+    fontSize: 13,
+    marginTop: 5,
   },
 });

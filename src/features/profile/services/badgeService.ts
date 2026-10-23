@@ -1,5 +1,6 @@
 
 import { supabase } from '@/integrations/supabase/client';
+import { requireCurrentUserId } from '@/features/auth/services/auth/sessionService';
 
 export interface Badge {
   id: string;
@@ -71,8 +72,9 @@ export const getUserBadges = async (userId: string): Promise<UserBadge[]> => {
 /**
  * Calculer et débloquer automatiquement les badges pour un utilisateur
  */
-export const calculateUserBadges = async (userId: string): Promise<boolean> => {
+export const calculateUserBadges = async (): Promise<boolean> => {
   try {
+    const userId = await requireCurrentUserId();
     const { error } = await supabase.rpc('calculate_user_badges', {
       _user_id: userId
     });
@@ -85,31 +87,6 @@ export const calculateUserBadges = async (userId: string): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('Erreur calculateUserBadges:', error);
-    return false;
-  }
-};
-
-/**
- * Débloquer manuellement un badge pour un utilisateur
- */
-export const unlockBadge = async (userId: string, badgeId: string): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('user_badges')
-      .insert({
-        user_id: userId,
-        badge_id: badgeId
-      });
-
-    if (error) {
-      console.error('Erreur lors du déverrouillage du badge:', error);
-      throw error;
-    }
-
-    console.log('Nouveau badge débloqué');
-    return true;
-  } catch (error) {
-    console.error('Erreur unlockBadge:', error);
     return false;
   }
 };
@@ -162,8 +139,9 @@ export const getBadgeProgress = async (userId: string): Promise<{
     const completedChapters = completedProgress.length;
 
     // B) Jours complétés (via RPC)
+    const authenticatedUserId = await requireCurrentUserId();
     const { data: completedDaysData } = await supabase
-      .rpc('get_completed_days_count', { p_user_id: userId });
+      .rpc('get_completed_days_count', { p_user_id: authenticatedUserId });
     const completedDays = completedDaysData || 0;
 
     // C) Calculs dérivés sur les lectures par jour

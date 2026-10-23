@@ -109,7 +109,7 @@ export const optimizedToggleChapterStatus = async (
         const badgeIdsBefore = new Set(badgesBefore.map(b => b.badge_id));
         
         // Calculer les nouveaux badges
-        await calculateUserBadges(userId);
+        await calculateUserBadges();
         
         // Récupérer les badges APRÈS le calcul
         const badgesAfter = await getUserBadges(userId);

@@ -12,7 +12,7 @@ export const useBadgeCalculation = () => {
       const badgesBefore = await getUserBadges(user.id);
       const badgeIdsBefore = new Set(badgesBefore.map((b) => b.badge_id));
 
-      await calculateUserBadges(user.id);
+      await calculateUserBadges();
 
       const badgesAfter = await getUserBadges(user.id);
       const newBadges = badgesAfter.filter((badge) => !badgeIdsBefore.has(badge.badge_id));

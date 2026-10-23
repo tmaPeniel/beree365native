@@ -360,7 +360,7 @@ export const optimizedToggleChapterStatus = async (
     // Mettre à jour l'activité utilisateur pour toute action de toggle (cocher/décocher)
     // Import dynamique pour éviter les dépendances circulaires
     const { ActivityService } = await import('@/features/auth/services/auth/activityService');
-    await ActivityService.updateUserActivity(userId);
+    await ActivityService.updateUserActivity();
     
     // Invalidation CORRIGÉE - cache global seulement
     invalidateUserCacheSelective(userId, 'ultra-optimized-reading-plan');
@@ -446,7 +446,7 @@ export const markAllChaptersAsRead = async (
 
     // Mettre à jour l'activité utilisateur
     const { ActivityService } = await import('@/features/auth/services/auth/activityService');
-    await ActivityService.updateUserActivity(userId);
+    await ActivityService.updateUserActivity();
 
     // Invalidation du cache
     invalidateUserCacheSelective(userId, 'ultra-optimized-reading-plan');

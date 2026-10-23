@@ -2,10 +2,10 @@
 
 ## Vues
 
-- Vue Focus : vue mobile par défaut, centrée sur un jour avec rail horizontal scrollable sur tous les jours du plan et auto-positionnement sur le jour courant.
+- Vue Focus : vue mobile par défaut, centrée sur les passages du jour. Le résumé du plan et sa progression restent compacts, tandis qu'un rail horizontal de dates permet de parcourir tous les jours avec auto-positionnement sur le jour courant.
 - Les pastilles du rail Focus ont une largeur fixe et désactivent le scaling texte localement pour éviter la troncature des numéros à deux ou trois chiffres.
 - Les pastilles du rail Focus indiquent l'état de lecture avec la palette de l'application : neutre pour non lu, beige/doré doux pour en cours, cuivre doux pour terminé.
-- Vue Grille : organisation par blocs mensuels, cartes de jour en deux colonnes et recherche locale sur les passages. Toute la carte ouvre directement le jour en vue Focus ; les actions de progression restent indépendantes.
+- Vue Grille : calendrier mensuel sur sept colonnes avec états de lecture discrets, raccourci vers aujourd'hui et recherche locale sur les passages. Un appui sur une date affiche ses passages sous le calendrier ; le bouton « Ouvrir la lecture » bascule vers la vue Focus.
 - La préférence de vue est persistée localement sous la clé `reading-view-mode` avec les valeurs `focus` ou `grid`.
 
 ## Logique métier raccordée côté UI et données
