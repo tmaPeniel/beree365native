@@ -27,7 +27,7 @@ export default function RootLayout() {
 
   if (!fontsLoaded && !fontError) {
     return (
-      <SafeAreaProvider>
+      <SafeAreaProvider style={{ backgroundColor: colors.background }}>
         <View
           style={{
             alignItems: "center",
@@ -43,7 +43,7 @@ export default function RootLayout() {
   }
 
   return (
-    <SafeAreaProvider>
+    <SafeAreaProvider style={{ backgroundColor: colors.background }}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <StatusBar style="dark" />

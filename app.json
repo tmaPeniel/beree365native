@@ -25,6 +25,15 @@
         "backgroundColor": "#F8FAF7"
       }
     },
+    "androidNavigationBar": {
+      "backgroundColor": "#F8F6F3",
+      "barStyle": "dark-content"
+    },
+    "androidStatusBar": {
+      "backgroundColor": "#F8F6F3",
+      "barStyle": "dark-content",
+      "translucent": false
+    },
     "plugins": [
       "expo-router",
       [
@@ -32,7 +41,7 @@
         {
           "image": "./src/assets/beree-logo.png",
           "resizeMode": "contain",
-          "backgroundColor": "#F8FAF7"
+          "backgroundColor": "#F8F6F3"
         }
       ],
       "expo-notifications",
