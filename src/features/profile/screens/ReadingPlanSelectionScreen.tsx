@@ -19,6 +19,7 @@ import { useAuth } from "@/features/auth/hooks/useAuth";
 import { usePremium } from "@/features/profile/hooks/usePremium";
 import {
   changePlan,
+  getPlanChangeImpact,
   getReadingPlanCatalog,
   getUserPlan,
   ReadingPlanCatalogItem,
@@ -213,6 +214,7 @@ export function ReadingPlanSelectionScreen() {
   const premium = usePremium();
   const queryClient = useQueryClient();
   const [changingPlanId, setChangingPlanId] = useState<string | null>(null);
+  const [preparingPlanId, setPreparingPlanId] = useState<string | null>(null);
 
   const selectedPlanId = profile?.selected_plan_id;
 
@@ -251,7 +253,7 @@ export function ReadingPlanSelectionScreen() {
     ]);
   };
 
-  const requestPlanChange = (plan: ReadingPlanCatalogItem) => {
+  const requestPlanChange = async (plan: ReadingPlanCatalogItem) => {
     const state = getPlanState(plan, selectedPlanId, premium.isPremium);
 
     if (state === "selected") {
@@ -276,9 +278,27 @@ export function ReadingPlanSelectionScreen() {
       return;
     }
 
+    setPreparingPlanId(plan.id);
+    let impact;
+    try {
+      impact = await getPlanChangeImpact();
+    } catch (error: any) {
+      Alert.alert(
+        "Changement indisponible",
+        error?.message || "Impossible de vérifier les données qui seraient réinitialisées.",
+      );
+      return;
+    } finally {
+      setPreparingPlanId(null);
+    }
+
+    const impactSummary = impact.progressEntries || impact.unlockedBadges
+      ? `${impact.progressEntries} élément${impact.progressEntries > 1 ? "s" : ""} de progression, dont ${impact.completedPassages} passage${impact.completedPassages > 1 ? "s" : ""} terminé${impact.completedPassages > 1 ? "s" : ""}, et ${impact.unlockedBadges} badge${impact.unlockedBadges > 1 ? "s" : ""} seront supprimés.`
+      : "Aucune progression ni aucun badge ne sera supprimé.";
+
     Alert.alert(
       "Changer de plan ?",
-      "Votre progression et vos badges de lecture seront remis a zero pour demarrer ce nouveau parcours aujourd'hui.",
+      `${impactSummary}\n\nLe nouveau plan commencera aujourd'hui au jour 1. Cette action est irréversible.`,
       [
         { text: "Annuler", style: "cancel" },
         {
@@ -353,12 +373,13 @@ export function ReadingPlanSelectionScreen() {
         onRefresh={() => void catalogQuery.refetch()}
         renderItem={({ item }) => {
           const state = getPlanState(item, selectedPlanId, premium.isPremium);
-          const disabled = state !== "available" || !!changingPlanId;
+          const isBusy = changingPlanId === item.id || preparingPlanId === item.id;
+          const disabled = state !== "available" || !!changingPlanId || !!preparingPlanId;
           return (
             <PlanCard
               disabled={disabled}
-              isChanging={changingPlanId === item.id}
-              onPress={() => requestPlanChange(item)}
+              isChanging={isBusy}
+              onPress={() => void requestPlanChange(item)}
               plan={item}
               state={state}
             />

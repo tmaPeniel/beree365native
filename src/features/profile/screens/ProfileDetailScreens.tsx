@@ -10,7 +10,6 @@ import {
   Modal,
   Pressable,
   ScrollView,
-  Share,
   StyleSheet,
   Switch,
   Text,
@@ -46,6 +45,7 @@ import {
 } from "@/features/auth/services/auth";
 import { getProfileInitials, ProfileAvatar } from "@/features/profile/components/profile-avatar";
 import { removeProfileAvatar, uploadProfileAvatar } from "@/features/profile/services/avatar-service";
+import { exportCurrentUserData } from "@/features/profile/services/privacy-export-service";
 import {
   Badge,
   getAllBadges,
@@ -494,10 +494,24 @@ export function PremiumScreen() {
 }
 
 export function PrivacyScreen() {
-  const { profile, user } = useAuth();
   const consents = usePrivacyConsents();
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
-  const exportData = () => Share.share({ message: JSON.stringify({ exported_at: new Date().toISOString(), profile, user: { email: user?.email, id: user?.id } }, null, 2), title: "Export Beree 365" });
+  const [isExportingData, setIsExportingData] = useState(false);
+  const exportData = async () => {
+    if (isExportingData) return;
+
+    setIsExportingData(true);
+    try {
+      await exportCurrentUserData();
+    } catch (error: any) {
+      Alert.alert(
+        "Export impossible",
+        error?.message || "Impossible de préparer l'export de vos données.",
+      );
+    } finally {
+      setIsExportingData(false);
+    }
+  };
   const deleteAccount = () => {
     if (isDeletingAccount) return;
 
@@ -560,8 +574,16 @@ export function PrivacyScreen() {
           </Text>
         </View>
       )}
-      <Pressable onPress={exportData} style={styles.secondaryButton}>
-        <Text style={styles.secondaryButtonText}>Exporter mes donnees</Text>
+      <Pressable
+        disabled={isExportingData}
+        onPress={() => void exportData()}
+        style={[styles.secondaryButton, { opacity: isExportingData ? 0.6 : 1 }]}
+      >
+        {isExportingData ? (
+          <ActivityIndicator color={colors.primary} />
+        ) : (
+          <Text style={styles.secondaryButtonText}>Exporter mes données</Text>
+        )}
       </Pressable>
       <Pressable
         disabled={isDeletingAccount}
