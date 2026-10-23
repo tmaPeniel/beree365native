@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { format, formatDistanceToNow } from "date-fns";
+import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { LinearGradient } from "expo-linear-gradient";
-import { Bell, Check, Heart, Share2, Trash2, X } from "lucide-react-native";
+import { Bell, Check, Heart, Share2, X } from "lucide-react-native";
 import { router } from "expo-router";
 import Svg, { Circle } from "react-native-svg";
 import {
@@ -28,26 +28,11 @@ import {
   getUserProgressForDay,
   toggleChapterStatus,
 } from "@/features/reading/services/readingPlan";
-import { supabase } from "@/integrations/supabase/client";
 import { MotionView, PressableScale } from "@/shared/animation/Motion";
 import { colors, fonts } from "@/shared/theme/styles";
 
 const FALLBACK_QUOTE = "La Parole de Dieu éclaire chacun de nos pas.";
 type DayProgress = Awaited<ReturnType<typeof getUserProgressForDay>>;
-type NotificationLog = {
-  body?: string | null;
-  created_at?: string | null;
-  id: string;
-  is_read?: boolean | null;
-  link?: string | null;
-  message?: string | null;
-  metadata?: { href?: string; link?: string } | null;
-  notification_type?: string | null;
-  read_at?: string | null;
-  sent_at?: string | null;
-  title?: string | null;
-  type?: string | null;
-};
 
 function formatFrenchDate(dateValue: string) {
   const parts = dateValue.split("-").map(Number);
@@ -64,15 +49,6 @@ function formatFrenchDate(dateValue: string) {
 
 function formatShortDate(date: Date) {
   return format(date, "dd/MM/yyyy", { locale: fr });
-}
-
-function formatNotificationTime(value?: string | null) {
-  if (!value) return "A l'instant";
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "A l'instant";
-
-  return formatDistanceToNow(date, { addSuffix: true, locale: fr });
 }
 
 function getPlanDates(startDateValue: string, duration: number) {
@@ -122,22 +98,12 @@ export function DashboardScreen() {
     enabled: !!user?.id,
   });
 
-  const notificationsQuery = useQuery({
-    queryKey: ["mobile-notifications", user?.id],
-    queryFn: async () => {
-      const { data, error } = await (supabase as any)
-        .from("notification_logs")
-        .select("*")
-        .eq("user_id", user!.id)
-        .eq("is_deleted", false)
-        .order("sent_at", { ascending: false })
-        .limit(30);
-
-      if (error) throw error;
-      return (data || []) as NotificationLog[];
-    },
-    enabled: !!user?.id,
-  });
+  const toggleVerseLike = async () => {
+    const result = await verseLikes.toggleLike();
+    if (!result.success && result.error) {
+      Alert.alert("J'aime", result.error);
+    }
+  };
 
   const toggleChapter = async (chapterId: string, status: "pending" | "completed") => {
     if (!user?.id || pendingChapterId) return;
@@ -203,7 +169,7 @@ export function DashboardScreen() {
   const daysRemaining = Math.max(planDuration - currentDayNumber, 0);
   const isRefreshing = verseQuery.isRefetching || chaptersQuery.isRefetching || progressQuery.isRefetching;
   const profileInitials = getInitials(profile.full_name, user?.email);
-  const unreadNotifications = (notificationsQuery.data || []).filter((item) => !item.is_read && !item.read_at).length;
+  const unreadNotifications = 0;
 
   const refreshDashboard = () => {
     void Promise.all([verseQuery.refetch(), chaptersQuery.refetch(), progressQuery.refetch()]);
@@ -214,62 +180,6 @@ export function DashboardScreen() {
       message: `“${quote}”\n\n${reference}\nBérée 365`,
       title: "Sagesse du jour",
     });
-  };
-
-  const markNotificationRead = async (notificationId: string) => {
-    if (!user?.id) return;
-
-    await (supabase as any)
-      .from("notification_logs")
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq("id", notificationId)
-      .eq("user_id", user.id);
-
-    await queryClient.invalidateQueries({ queryKey: ["mobile-notifications", user.id] });
-  };
-
-  const markAllNotificationsRead = async () => {
-    if (!user?.id || unreadNotifications === 0) return;
-
-    await (supabase as any)
-      .from("notification_logs")
-      .update({ is_read: true, read_at: new Date().toISOString() })
-      .eq("user_id", user.id)
-      .eq("is_deleted", false);
-
-    await queryClient.invalidateQueries({ queryKey: ["mobile-notifications", user.id] });
-  };
-
-  const removeNotification = async (notificationId: string) => {
-    if (!user?.id) return;
-
-    const queryKey = ["mobile-notifications", user.id] as const;
-    const previousNotifications = queryClient.getQueryData<NotificationLog[]>(queryKey);
-
-    queryClient.setQueryData<NotificationLog[]>(queryKey, (current) =>
-      current?.filter((item) => item.id !== notificationId) || []
-    );
-
-    const { error } = await (supabase as any)
-      .from("notification_logs")
-      .update({ is_deleted: true })
-      .eq("id", notificationId)
-      .eq("user_id", user.id);
-
-    if (error) {
-      queryClient.setQueryData(queryKey, previousNotifications);
-      Alert.alert("Notifications", "Impossible de supprimer cette notification.");
-    }
-  };
-
-  const openNotification = async (notification: NotificationLog) => {
-    const href = notification.link || notification.metadata?.href || notification.metadata?.link;
-    await markNotificationRead(notification.id);
-
-    if (href) {
-      setNotificationSheetVisible(false);
-      router.push(href as any);
-    }
   };
 
   return (
@@ -299,10 +209,7 @@ export function DashboardScreen() {
               accessibilityLabel="Notifications"
               accessibilityRole="button"
               hitSlop={8}
-              onPress={() => {
-                setNotificationSheetVisible(true);
-                void notificationsQuery.refetch();
-              }}
+              onPress={() => setNotificationSheetVisible(true)}
               style={({ pressed }) => [
                 dashboardStyles.headerIconButton,
                 pressed && dashboardStyles.headerButtonPressed,
@@ -384,7 +291,7 @@ export function DashboardScreen() {
               accessibilityLabel={verseLikes.hasLiked ? "Retirer le J'aime" : "J'aime"}
               disabled={verseLikes.isLoading}
               hitSlop={10}
-              onPress={verseLikes.toggleLike}
+              onPress={toggleVerseLike}
               style={({ pressed }) => [
                 dashboardStyles.actionButton,
                 pressed && dashboardStyles.actionPressed,
@@ -527,20 +434,6 @@ export function DashboardScreen() {
                 </Text>
               </View>
               <View style={dashboardStyles.notificationHeaderActions}>
-                {unreadNotifications > 0 ? (
-                  <PressableScale
-                    accessibilityLabel="Marquer toutes les notifications comme lues"
-                    accessibilityRole="button"
-                    hitSlop={8}
-                    onPress={markAllNotificationsRead}
-                    style={({ pressed }) => [
-                      dashboardStyles.markReadButton,
-                      pressed && dashboardStyles.headerButtonPressed,
-                    ]}
-                  >
-                    <Check color={colors.primary} size={18} strokeWidth={2.2} />
-                  </PressableScale>
-                ) : null}
                 <PressableScale
                   accessibilityLabel="Fermer"
                   accessibilityRole="button"
@@ -560,93 +453,18 @@ export function DashboardScreen() {
               contentContainerStyle={dashboardStyles.notificationList}
               showsVerticalScrollIndicator={false}
             >
-              {notificationsQuery.isLoading ? (
-                <ActivityIndicator color={colors.primary} style={dashboardStyles.notificationLoader} />
-              ) : notificationsQuery.isError ? (
-                <Text style={dashboardStyles.emptyText}>Impossible de charger les notifications.</Text>
-              ) : notificationsQuery.data?.length ? (
-                notificationsQuery.data.map((notification) => (
-                  <NotificationSheetRow
-                    item={notification}
-                    key={notification.id}
-                    onOpen={() => openNotification(notification)}
-                    onRemove={() => removeNotification(notification.id)}
-                  />
-                ))
-              ) : (
-                <View style={dashboardStyles.notificationEmptyState}>
-                  <Bell color={colors.primary} size={24} strokeWidth={1.8} />
-                  <Text style={dashboardStyles.notificationEmptyTitle}>Aucune notification</Text>
-                  <Text style={dashboardStyles.notificationEmptyText}>
-                    Vos rappels, badges et versets apparaitront ici.
-                  </Text>
-                </View>
-              )}
+              <View style={dashboardStyles.notificationEmptyState}>
+                <Bell color={colors.primary} size={24} strokeWidth={1.8} />
+                <Text style={dashboardStyles.notificationEmptyTitle}>Centre à venir</Text>
+                <Text style={dashboardStyles.notificationEmptyText}>
+                  Aucun historique mobile n'est disponible dans le contrat actuel.
+                </Text>
+              </View>
             </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>
     </View>
-  );
-}
-
-function NotificationSheetRow({
-  item,
-  onOpen,
-  onRemove,
-}: {
-  item: NotificationLog;
-  onOpen: () => void;
-  onRemove: () => void;
-}) {
-  const isUnread = !item.is_read && !item.read_at;
-  const title = item.title || item.notification_type || item.type || "Notification";
-  const body = item.body || item.message || "Notification Beree 365";
-  const time = formatNotificationTime(item.sent_at || item.created_at);
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onOpen}
-      style={({ pressed }) => [
-        dashboardStyles.notificationRow,
-        isUnread && dashboardStyles.notificationRowUnread,
-        pressed && dashboardStyles.notificationRowPressed,
-      ]}
-    >
-      <View style={dashboardStyles.notificationAvatar}>
-        <Bell color={colors.primary} size={17} strokeWidth={2} />
-      </View>
-      <View style={dashboardStyles.notificationCopy}>
-        <View style={dashboardStyles.notificationTitleRow}>
-          <Text numberOfLines={1} style={dashboardStyles.notificationRowTitle}>
-            {title}
-          </Text>
-          <Text numberOfLines={1} style={dashboardStyles.notificationTime}>
-            {time}
-          </Text>
-        </View>
-        <Text numberOfLines={2} style={dashboardStyles.notificationBody}>
-          {body}
-        </Text>
-      </View>
-      {isUnread ? <View style={dashboardStyles.unreadDot} /> : null}
-      <PressableScale
-        accessibilityLabel="Supprimer la notification"
-        accessibilityRole="button"
-        hitSlop={8}
-        onPress={(event) => {
-          event.stopPropagation();
-          onRemove();
-        }}
-        style={({ pressed }) => [
-          dashboardStyles.notificationDeleteButton,
-          pressed && dashboardStyles.headerButtonPressed,
-        ]}
-      >
-        <Trash2 color={colors.danger} size={17} strokeWidth={1.9} />
-      </PressableScale>
-    </Pressable>
   );
 }
 

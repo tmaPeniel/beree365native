@@ -7,3 +7,4 @@
 export * from './authCore';
 export * from './profileService';
 export * from './sessionService';
+export * from './signupConsentService';

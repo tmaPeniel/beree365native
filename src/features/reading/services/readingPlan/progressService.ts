@@ -172,8 +172,8 @@ export const toggleChapterStatus = async (
         .select();
 
       if (error) throw error;
-      await ActivityService.updateUserActivity(userId);
-      await calculateUserBadges(userId);
+      await ActivityService.updateUserActivity();
+      await calculateUserBadges();
       return { success: true, data };
     }
 
@@ -183,8 +183,8 @@ export const toggleChapterStatus = async (
       .select();
 
     if (error) throw error;
-    await ActivityService.updateUserActivity(userId);
-    await calculateUserBadges(userId);
+    await ActivityService.updateUserActivity();
+    await calculateUserBadges();
     return { success: true, data };
   } catch (error: any) {
     logger.error("Toggle status error", error);
@@ -212,7 +212,7 @@ export const getDayProgress = async (userId: string, dayNumber: number) => {
 
 export const getCompletedDaysCount = async (userId: string) => {
   try {
-    const rpcResult = await getCompletedDaysViaRPC(userId);
+    const rpcResult = await getCompletedDaysViaRPC();
     if (rpcResult !== null) return rpcResult;
     return await getCompletedDaysCountFallback(userId);
   } catch (error) {

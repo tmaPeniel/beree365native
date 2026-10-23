@@ -14,7 +14,9 @@ export {
 export {
   getDailyVerse,
   getDefaultVerse,
-  getAllVersesUpToDay
+  getAllVersesUpToDay,
+  getLikedVerseDays,
+  setVerseLike
 } from './verseService';
 
 // Export des fonctions du service de progression

@@ -487,7 +487,15 @@ export type Database = {
           user_id?: string
           verse_day_number?: number
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "verse_likes_verse_day_number_fkey"
+            columns: ["verse_day_number"]
+            isOneToOne: false
+            referencedRelation: "daily_verses"
+            referencedColumns: ["day_number"]
+          },
+        ]
       }
     }
     Views: {
@@ -537,7 +545,18 @@ export type Database = {
         Args: { days_threshold?: number; p_user_id: string }
         Returns: boolean
       }
+      redeem_premium_signup_code: {
+        Args: { _code: string }
+        Returns: Json
+      }
       sync_current_day_numbers: { Args: never; Returns: undefined }
+      update_my_plan_start_date: {
+        Args: { new_start_date: string }
+        Returns: {
+          current_day_number: number
+          start_date: string
+        }[]
+      }
       update_user_activity: { Args: { p_user_id: string }; Returns: undefined }
     }
     Enums: {

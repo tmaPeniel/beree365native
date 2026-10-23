@@ -1,4 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
+import { requireCurrentUserId } from './sessionService';
 
 /**
  * Service pour gérer l'activité utilisateur
@@ -10,7 +11,7 @@ export class ActivityService {
   /**
    * Met à jour l'activité de l'utilisateur (throttlé)
    */
-  static async updateUserActivity(userId: string): Promise<void> {
+  static async updateUserActivity(): Promise<void> {
     try {
       const now = Date.now();
       
@@ -19,7 +20,9 @@ export class ActivityService {
         return;
       }
 
-      await supabase.rpc('update_user_activity', { p_user_id: userId });
+      const userId = await requireCurrentUserId();
+      const { error } = await supabase.rpc('update_user_activity', { p_user_id: userId });
+      if (error) throw error;
       this.lastUpdate = now;
       
       console.log('User activity updated successfully');
@@ -31,9 +34,11 @@ export class ActivityService {
   /**
    * Force la mise à jour d'activité (sans throttle)
    */
-  static async forceUpdateUserActivity(userId: string): Promise<void> {
+  static async forceUpdateUserActivity(): Promise<void> {
     try {
-      await supabase.rpc('update_user_activity', { p_user_id: userId });
+      const userId = await requireCurrentUserId();
+      const { error } = await supabase.rpc('update_user_activity', { p_user_id: userId });
+      if (error) throw error;
       this.lastUpdate = Date.now();
       
       console.log('User activity force updated successfully');
