@@ -10,7 +10,7 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "@/features/auth/hooks/useAuth";
 import { colors, fonts } from "@/shared/theme/styles";
@@ -44,41 +44,53 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider style={{ backgroundColor: colors.background }}>
-      <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <StatusBar style="dark" />
-          <Stack
-            screenOptions={{
-              animation: "slide_from_right",
-              contentStyle: { backgroundColor: colors.background },
-              headerBackButtonDisplayMode: "minimal",
-              headerShadowVisible: false,
-              headerStyle: { backgroundColor: colors.surface },
-              headerTintColor: colors.primary,
-              headerTitleStyle: { color: colors.text, fontFamily: fonts.semibold },
-            }}
-          >
-            <Stack.Screen name="index" options={{ headerShown: false }} />
-            <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen name="reading-plan" options={{ headerShown: false }} />
-            <Stack.Screen name="verses" options={{ title: "Historique" }} />
-            <Stack.Screen name="premium" options={{ title: "Premium" }} />
-            <Stack.Screen name="terms" options={{ title: "Conditions" }} />
-            <Stack.Screen name="cookies-policy" options={{ title: "Politique cookies" }} />
-            <Stack.Screen name="admin" options={{ title: "Administration" }} />
-            <Stack.Screen name="profile/statistics" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/badges" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/settings" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/notifications" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/subscription" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/about" options={{ headerShown: false }} />
-            <Stack.Screen name="profile/help" options={{ headerShown: false }} />
-          </Stack>
-        </AuthProvider>
-      </QueryClientProvider>
+      <View style={rootStyles.appSurface}>
+        <QueryClientProvider client={queryClient}>
+          <AuthProvider>
+            <StatusBar style="dark" />
+            <Stack
+              screenOptions={{
+                animation: "slide_from_right",
+                contentStyle: { backgroundColor: colors.background },
+                headerBackButtonDisplayMode: "minimal",
+                headerShadowVisible: false,
+                headerStyle: { backgroundColor: colors.surface },
+                headerTintColor: colors.primary,
+                headerTitleStyle: { color: colors.text, fontFamily: fonts.semibold },
+                navigationBarColor: colors.background,
+                statusBarBackgroundColor: colors.background,
+                statusBarStyle: "dark",
+              }}
+            >
+              <Stack.Screen name="index" options={{ headerShown: false }} />
+              <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+              <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+              <Stack.Screen name="reading-plan" options={{ headerShown: false }} />
+              <Stack.Screen name="verses" options={{ title: "Historique" }} />
+              <Stack.Screen name="premium" options={{ title: "Premium" }} />
+              <Stack.Screen name="terms" options={{ title: "Conditions" }} />
+              <Stack.Screen name="cookies-policy" options={{ title: "Politique cookies" }} />
+              <Stack.Screen name="admin" options={{ title: "Administration" }} />
+              <Stack.Screen name="profile/statistics" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/badges" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/edit" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/settings" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/notifications" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/subscription" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/privacy" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/about" options={{ headerShown: false }} />
+              <Stack.Screen name="profile/help" options={{ headerShown: false }} />
+            </Stack>
+          </AuthProvider>
+        </QueryClientProvider>
+      </View>
     </SafeAreaProvider>
   );
 }
+
+const rootStyles = StyleSheet.create({
+  appSurface: {
+    backgroundColor: colors.background,
+    flex: 1,
+  },
+});
