@@ -51,16 +51,26 @@ export function usePushNotifications() {
       const projectId =
         Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
 
-      // TODO: renseigner `extra.eas.projectId` via EAS pour les builds de production.
-      const token = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
+      if (!projectId) {
+        throw new Error("L'identifiant du projet EAS n'est pas configuré.");
+      }
+
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("default", {
+          importance: Notifications.AndroidImportance.DEFAULT,
+          name: "Notifications Bérée 365",
+        });
+      }
+
+      const token = await Notifications.getExpoPushTokenAsync({ projectId });
       setExpoPushToken(token.data);
 
-      // TODO: adapter l'Edge Function pour persister les tokens Expo cote Supabase.
-      const { error } = await supabase.functions.invoke("register-push-subscription", {
+      const { error } = await supabase.functions.invoke("register-native-push-token", {
         body: {
-          type: "expo",
+          appVersion: Constants.expoConfig?.version,
+          platform: Platform.OS,
+          projectId,
           token: token.data,
-          platform: Device.osName,
         },
       });
 
@@ -72,18 +82,22 @@ export function usePushNotifications() {
   }, []);
 
   const unsubscribe = useCallback(async () => {
-    // TODO: ajouter une Edge Function mobile dediee pour supprimer le token Expo.
-    setExpoPushToken(null);
-    return true;
-  }, []);
+    if (!expoPushToken) return true;
 
-  const sendTest = useCallback(async () => {
-    const { data, error } = await supabase.functions.invoke("send-test-push", {
-      body: expoPushToken ? { type: "expo", token: expoPushToken } : undefined,
+    const { error } = await supabase.functions.invoke("unregister-native-push-token", {
+      body: { token: expoPushToken },
     });
     if (error) throw error;
-    return data as { sent: number };
+
+    setExpoPushToken(null);
+    return true;
   }, [expoPushToken]);
+
+  const sendTest = useCallback(async () => {
+    const { data, error } = await supabase.functions.invoke("send-native-test-push");
+    if (error) throw error;
+    return data as { sent: number };
+  }, []);
 
   return {
     isSupported: permission !== "unsupported",
