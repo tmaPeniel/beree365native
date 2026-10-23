@@ -119,8 +119,8 @@ export function ProfileScreen() {
     },
     {
       icon: Heart,
-      title: "Verset du jour",
-      subtitle: "Mediter sur la Parole",
+      title: "Historique",
+      subtitle: "Retrouver vos versets",
       href: "/verses",
     },
     {
