@@ -3,9 +3,10 @@ import { StyleSheet, Text, TextInput, type TextInputProps, View } from "react-na
 import { colors, fonts } from "@/shared/theme/styles";
 
 export const authColors = {
-  background: "#FCFBF9",
+  background: colors.background,
   border: "#E8DDD4",
   primary: "#B86521",
+  surface: colors.surface,
   text: "#17100C",
   muted: "#7D6253",
 };
@@ -56,7 +57,7 @@ export const authStyles = StyleSheet.create({
     paddingVertical: 14,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: authColors.surface,
     borderColor: authColors.border,
     borderRadius: 15,
     borderTopColor: authColors.primary,
@@ -93,7 +94,7 @@ export const authStyles = StyleSheet.create({
   label: { color: authColors.text, fontFamily: fonts.semibold, fontSize: 13 },
   inputFrame: { justifyContent: "center", position: "relative" },
   input: {
-    backgroundColor: "#FFFEFD",
+    backgroundColor: authColors.surface,
     borderColor: authColors.border,
     borderRadius: 13,
     borderWidth: 1,

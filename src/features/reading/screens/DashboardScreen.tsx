@@ -563,7 +563,7 @@ function MetricRow({ label, value }: { label: string; value: number }) {
 
 const dashboardStyles = StyleSheet.create({
   safeArea: {
-    backgroundColor: colors.surface,
+    backgroundColor: colors.background,
     flex: 1,
   },
   screen: {
@@ -885,7 +885,7 @@ const dashboardStyles = StyleSheet.create({
   },
   metricRow: {
     alignItems: "center",
-    backgroundColor: "#F8F6F3",
+    backgroundColor: colors.surface,
     borderRadius: 12,
     flexDirection: "row",
     justifyContent: "space-between",
