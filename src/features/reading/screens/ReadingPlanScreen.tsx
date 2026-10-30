@@ -47,7 +47,7 @@ import {
 } from "@/features/reading/services/readingPlan";
 import { AnimatedProgressBar, MotionView, PressableScale } from "@/shared/animation/Motion";
 import { useAdaptiveLayout } from "@/shared/layout/adaptive";
-import { fonts } from "@/shared/theme/styles";
+import { colors, fonts } from "@/shared/theme/styles";
 
 type ReadingViewMode = "focus" | "grid";
 type DayReadingState = "pending" | "in-progress" | "completed";
@@ -57,15 +57,15 @@ const DAY_RAIL_ITEM_WIDTH = 68;
 const DAY_RAIL_ITEM_GAP = 6;
 
 const COLORS = {
-  background: "#f8f6f3",
-  card: "#ffffff",
-  cardSoft: "#fbfaf8",
+  background: colors.background,
+  card: colors.surface,
+  cardSoft: colors.surfaceSoft,
   ink: "#2f261f",
   muted: "#7e6f64",
   border: "#eadfd4",
   copper: "#b76620",
   copperDark: "#2d2018",
-  chip: "#f5ece5",
+  chip: colors.surfaceSoft,
   danger: "#b42318",
 };
 
@@ -535,6 +535,7 @@ function GridView({
   onTogglePassage: (passage: ReadingPlanProgressPassage) => void;
 }) {
   const [searchExpanded, setSearchExpanded] = useState(false);
+  const [isDayDetailVisible, setIsDayDetailVisible] = useState(true);
   const visibleMonthIndex = visibleMonthKey ? monthKeys.indexOf(visibleMonthKey) : 0;
   const safeMonthIndex = visibleMonthIndex >= 0 ? visibleMonthIndex : 0;
   const monthKey = monthKeys[safeMonthIndex] || visibleMonthKey;
@@ -594,6 +595,16 @@ function GridView({
   const toggleSearch = () => {
     if (searchExpanded) onClearSearch();
     setSearchExpanded((current) => !current);
+  };
+
+  const selectCalendarDay = (dayNumber: number) => {
+    if (dayNumber === selectedDayNumber) {
+      setIsDayDetailVisible((current) => !current);
+      return;
+    }
+
+    onSelectDay(dayNumber);
+    setIsDayDetailVisible(true);
   };
 
   return (
@@ -718,13 +729,19 @@ function GridView({
                 const state = day ? getDayReadingState(day) : "pending";
                 const isToday = day?.day_number === currentDayNumber;
                 const isSelected = day?.day_number === selectedDayNumber;
+                const isDetailExpanded = isSelected && isDayDetailVisible;
                 return (
                   <Pressable
                     key={`date-${cell.dateNumber}`}
-                    accessibilityLabel={day ? `Sélectionner le jour ${day.day_number}` : undefined}
+                    accessibilityLabel={day
+                      ? `${isDetailExpanded ? "Masquer" : "Afficher"} le plan du jour ${day.day_number}`
+                      : undefined}
                     accessibilityRole={day ? "button" : undefined}
+                    accessibilityState={day
+                      ? { expanded: isDetailExpanded, selected: isSelected }
+                      : undefined}
                     disabled={!day}
-                    onPress={() => day && onSelectDay(day.day_number)}
+                    onPress={() => day && selectCalendarDay(day.day_number)}
                     style={({ pressed }) => [
                       styles.calendarCell,
                       isSelected && styles.calendarCellSelected,
@@ -758,7 +775,7 @@ function GridView({
             </View>
           </MotionView>
 
-          {selectedDay ? (
+          {selectedDay && isDayDetailVisible ? (
             <CalendarDayDetail
               key={selectedDay.day_number}
               day={selectedDay}
@@ -767,12 +784,12 @@ function GridView({
               onOpenDay={() => onOpenDay(selectedDay)}
               onTogglePassage={onTogglePassage}
             />
-          ) : (
+          ) : !selectedDay ? (
             <MotionView delay={80} style={styles.calendarSelectionEmpty}>
               <Text style={styles.calendarSelectionEmptyTitle}>Choisissez une journée</Text>
               <Text style={styles.calendarSelectionEmptyText}>Ses passages apparaîtront ici.</Text>
             </MotionView>
-          )}
+          ) : null}
         </>
       )}
     </>
@@ -1132,7 +1149,7 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.copper,
   },
   returnToCurrentDayRow: {
-    alignItems: "flex-end",
+    alignItems: "center",
     marginBottom: 12,
     marginTop: -6,
   },
@@ -1201,7 +1218,7 @@ const styles = StyleSheet.create({
   },
   checkbox: {
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderColor: "#cdbfb4",
     borderRadius: 999,
     borderWidth: 1,
@@ -1234,7 +1251,7 @@ const styles = StyleSheet.create({
   },
   searchBox: {
     alignItems: "center",
-    backgroundColor: "#fff",
+    backgroundColor: COLORS.card,
     borderColor: COLORS.border,
     borderRadius: 12,
     borderWidth: 1,
@@ -1262,8 +1279,10 @@ const styles = StyleSheet.create({
   calendarToolbar: {
     alignItems: "center",
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     marginBottom: 14,
+    minHeight: 40,
+    position: "relative",
   },
   todayButton: {
     alignItems: "center",
@@ -1287,6 +1306,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     height: 40,
     justifyContent: "center",
+    position: "absolute",
+    right: 0,
     width: 40,
   },
   iconButtonPressed: {
@@ -1429,7 +1450,8 @@ const styles = StyleSheet.create({
     width: "14.2857%",
   },
   calendarCellSelected: {
-    backgroundColor: COLORS.chip,
+    backgroundColor: "rgba(183, 102, 32, 0.10)",
+    borderColor: COLORS.copper,
   },
   calendarCellToday: {
     borderColor: COLORS.copper,
@@ -1447,6 +1469,7 @@ const styles = StyleSheet.create({
     color: "#c9beb5",
   },
   calendarDateNumberSelected: {
+    color: COLORS.copper,
     fontFamily: fonts.semibold,
   },
   calendarStateSlot: {
